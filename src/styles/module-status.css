@@ -1,0 +1,1 @@
+.module-save-status{display:inline-flex;align-items:center;gap:5px;padding:5px 9px;border-radius:99px;background:#edf7ff;color:#377094;font-size:11px}.module-save-status:before{content:'●';color:#2edb70;font-size:9px}@media(max-width:520px){.work-panel .panel-top{display:flex;align-items:flex-start;gap:8px}.module-save-status{max-width:150px;text-align:right;line-height:1.35}}
