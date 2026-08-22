@@ -1,0 +1,4 @@
+import { getDashboardData } from './services/dashboard-service.js';
+import { shell } from './components/layout.js'; import { metricsGrid } from './components/metrics.js'; import { analytics } from './components/charts.js'; import { caseTracking } from './components/case-tracking.js'; import { rightRail } from './components/alerts.js';
+const data = await getDashboardData();
+document.querySelector('#app').innerHTML = shell(`<div class="page"><div class="dashboard">${metricsGrid(data.metrics)}${analytics()}${caseTracking(data.cases)}<section class="kpis">${[['รับทราบภายใน 24 ชม.','98%'],['ควบคุมโรคเสร็จภายใน 3 วัน','95%'],['เวลาเฉลี่ยรับรายงานเคส','2 ชม. 15 นาที'],['เวลาเฉลี่ยปิดเคส','2 วัน 8 ชม.'],['เคสค้างดำเนินการ','3 เคส']].map(x=>`<b>${x[0]}<strong>${x[1]}</strong></b>`).join('')}</section></div>${rightRail(data.alerts)}</div>`);

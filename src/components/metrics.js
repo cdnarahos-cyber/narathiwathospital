@@ -1,0 +1,1 @@
+export function metricsGrid(metrics) { return `<section><h2>ภาพรวมสถานการณ์วันนี้</h2><div class="metrics">${metrics.map(([t,v,u,c,color]) => `<article class="metric ${color}"><span>${t}</span><strong>${v}</strong> <small>${u}</small><footer>เมื่อวาน　${c}</footer></article>`).join('')}</div></section>`; }
