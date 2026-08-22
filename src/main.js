@@ -12,4 +12,5 @@ document.addEventListener('submit', event => { if (event.target.matches('[data-d
 document.addEventListener('change', event => { if(event.target.matches('[data-disease]')) root.querySelector('[data-disease-fields]').innerHTML=diseaseFields(event.target.value); });
 document.addEventListener('input', event => { if (event.target.matches('[data-filter]')) { const keyword = event.target.value.toLowerCase(); event.target.closest('.work-panel').querySelectorAll('tbody tr').forEach(row => row.hidden = !row.textContent.toLowerCase().includes(keyword)); } });
 document.addEventListener('click', event => { if(event.target.matches('[data-clear-pins]')) { localStorage.removeItem('ndss-investigations'); renderPins(); } const pin=event.target.closest('[data-pin]'); if(pin) { const item=JSON.parse(localStorage.getItem('ndss-investigations')||'[]')[pin.dataset.pin]; root.querySelector('[data-map-details]').innerHTML=`<b>${item.patient}</b><br>${item.disease} · ${item.location}<br>พิกัด ${item.lat}, ${item.lng}<br>เริ่มป่วย ${item.onset}`; } });
+document.addEventListener('click', event => { if(event.target.closest('[data-print-report]')) window.print(); });
 
