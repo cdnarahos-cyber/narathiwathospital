@@ -1,7 +1,7 @@
 export const supabaseConfig = {
   url: 'https://eyrplueyhpeiuruelvlq.supabase.co',
-  // Set this from a build-time environment variable in production.
-  publishableKey: globalThis.NDSS_SUPABASE_PUBLISHABLE_KEY || '',
+  publishableKey: globalThis.NDSS_CONFIG?.supabasePublishableKey || '',
+  accessToken: globalThis.NDSS_CONFIG?.accessToken || '',
 };
 
 export const hasSupabaseCredentials = Boolean(supabaseConfig.publishableKey);

@@ -3,7 +3,31 @@ import { metrics, cases, alerts } from '../data/dashboard-data.js';
 
 export async function getDashboardData() {
   if (!hasSupabaseCredentials) return { metrics, cases, alerts, source: 'demo' };
-  // Add @supabase/supabase-js to your build and query disease_cases here.
-  console.info(`Supabase configured for ${supabaseConfig.url}`);
-  return { metrics, cases, alerts, source: 'demo' };
+
+  const headers = {
+    apikey: supabaseConfig.publishableKey,
+    Authorization: `Bearer ${supabaseConfig.accessToken || supabaseConfig.publishableKey}`,
+  };
+  const request = (table, query) => fetch(`${supabaseConfig.url}/rest/v1/${table}?${query}`, { headers })
+    .then(async response => {
+      if (!response.ok) throw new Error(`${table}: ${response.status}`);
+      return response.json();
+    });
+
+  try {
+    const [liveCases, liveAlerts] = await Promise.all([
+      request('disease_cases', 'select=case_number,disease_name,patient_summary,location_name,reported_at,status&order=reported_at.desc&limit=20'),
+      request('smart_alerts', 'select=title,detail,severity,created_at&order=created_at.desc&limit=10'),
+    ]);
+    const labels = { pending: ['รอพื้นที่รับรายงาน', 'gold'], acknowledged: ['รับทราบแล้ว', 'blue'], in_progress: ['อยู่ระหว่างดำเนินการ', 'blue'], controlled: ['ควบคุมโรคแล้ว', 'green'], overdue: ['เกินกำหนด', 'red'] };
+    return {
+      metrics,
+      cases: liveCases.map(row => [row.case_number, row.disease_name, row.patient_summary, row.location_name, new Date(row.reported_at).toLocaleString('th-TH'), labels[row.status]?.[0] || row.status, labels[row.status]?.[1] || 'blue']),
+      alerts: liveAlerts.map(row => ['●', row.title, row.detail || '', new Date(row.created_at).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' }), row.severity === 'critical' ? 'red' : row.severity === 'warning' ? 'orange' : 'blue']),
+      source: 'live',
+    };
+  } catch (error) {
+    console.warn('Supabase dashboard query unavailable; displaying demo data.', error);
+    return { metrics, cases, alerts, source: 'demo' };
+  }
 }
