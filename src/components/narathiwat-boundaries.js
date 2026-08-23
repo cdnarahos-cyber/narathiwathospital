@@ -85,8 +85,8 @@ export const addNarathiwatBoundaries = async map => {
     const reportButton = searchWrap.querySelector('button');
     const optionList = searchWrap.querySelector('datalist');
     const places = [
-      ...districts.features.map(feature => ({ label: `อำเภอ${feature.properties.district}`, key: `district:${feature.properties.district}`, district: true, level: 'district', name: feature.properties.district, code: feature.properties.districtCode })),
-      ...tambons.features.map(feature => ({ label: `ตำบล${feature.properties.tambon} · อำเภอ${feature.properties.district}`, key: `tambon:${feature.properties.tambonCode}`, district: false, level: 'tambon', name: feature.properties.tambon, code: feature.properties.tambonCode }))
+      ...districts.features.map(feature => ({ label: `อำเภอ${feature.properties.district}`, key: `district:${feature.properties.district}`, district: true, level: 'district', name: feature.properties.district, code: feature.properties.districtCode, geometry: feature.geometry })),
+      ...tambons.features.map(feature => ({ label: `ตำบล${feature.properties.tambon} · อำเภอ${feature.properties.district}`, key: `tambon:${feature.properties.tambonCode}`, district: false, level: 'tambon', name: feature.properties.tambon, code: feature.properties.tambonCode, geometry: feature.geometry }))
     ];
     let selectedPlace;
     optionList.innerHTML = places.map(place => `<option value="${place.label}"></option>`).join('');
