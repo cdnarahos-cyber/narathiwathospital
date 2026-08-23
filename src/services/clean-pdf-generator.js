@@ -16,7 +16,9 @@ const lineWrap = (ctx, value, maxWidth) => {
   return lines;
 };
 
-const readFields = source => [...source.querySelectorAll('label')].flatMap(label => {
+const readFields = source => {
+  const headings = [...source.querySelectorAll('h2')];
+  return [...source.querySelectorAll('label')].flatMap(label => {
   const control = label.querySelector('input, select, textarea');
   if (!control) return [];
   const copy = label.cloneNode(true);
@@ -26,8 +28,10 @@ const readFields = source => [...source.querySelectorAll('label')].flatMap(label
   if (control.type === 'checkbox' || control.type === 'radio') value = control.checked ? 'เลือก' : 'ไม่เลือก';
   else if (control.tagName === 'SELECT') value = control.options[control.selectedIndex]?.text || '-';
   else value = control.value || '-';
-  return [{ name, value }];
-});
+    const section = headings.filter(heading => heading.compareDocumentPosition(label) & Node.DOCUMENT_POSITION_FOLLOWING).at(-1)?.textContent.trim() || 'ข้อมูลแบบสอบสวน';
+    return [{ name, value, section }];
+  });
+};
 
 const makePdf = (pages) => {
   const encoder = new TextEncoder();
@@ -79,6 +83,7 @@ export const downloadCleanPdf = async (source, disease) => {
   let y;
   let column = 0;
   let rowHeight = 0;
+  let currentSection = '';
 
   const startPage = () => {
     canvas = document.createElement('canvas');
@@ -110,6 +115,23 @@ export const downloadCleanPdf = async (source, disease) => {
     y = 264;
     column = 0;
     rowHeight = 0;
+  };
+
+  const drawSection = title => {
+    if (column) {
+      y += rowHeight + 14;
+      column = 0;
+      rowHeight = 0;
+    }
+    if (y + 48 > pageHeight - margin) startPage();
+    ctx.fillStyle = '#edf5fc';
+    ctx.fillRect(margin, y, bodyWidth, 42);
+    ctx.fillStyle = '#176fca';
+    ctx.fillRect(margin, y, 6, 42);
+    ctx.fillStyle = '#0b3f76';
+    ctx.font = '700 20px "IBM Plex Sans Thai", sans-serif';
+    ctx.fillText(title, margin + 20, y + 27);
+    y += 56;
   };
 
   const drawField = ({ name, value }) => {
@@ -155,7 +177,13 @@ export const downloadCleanPdf = async (source, disease) => {
   };
 
   startPage();
-  readFields(source).forEach(drawField);
+  readFields(source).forEach(field => {
+    if (field.section !== currentSection) {
+      currentSection = field.section;
+      drawSection(currentSection);
+    }
+    drawField(field);
+  });
   const blob = makePdf(pages);
   const url = URL.createObjectURL(blob);
   const link = document.createElement('a');
