@@ -61,7 +61,7 @@ const recordsInPlace = place => JSON.parse(localStorage.getItem('ndss-investigat
   return values.filter(Boolean).some(value => String(value).includes(place.name));
 });
 
-const drawAreaMap = (ctx, geometry, x, y, mapWidth, mapHeight) => {
+const drawAreaMap = (ctx, geometry, records, x, y, mapWidth, mapHeight) => {
   ctx.fillStyle = '#f3f8fc';
   ctx.fillRect(x, y, mapWidth, mapHeight);
   ctx.strokeStyle = '#b8d0e6';
@@ -93,6 +93,20 @@ const drawAreaMap = (ctx, geometry, x, y, mapWidth, mapHeight) => {
     ctx.fill();
     ctx.stroke();
   }));
+  records.forEach(record => {
+    const lng = Number(record.lng);
+    const lat = Number(record.lat);
+    if (!Number.isFinite(lat) || !Number.isFinite(lng) || lng < minLng || lng > maxLng || lat < minLat || lat > maxLat) return;
+    const px = offsetX + (lng - minLng) * scale;
+    const py = offsetY + (maxLat - lat) * scale;
+    ctx.beginPath();
+    ctx.fillStyle = '#dc2626';
+    ctx.strokeStyle = '#fff';
+    ctx.lineWidth = 2;
+    ctx.arc(px, py, 5, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.stroke();
+  });
 };
 
 export const downloadAreaReportPdf = async place => {
@@ -158,7 +172,7 @@ export const downloadAreaReportPdf = async place => {
     ctx.fillStyle = '#416582';
     ctx.font = '600 16px "IBM Plex Sans Thai", sans-serif';
     ctx.fillText(`จำนวน ${records.length} เคส · จัดทำ ${new Date().toLocaleString('th-TH')}`, margin, 251);
-    drawAreaMap(ctx, place.geometry, width - margin - 270, 160, 270, 108);
+    drawAreaMap(ctx, place.geometry, records, width - margin - 270, 160, 270, 108);
     y = 278;
     drawTableHead();
   };
