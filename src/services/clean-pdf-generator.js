@@ -84,6 +84,7 @@ export const downloadCleanPdf = async (source, disease) => {
   let column = 0;
   let rowHeight = 0;
   let currentSection = '';
+  const fieldValue = name => source.elements[name]?.value || '-';
 
   const startPage = () => {
     canvas = document.createElement('canvas');
@@ -124,7 +125,28 @@ export const downloadCleanPdf = async (source, disease) => {
     ctx.textAlign = 'right';
     ctx.fillText(`พิมพ์เมื่อ ${new Date().toLocaleString('th-TH')}`, pageWidth - margin, pageHeight - 28);
     ctx.textAlign = 'left';
-    y = 264;
+    if (pages.length === 1) {
+      const overview = [
+        ['แบบฟอร์ม', disease],
+        ['ผู้ป่วย', fieldValue('patient')],
+        ['HN', fieldValue('hn')],
+        ['วันเริ่มป่วย', fieldValue('onset')]
+      ];
+      const cardWidth = (bodyWidth - 36) / 4;
+      overview.forEach(([label, value], index) => {
+        const x = margin + index * (cardWidth + 12);
+        ctx.fillStyle = '#f4f8fc';
+        ctx.fillRect(x, 264, cardWidth, 64);
+        ctx.fillStyle = '#416582';
+        ctx.font = '600 14px "IBM Plex Sans Thai", sans-serif';
+        ctx.fillText(label, x + 14, 286);
+        ctx.fillStyle = '#071d38';
+        ctx.font = '700 17px "IBM Plex Sans Thai", sans-serif';
+        const valueLine = lineWrap(ctx, value, cardWidth - 28)[0] || '-';
+        ctx.fillText(valueLine, x + 14, 312);
+      });
+      y = 350;
+    } else y = 264;
     column = 0;
     rowHeight = 0;
   };
