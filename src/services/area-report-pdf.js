@@ -61,6 +61,40 @@ const recordsInPlace = place => JSON.parse(localStorage.getItem('ndss-investigat
   return values.filter(Boolean).some(value => String(value).includes(place.name));
 });
 
+const drawAreaMap = (ctx, geometry, x, y, mapWidth, mapHeight) => {
+  ctx.fillStyle = '#f3f8fc';
+  ctx.fillRect(x, y, mapWidth, mapHeight);
+  ctx.strokeStyle = '#b8d0e6';
+  ctx.strokeRect(x, y, mapWidth, mapHeight);
+  ctx.fillStyle = '#31567f';
+  ctx.font = '700 13px "IBM Plex Sans Thai", sans-serif';
+  ctx.fillText('แผนที่ขอบเขตพื้นที่รายงาน', x + 10, y + 18);
+  const polygons = geometry?.type === 'Polygon' ? [geometry.coordinates] : geometry?.type === 'MultiPolygon' ? geometry.coordinates : [];
+  const points = polygons.flat(2);
+  if (!points.length) return;
+  const lngs = points.map(point => point[0]);
+  const lats = points.map(point => point[1]);
+  const minLng = Math.min(...lngs), maxLng = Math.max(...lngs), minLat = Math.min(...lats), maxLat = Math.max(...lats);
+  const padding = 16, availableWidth = mapWidth - padding * 2, availableHeight = mapHeight - 34 - padding;
+  const scale = Math.min(availableWidth / Math.max(maxLng - minLng, 0.00001), availableHeight / Math.max(maxLat - minLat, 0.00001));
+  const offsetX = x + (mapWidth - (maxLng - minLng) * scale) / 2;
+  const offsetY = y + 28 + (availableHeight - (maxLat - minLat) * scale) / 2;
+  ctx.fillStyle = '#2489df';
+  ctx.strokeStyle = '#063d73';
+  ctx.lineWidth = 2;
+  polygons.forEach(polygon => polygon.forEach(ring => {
+    ctx.beginPath();
+    ring.forEach(([lng, lat], index) => {
+      const px = offsetX + (lng - minLng) * scale;
+      const py = offsetY + (maxLat - lat) * scale;
+      if (index) ctx.lineTo(px, py); else ctx.moveTo(px, py);
+    });
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
+  }));
+};
+
 export const downloadAreaReportPdf = async place => {
   await document.fonts?.ready;
   const logo = new Image();
@@ -124,6 +158,7 @@ export const downloadAreaReportPdf = async place => {
     ctx.fillStyle = '#416582';
     ctx.font = '600 16px "IBM Plex Sans Thai", sans-serif';
     ctx.fillText(`จำนวน ${records.length} เคส · จัดทำ ${new Date().toLocaleString('th-TH')}`, margin, 251);
+    drawAreaMap(ctx, place.geometry, width - margin - 270, 160, 270, 108);
     y = 278;
     drawTableHead();
   };
