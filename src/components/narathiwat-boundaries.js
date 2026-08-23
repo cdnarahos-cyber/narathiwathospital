@@ -41,7 +41,7 @@ const makeLayer = (L, data, level, pane) => L.geoJSON(data, {
     layer.bindTooltip(`${isDistrict ? 'อำเภอ' : 'ตำบล'}${name}${parent}`, { sticky: true });
     layer.bindPopup(`<b>${isDistrict ? 'อำเภอ' : 'ตำบล'}${name}</b><br>${isDistrict ? '' : `อำเภอ${feature.properties.district}<br>`}จำนวนเคสที่บันทึก: ${count} เคส`);
     layer.on('mouseover', () => layer.setStyle({ ...styleFor(feature, level), weight: isDistrict ? 3.2 : 1.6, fillOpacity: 0.25 }));
-    layer.on('mouseout', () => layer.setStyle(styleFor(feature, level)));
+    layer.on('mouseout', () => { if (!layer.__ndssSelected) layer.setStyle(styleFor(feature, level)); });
     layer.on('click', () => layer._map?.fitBounds(layer.getBounds(), { padding: [28, 28], maxZoom: isDistrict ? 12 : 14 }));
   }
 });
@@ -58,8 +58,17 @@ export const addNarathiwatBoundaries = async map => {
     const tambonLayer = makeLayer(window.L, tambons, 'tambon', paneName);
     districtLayer.addTo(map);
     const areaBounds = new Map();
-    districtLayer.eachLayer(layer => areaBounds.set(`district:${layer.feature.properties.district}`, layer.getBounds()));
-    tambonLayer.eachLayer(layer => areaBounds.set(`tambon:${layer.feature.properties.tambonCode}`, layer.getBounds()));
+    const areaLayers = new Map();
+    districtLayer.eachLayer(layer => {
+      const key = `district:${layer.feature.properties.district}`;
+      areaBounds.set(key, layer.getBounds());
+      areaLayers.set(key, layer);
+    });
+    tambonLayer.eachLayer(layer => {
+      const key = `tambon:${layer.feature.properties.tambonCode}`;
+      areaBounds.set(key, layer.getBounds());
+      areaLayers.set(key, layer);
+    });
     window.L.control.layers(null, {
       'ขอบเขตอำเภอ': districtLayer,
       'ขอบเขตตำบล': tambonLayer
@@ -83,7 +92,22 @@ export const addNarathiwatBoundaries = async map => {
       const place = places.find(item => item.label.toLowerCase() === query)
         || places.find(item => item.label.toLowerCase().includes(query));
       const bounds = place && areaBounds.get(place.key);
-      if (bounds?.isValid()) map.fitBounds(bounds, { padding: [28, 28], maxZoom: place.district ? 12 : 14 });
+      if (bounds?.isValid()) {
+        areaLayers.forEach(layer => {
+          if (layer.__ndssSelected) {
+            layer.__ndssSelected = false;
+            const level = layer.feature.properties.tambon ? 'tambon' : 'district';
+            layer.setStyle(styleFor(layer.feature, level));
+          }
+        });
+        const selectedLayer = areaLayers.get(place.key);
+        if (selectedLayer) {
+          selectedLayer.__ndssSelected = true;
+          selectedLayer.setStyle({ color: '#062f57', weight: 4, fillColor: '#0b63b6', fillOpacity: 0.34, dashArray: null });
+          selectedLayer.bringToFront();
+        }
+        map.fitBounds(bounds, { padding: [28, 28], maxZoom: place.district ? 12 : 14 });
+      }
     };
     input.addEventListener('change', zoomToPlace);
     input.addEventListener('keydown', event => { if (event.key === 'Enter') { event.preventDefault(); zoomToPlace(); } });
