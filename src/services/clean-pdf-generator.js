@@ -169,25 +169,25 @@ export const downloadCleanPdf = async (source, disease) => {
 
   const drawSection = title => {
     if (column) {
-      y += rowHeight + 14;
+      y += rowHeight + 10;
       column = 0;
       rowHeight = 0;
     }
-    if (y + 48 > pageHeight - margin) startPage();
+    if (y + 40 > pageHeight - margin) startPage();
     ctx.fillStyle = '#edf5fc';
-    ctx.fillRect(margin, y, bodyWidth, 42);
+    ctx.fillRect(margin, y, bodyWidth, 36);
     ctx.fillStyle = '#176fca';
-    ctx.fillRect(margin, y, 6, 42);
+    ctx.fillRect(margin, y, 6, 36);
     ctx.fillStyle = '#0b3f76';
     ctx.font = '700 20px "IBM Plex Sans Thai", sans-serif';
-    ctx.fillText(title, margin + 20, y + 27);
-    y += 56;
+    ctx.fillText(title, margin + 20, y + 24);
+    y += 48;
   };
 
   const drawField = ({ name, value }) => {
     const isWide = String(value).length > 54 || name.length > 38 || /ที่อยู่|รายละเอียด|อาการ|ประวัติ|หมายเหตุ|ผลการ|สถานที่|ความสัมพันธ์/.test(name);
     if (isWide && column) {
-      y += rowHeight + 14;
+      y += rowHeight + 10;
       column = 0;
       rowHeight = 0;
     }
@@ -198,7 +198,7 @@ export const downloadCleanPdf = async (source, disease) => {
     const titleLines = lineWrap(ctx, name, width - 36);
     ctx.font = '600 18px "IBM Plex Sans Thai", sans-serif';
     const valueLines = lineWrap(ctx, value, width - 36);
-    const height = Math.max(84, titleLines.length * 24 + valueLines.length * 25 + 34);
+    const height = Math.max(70, titleLines.length * 22 + valueLines.length * 23 + 25);
     if (y + height > pageHeight - margin) {
       startPage();
       if (currentSection) drawSection(currentSection);
@@ -210,19 +210,19 @@ export const downloadCleanPdf = async (source, disease) => {
     ctx.strokeRect(x, y - 4, width, height - 8);
     ctx.fillStyle = '#123b6d';
     ctx.font = '700 18px "IBM Plex Sans Thai", sans-serif';
-    titleLines.forEach((line, index) => ctx.fillText(line, x + 18, y + 18 + index * 24));
+    titleLines.forEach((line, index) => ctx.fillText(line, x + 18, y + 17 + index * 22));
     ctx.fillStyle = String(value) === '-' ? '#8a9bad' : '#071d38';
     ctx.font = '600 18px "IBM Plex Sans Thai", sans-serif';
-    valueLines.forEach((line, index) => ctx.fillText(line, x + 18, y + 18 + titleLines.length * 24 + index * 25));
+    valueLines.forEach((line, index) => ctx.fillText(line, x + 18, y + 17 + titleLines.length * 22 + index * 23));
     if (isWide) {
-      y += height + 12;
+      y += height + 8;
       column = 0;
       rowHeight = 0;
     } else {
       rowHeight = Math.max(rowHeight, height);
       if (column === 0) column = 1;
       else {
-        y += rowHeight + 12;
+        y += rowHeight + 8;
         column = 0;
         rowHeight = 0;
       }
