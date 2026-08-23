@@ -112,6 +112,18 @@ export const downloadCleanPdf = async (source, disease) => {
     ctx.fillStyle = '#416582';
     ctx.font = '500 16px "IBM Plex Sans Thai", sans-serif';
     ctx.fillText(`เอกสารแบบสอบสวนโรค · หน้าที่ ${pages.length}`, margin, 227);
+    ctx.strokeStyle = '#d5e0ea';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(margin, pageHeight - 52);
+    ctx.lineTo(pageWidth - margin, pageHeight - 52);
+    ctx.stroke();
+    ctx.fillStyle = '#60778f';
+    ctx.font = '500 14px "IBM Plex Sans Thai", sans-serif';
+    ctx.fillText('โรงพยาบาลนราธิวาสราชนครินทร์ · ระบบแบบสอบสวนโรคออนไลน์', margin, pageHeight - 28);
+    ctx.textAlign = 'right';
+    ctx.fillText(`พิมพ์เมื่อ ${new Date().toLocaleString('th-TH')}`, pageWidth - margin, pageHeight - 28);
+    ctx.textAlign = 'left';
     y = 264;
     column = 0;
     rowHeight = 0;
@@ -149,7 +161,10 @@ export const downloadCleanPdf = async (source, disease) => {
     ctx.font = '600 18px "IBM Plex Sans Thai", sans-serif';
     const valueLines = lineWrap(ctx, value, width - 36);
     const height = Math.max(84, titleLines.length * 24 + valueLines.length * 25 + 34);
-    if (y + height > pageHeight - margin) startPage();
+    if (y + height > pageHeight - margin) {
+      startPage();
+      if (currentSection) drawSection(currentSection);
+    }
     ctx.fillStyle = '#ffffff';
     ctx.fillRect(x, y - 4, width, height - 8);
     ctx.strokeStyle = '#d5e0ea';
