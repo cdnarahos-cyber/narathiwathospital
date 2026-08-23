@@ -21,16 +21,18 @@ const caseCount = place => JSON.parse(localStorage.getItem('ndss-investigations'
 
 const caseColor = count => count >= 5 ? '#dc2626' : count >= 2 ? '#f59e0b' : count >= 1 ? '#16a34a' : '#0b63b6';
 
+const styleFor = (feature, level) => {
+  const place = level === 'district' ? feature.properties.district : feature.properties.tambon;
+  const count = caseCount(place);
+  const color = caseColor(count);
+  return level === 'district'
+    ? { color, weight: 2, fillColor: color, fillOpacity: count ? 0.16 : 0.04 }
+    : { color, weight: 0.8, dashArray: '3 4', fillColor: color, fillOpacity: count ? 0.1 : 0 };
+};
+
 const makeLayer = (L, data, level, pane) => L.geoJSON(data, {
   pane,
-  style: feature => {
-    const place = level === 'district' ? feature.properties.district : feature.properties.tambon;
-    const count = caseCount(place);
-    const color = caseColor(count);
-    return level === 'district'
-      ? { color, weight: 2, fillColor: color, fillOpacity: count ? 0.16 : 0.04 }
-      : { color, weight: 0.8, dashArray: '3 4', fillColor: color, fillOpacity: count ? 0.1 : 0 };
-  },
+  style: feature => styleFor(feature, level),
   onEachFeature: (feature, layer) => {
     const isDistrict = level === 'district';
     const name = isDistrict ? feature.properties.district : feature.properties.tambon;
@@ -38,6 +40,8 @@ const makeLayer = (L, data, level, pane) => L.geoJSON(data, {
     const count = caseCount(name);
     layer.bindTooltip(`${isDistrict ? 'อำเภอ' : 'ตำบล'}${name}${parent}`, { sticky: true });
     layer.bindPopup(`<b>${isDistrict ? 'อำเภอ' : 'ตำบล'}${name}</b><br>${isDistrict ? '' : `อำเภอ${feature.properties.district}<br>`}จำนวนเคสที่บันทึก: ${count} เคส`);
+    layer.on('mouseover', () => layer.setStyle({ ...styleFor(feature, level), weight: isDistrict ? 3.2 : 1.6, fillOpacity: 0.25 }));
+    layer.on('mouseout', () => layer.setStyle(styleFor(feature, level)));
     layer.on('click', () => layer._map?.fitBounds(layer.getBounds(), { padding: [28, 28], maxZoom: isDistrict ? 12 : 14 }));
   }
 });
