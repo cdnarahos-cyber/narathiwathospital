@@ -39,10 +39,11 @@ export const addNarathiwatBoundaries = async map => {
   try {
     const [districts, tambons] = await Promise.all([loadBoundary('districts'), loadBoundary('tambons')]);
     if (appliedMaps.has(map)) return;
-    const pane = map.getPane('ndssBoundaryPane') || map.createPane('ndssBoundaryPane');
-    pane.style.zIndex = '380';
-    const districtLayer = makeLayer(window.L, districts, 'district', pane);
-    const tambonLayer = makeLayer(window.L, tambons, 'tambon', pane);
+    const paneName = 'ndssBoundaryPane';
+    if (!map.getPane(paneName)) map.createPane(paneName);
+    map.getPane(paneName).style.zIndex = '380';
+    const districtLayer = makeLayer(window.L, districts, 'district', paneName);
+    const tambonLayer = makeLayer(window.L, tambons, 'tambon', paneName);
     districtLayer.addTo(map);
     window.L.control.layers(null, {
       'ขอบเขตอำเภอ': districtLayer,
