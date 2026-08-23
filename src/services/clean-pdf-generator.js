@@ -101,6 +101,12 @@ export const downloadCleanPdf = async (source, disease) => {
     ctx.fillStyle = '#31567f';
     ctx.font = '600 18px "IBM Plex Sans Thai", sans-serif';
     ctx.fillText('Naradhiwas Rajanagarindra Hospital', margin + 116, 104);
+    const hn = fieldValue('hn');
+    if (hn !== '-') {
+      ctx.textAlign = 'right';
+      ctx.fillText(`HN: ${hn}`, pageWidth - margin, 104);
+      ctx.textAlign = 'left';
+    }
     ctx.strokeStyle = '#0b294d';
     ctx.lineWidth = 2;
     ctx.beginPath();
