@@ -225,7 +225,9 @@ export const downloadCleanPdf = async (source, disease) => {
   const url = URL.createObjectURL(blob);
   const link = document.createElement('a');
   link.href = url;
-  link.download = `${disease}-แบบสอบสวนโรค.pdf`;
+  const hn = String(fieldValue('hn')).replace(/[^a-zA-Z0-9_-]/g, '') || 'case';
+  const date = new Date().toISOString().slice(0, 10);
+  link.download = `NDSS-${hn}-${date}.pdf`;
   link.click();
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 };
