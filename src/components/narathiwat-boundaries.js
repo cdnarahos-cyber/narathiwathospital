@@ -61,6 +61,18 @@ export const addNarathiwatBoundaries = async map => {
       'ขอบเขตอำเภอ': districtLayer,
       'ขอบเขตตำบล': tambonLayer
     }, { collapsed: false, position: 'topright' }).addTo(map);
+    const resetView = window.L.control({ position: 'topleft' });
+    resetView.onAdd = () => {
+      const button = window.L.DomUtil.create('button');
+      button.type = 'button';
+      button.title = 'ดูภาพรวมจังหวัดนราธิวาส';
+      button.textContent = 'ภาพรวมจังหวัด';
+      button.style.cssText = 'background:#fff;border:0;border-radius:4px;padding:7px 10px;margin:4px;box-shadow:0 1px 5px #1234;color:#0b3f76;font-weight:700;cursor:pointer';
+      window.L.DomEvent.disableClickPropagation(button);
+      window.L.DomEvent.on(button, 'click', () => map.fitBounds(districtLayer.getBounds(), { padding: [28, 28] }));
+      return button;
+    };
+    resetView.addTo(map);
     const legend = window.L.control({ position: 'bottomright' });
     legend.onAdd = () => {
       const box = window.L.DomUtil.create('div');
