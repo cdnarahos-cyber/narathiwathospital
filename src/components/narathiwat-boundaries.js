@@ -38,6 +38,7 @@ const makeLayer = (L, data, level, pane) => L.geoJSON(data, {
     const count = caseCount(name);
     layer.bindTooltip(`${isDistrict ? 'อำเภอ' : 'ตำบล'}${name}${parent}`, { sticky: true });
     layer.bindPopup(`<b>${isDistrict ? 'อำเภอ' : 'ตำบล'}${name}</b><br>${isDistrict ? '' : `อำเภอ${feature.properties.district}<br>`}จำนวนเคสที่บันทึก: ${count} เคส`);
+    layer.on('click', () => layer._map?.fitBounds(layer.getBounds(), { padding: [28, 28], maxZoom: isDistrict ? 12 : 14 }));
   }
 });
 
