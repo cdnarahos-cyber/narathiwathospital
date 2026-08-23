@@ -59,6 +59,17 @@
     font-weight: 500;
     opacity: 1;
   }
+
+  .module-page input:focus,
+  .module-page select:focus,
+  .module-page textarea:focus,
+  .form-modal input:focus,
+  .form-modal select:focus,
+  .form-modal textarea:focus {
+    border-color: #1678d0 !important;
+    box-shadow: 0 0 0 3px #1678d022 !important;
+    outline: 0;
+  }
 }
 
 @media (max-width: 700px) {
@@ -85,6 +96,12 @@
     font-size: 14px !important;
   }
 
+  .module-page .form-grid,
+  .form-modal .form-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 11px;
+  }
+
   .module-page .form-grid input:not([type='checkbox']):not([type='radio']),
   .module-page .form-grid select,
   .module-page .form-grid textarea,
@@ -96,5 +113,13 @@
   .form-modal textarea {
     min-height: 42px;
     font-size: 15px !important;
+  }
+}
+
+@media (max-width: 480px) {
+  .module-page .form-grid,
+  .form-modal .form-grid {
+    grid-template-columns: 1fr;
+    gap: 12px;
   }
 }
