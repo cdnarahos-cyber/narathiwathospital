@@ -179,7 +179,7 @@ export const downloadAreaReportPdf = async place => {
   const url = URL.createObjectURL(makePdf(pages));
   const link = document.createElement('a');
   link.href = url;
-  link.download = `NDSS-${place.level === 'district' ? 'district' : 'tambon'}-${new Date().toISOString().slice(0, 10)}.pdf`;
+  link.download = `NDSS-${place.code || place.level}-${new Date().toISOString().slice(0, 10)}.pdf`;
   link.click();
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 };
