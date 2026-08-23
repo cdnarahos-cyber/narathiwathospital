@@ -1,3 +1,5 @@
+import { downloadAreaReportPdf } from '../services/area-report-pdf.js';
+
 const boundarySources = {
   districts: './public/gis/narathiwat-districts.geojson',
   tambons: './public/gis/narathiwat-tambons.geojson'
@@ -76,15 +78,17 @@ export const addNarathiwatBoundaries = async map => {
     const searchWrap = document.createElement('div');
     searchWrap.className = 'map-area-search no-print';
     searchWrap.style.cssText = 'display:flex;gap:10px;align-items:center;margin:0 0 12px;padding:10px 12px;background:#f5f9fd;border:1px solid #d8e5f1;border-radius:10px';
-    searchWrap.innerHTML = '<span style="color:#0b3f76;font-weight:700;white-space:nowrap">ค้นหาอำเภอ / ตำบล</span><input type="search" list="ndss-area-options" placeholder="พิมพ์ชื่ออำเภอหรือตำบล แล้วกด Enter" style="flex:1;min-width:220px;border:1px solid #b9cfe4;border-radius:7px;padding:8px 10px;color:#071d38" /><datalist id="ndss-area-options"></datalist>';
+    searchWrap.innerHTML = '<span style="color:#0b3f76;font-weight:700;white-space:nowrap">ค้นหาอำเภอ / ตำบล</span><input type="search" list="ndss-area-options" placeholder="พิมพ์ชื่ออำเภอหรือตำบล แล้วกด Enter" style="flex:1;min-width:220px;border:1px solid #b9cfe4;border-radius:7px;padding:8px 10px;color:#071d38" /><button type="button" disabled style="border:0;border-radius:7px;padding:9px 12px;background:#0b63b6;color:#fff;font-weight:700;cursor:pointer;white-space:nowrap">สร้าง PDF รายพื้นที่</button><datalist id="ndss-area-options"></datalist>';
     const mapContainer = map.getContainer();
     mapContainer.before(searchWrap);
     const input = searchWrap.querySelector('input');
+    const reportButton = searchWrap.querySelector('button');
     const optionList = searchWrap.querySelector('datalist');
     const places = [
-      ...districts.features.map(feature => ({ label: `อำเภอ${feature.properties.district}`, key: `district:${feature.properties.district}`, district: true })),
-      ...tambons.features.map(feature => ({ label: `ตำบล${feature.properties.tambon} · อำเภอ${feature.properties.district}`, key: `tambon:${feature.properties.tambonCode}`, district: false }))
+      ...districts.features.map(feature => ({ label: `อำเภอ${feature.properties.district}`, key: `district:${feature.properties.district}`, district: true, level: 'district', name: feature.properties.district })),
+      ...tambons.features.map(feature => ({ label: `ตำบล${feature.properties.tambon} · อำเภอ${feature.properties.district}`, key: `tambon:${feature.properties.tambonCode}`, district: false, level: 'tambon', name: feature.properties.tambon }))
     ];
+    let selectedPlace;
     optionList.innerHTML = places.map(place => `<option value="${place.label}"></option>`).join('');
     const zoomToPlace = () => {
       const query = input.value.trim().toLowerCase();
@@ -106,11 +110,22 @@ export const addNarathiwatBoundaries = async map => {
           selectedLayer.setStyle({ color: '#062f57', weight: 4, fillColor: '#0b63b6', fillOpacity: 0.34, dashArray: null });
           selectedLayer.bringToFront();
         }
+        selectedPlace = place;
+        reportButton.disabled = false;
+        reportButton.style.opacity = '1';
         map.fitBounds(bounds, { padding: [28, 28], maxZoom: place.district ? 12 : 14 });
       }
     };
     input.addEventListener('change', zoomToPlace);
     input.addEventListener('keydown', event => { if (event.key === 'Enter') { event.preventDefault(); zoomToPlace(); } });
+    reportButton.addEventListener('click', async () => {
+      if (!selectedPlace) return;
+      const label = reportButton.textContent;
+      reportButton.disabled = true;
+      reportButton.textContent = 'กำลังสร้าง PDF…';
+      try { await downloadAreaReportPdf(selectedPlace); }
+      finally { reportButton.disabled = false; reportButton.textContent = label; }
+    });
     const resetView = window.L.control({ position: 'topleft' });
     resetView.onAdd = () => {
       const button = window.L.DomUtil.create('button');
