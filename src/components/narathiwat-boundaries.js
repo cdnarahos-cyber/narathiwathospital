@@ -64,20 +64,29 @@ export const addNarathiwatBoundaries = async map => {
       'ขอบเขตอำเภอ': districtLayer,
       'ขอบเขตตำบล': tambonLayer
     }, { collapsed: false, position: 'topright' }).addTo(map);
-    const areaFinder = window.L.control({ position: 'topleft' });
-    areaFinder.onAdd = () => {
-      const select = window.L.DomUtil.create('select');
-      select.setAttribute('aria-label', 'ค้นหาพื้นที่บนแผนที่');
-      select.style.cssText = 'background:#fff;border:0;border-radius:4px;padding:7px;margin:42px 4px 4px;box-shadow:0 1px 5px #1234;color:#0b3f76;max-width:190px';
-      select.innerHTML = `<option value="">เลือกอำเภอ / ตำบล</option><optgroup label="อำเภอ">${districts.features.map(feature => `<option value="district:${feature.properties.district}">${feature.properties.district}</option>`).join('')}</optgroup><optgroup label="ตำบล">${tambons.features.map(feature => `<option value="tambon:${feature.properties.tambonCode}">${feature.properties.tambon} · ${feature.properties.district}</option>`).join('')}</optgroup>`;
-      window.L.DomEvent.disableClickPropagation(select);
-      window.L.DomEvent.on(select, 'change', () => {
-        const bounds = areaBounds.get(select.value);
-        if (bounds?.isValid()) map.fitBounds(bounds, { padding: [28, 28], maxZoom: select.value.startsWith('district:') ? 12 : 14 });
-      });
-      return select;
+    const searchWrap = document.createElement('div');
+    searchWrap.className = 'map-area-search no-print';
+    searchWrap.style.cssText = 'display:flex;gap:10px;align-items:center;margin:0 0 12px;padding:10px 12px;background:#f5f9fd;border:1px solid #d8e5f1;border-radius:10px';
+    searchWrap.innerHTML = '<span style="color:#0b3f76;font-weight:700;white-space:nowrap">ค้นหาอำเภอ / ตำบล</span><input type="search" list="ndss-area-options" placeholder="พิมพ์ชื่ออำเภอหรือตำบล แล้วกด Enter" style="flex:1;min-width:220px;border:1px solid #b9cfe4;border-radius:7px;padding:8px 10px;color:#071d38" /><datalist id="ndss-area-options"></datalist>';
+    const mapContainer = map.getContainer();
+    mapContainer.before(searchWrap);
+    const input = searchWrap.querySelector('input');
+    const optionList = searchWrap.querySelector('datalist');
+    const places = [
+      ...districts.features.map(feature => ({ label: `อำเภอ${feature.properties.district}`, key: `district:${feature.properties.district}`, district: true })),
+      ...tambons.features.map(feature => ({ label: `ตำบล${feature.properties.tambon} · อำเภอ${feature.properties.district}`, key: `tambon:${feature.properties.tambonCode}`, district: false }))
+    ];
+    optionList.innerHTML = places.map(place => `<option value="${place.label}"></option>`).join('');
+    const zoomToPlace = () => {
+      const query = input.value.trim().toLowerCase();
+      if (!query) return;
+      const place = places.find(item => item.label.toLowerCase() === query)
+        || places.find(item => item.label.toLowerCase().includes(query));
+      const bounds = place && areaBounds.get(place.key);
+      if (bounds?.isValid()) map.fitBounds(bounds, { padding: [28, 28], maxZoom: place.district ? 12 : 14 });
     };
-    areaFinder.addTo(map);
+    input.addEventListener('change', zoomToPlace);
+    input.addEventListener('keydown', event => { if (event.key === 'Enter') { event.preventDefault(); zoomToPlace(); } });
     const resetView = window.L.control({ position: 'topleft' });
     resetView.onAdd = () => {
       const button = window.L.DomUtil.create('button');
