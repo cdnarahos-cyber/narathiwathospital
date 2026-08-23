@@ -221,6 +221,14 @@ export const downloadCleanPdf = async (source, disease) => {
     }
     drawField(field);
   });
+  pages.forEach((page, index) => {
+    const pageContext = page.getContext('2d');
+    pageContext.fillStyle = '#416582';
+    pageContext.font = '600 16px "IBM Plex Sans Thai", sans-serif';
+    pageContext.textAlign = 'right';
+    pageContext.fillText(`หน้า ${index + 1} / ${pages.length}`, pageWidth - margin, 227);
+    pageContext.textAlign = 'left';
+  });
   const blob = makePdf(pages);
   const url = URL.createObjectURL(blob);
   const link = document.createElement('a');
