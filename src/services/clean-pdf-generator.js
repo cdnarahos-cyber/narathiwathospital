@@ -201,7 +201,7 @@ export const downloadCleanPdf = async (source, disease) => {
     ctx.fillStyle = '#123b6d';
     ctx.font = '700 18px "IBM Plex Sans Thai", sans-serif';
     titleLines.forEach((line, index) => ctx.fillText(line, x + 18, y + 18 + index * 24));
-    ctx.fillStyle = '#071d38';
+    ctx.fillStyle = String(value) === '-' ? '#8a9bad' : '#071d38';
     ctx.font = '600 18px "IBM Plex Sans Thai", sans-serif';
     valueLines.forEach((line, index) => ctx.fillText(line, x + 18, y + 18 + titleLines.length * 24 + index * 25));
     if (isWide) {
