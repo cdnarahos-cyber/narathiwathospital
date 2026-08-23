@@ -69,6 +69,12 @@ const drawAreaMap = (ctx, geometry, records, x, y, mapWidth, mapHeight) => {
   ctx.fillStyle = '#31567f';
   ctx.font = '700 13px "IBM Plex Sans Thai", sans-serif';
   ctx.fillText('แผนที่ขอบเขตพื้นที่รายงาน', x + 10, y + 18);
+  const mappedCases = records.filter(record => Number.isFinite(Number(record.lat)) && Number.isFinite(Number(record.lng))).length;
+  ctx.fillStyle = '#dc2626';
+  ctx.fillText('●', x + mapWidth - 84, y + 18);
+  ctx.fillStyle = '#416582';
+  ctx.font = '600 12px "IBM Plex Sans Thai", sans-serif';
+  ctx.fillText(`หมุดเคส ${mappedCases}`, x + mapWidth - 70, y + 18);
   const polygons = geometry?.type === 'Polygon' ? [geometry.coordinates] : geometry?.type === 'MultiPolygon' ? geometry.coordinates : [];
   const points = polygons.flat(2);
   if (!points.length) return;
