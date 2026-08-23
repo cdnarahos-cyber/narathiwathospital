@@ -57,10 +57,27 @@ export const addNarathiwatBoundaries = async map => {
     const districtLayer = makeLayer(window.L, districts, 'district', paneName);
     const tambonLayer = makeLayer(window.L, tambons, 'tambon', paneName);
     districtLayer.addTo(map);
+    const areaBounds = new Map();
+    districtLayer.eachLayer(layer => areaBounds.set(`district:${layer.feature.properties.district}`, layer.getBounds()));
+    tambonLayer.eachLayer(layer => areaBounds.set(`tambon:${layer.feature.properties.tambonCode}`, layer.getBounds()));
     window.L.control.layers(null, {
       'ขอบเขตอำเภอ': districtLayer,
       'ขอบเขตตำบล': tambonLayer
     }, { collapsed: false, position: 'topright' }).addTo(map);
+    const areaFinder = window.L.control({ position: 'topleft' });
+    areaFinder.onAdd = () => {
+      const select = window.L.DomUtil.create('select');
+      select.setAttribute('aria-label', 'ค้นหาพื้นที่บนแผนที่');
+      select.style.cssText = 'background:#fff;border:0;border-radius:4px;padding:7px;margin:42px 4px 4px;box-shadow:0 1px 5px #1234;color:#0b3f76;max-width:190px';
+      select.innerHTML = `<option value="">เลือกอำเภอ / ตำบล</option><optgroup label="อำเภอ">${districts.features.map(feature => `<option value="district:${feature.properties.district}">${feature.properties.district}</option>`).join('')}</optgroup><optgroup label="ตำบล">${tambons.features.map(feature => `<option value="tambon:${feature.properties.tambonCode}">${feature.properties.tambon} · ${feature.properties.district}</option>`).join('')}</optgroup>`;
+      window.L.DomEvent.disableClickPropagation(select);
+      window.L.DomEvent.on(select, 'change', () => {
+        const bounds = areaBounds.get(select.value);
+        if (bounds?.isValid()) map.fitBounds(bounds, { padding: [28, 28], maxZoom: select.value.startsWith('district:') ? 12 : 14 });
+      });
+      return select;
+    };
+    areaFinder.addTo(map);
     const resetView = window.L.control({ position: 'topleft' });
     resetView.onAdd = () => {
       const button = window.L.DomUtil.create('button');
