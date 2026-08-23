@@ -18,19 +18,29 @@ const lineWrap = (ctx, value, maxWidth) => {
 
 const readFields = source => {
   const headings = [...source.querySelectorAll('h2')];
-  return [...source.querySelectorAll('label')].flatMap(label => {
-  const control = label.querySelector('input, select, textarea');
-  if (!control) return [];
-  const copy = label.cloneNode(true);
-  copy.querySelectorAll('input, select, textarea').forEach(node => node.remove());
-  const name = copy.textContent.trim() || 'ข้อมูล';
-  let value = '-';
-  if (control.type === 'checkbox' || control.type === 'radio') value = control.checked ? 'เลือก' : 'ไม่เลือก';
-  else if (control.tagName === 'SELECT') value = control.options[control.selectedIndex]?.text || '-';
-  else value = control.value || '-';
+  const fields = [];
+  const choiceGroups = new Map();
+  [...source.querySelectorAll('label')].forEach(label => {
+    const control = label.querySelector('input, select, textarea');
+    if (!control) return;
+    const copy = label.cloneNode(true);
+    copy.querySelectorAll('input, select, textarea').forEach(node => node.remove());
+    const name = copy.textContent.trim() || 'ข้อมูล';
     const section = headings.filter(heading => heading.compareDocumentPosition(label) & Node.DOCUMENT_POSITION_FOLLOWING).at(-1)?.textContent.trim() || 'ข้อมูลแบบสอบสวน';
-    return [{ name, value, section }];
+    if (control.type === 'checkbox' || control.type === 'radio') {
+      const key = `${section}::${control.name || name}`;
+      if (!choiceGroups.has(key)) {
+        const group = { name: control.name === 'symptom' ? 'อาการที่เลือก' : name, value: [], section };
+        choiceGroups.set(key, group);
+        fields.push(group);
+      }
+      if (control.checked) choiceGroups.get(key).value.push(name);
+      return;
+    }
+    const value = control.tagName === 'SELECT' ? control.options[control.selectedIndex]?.text || '-' : control.value || '-';
+    fields.push({ name, value, section });
   });
+  return fields.map(field => Array.isArray(field.value) ? { ...field, value: field.value.length ? field.value.join(' • ') : '-' } : field);
 };
 
 const makePdf = (pages) => {
