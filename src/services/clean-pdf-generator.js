@@ -104,31 +104,31 @@ export const downloadCleanPdf = async (source, disease) => {
     pages.push(canvas);
     ctx.fillStyle = '#ffffff';
     ctx.fillRect(0, 0, pageWidth, pageHeight);
-    if (logo.naturalWidth) ctx.drawImage(logo, margin, 44, 96, 96);
+    if (logo.naturalWidth) ctx.drawImage(logo, margin, 32, 66, 66);
     ctx.fillStyle = '#071d38';
-    ctx.font = '700 31px "IBM Plex Sans Thai", sans-serif';
-    ctx.fillText('โรงพยาบาลนราธิวาสราชนครินทร์', margin + 116, 76);
+    ctx.font = '700 25px "IBM Plex Sans Thai", sans-serif';
+    ctx.fillText('โรงพยาบาลนราธิวาสราชนครินทร์', margin + 84, 61);
     ctx.fillStyle = '#31567f';
-    ctx.font = '600 18px "IBM Plex Sans Thai", sans-serif';
-    ctx.fillText('Naradhiwas Rajanagarindra Hospital', margin + 116, 104);
+    ctx.font = '600 15px "IBM Plex Sans Thai", sans-serif';
+    ctx.fillText('Naradhiwas Rajanagarindra Hospital', margin + 84, 84);
     const hn = fieldValue('hn');
     if (hn !== '-') {
       ctx.textAlign = 'right';
-      ctx.fillText(`HN: ${hn}`, pageWidth - margin, 104);
+      ctx.fillText(`HN: ${hn}`, pageWidth - margin, 84);
       ctx.textAlign = 'left';
     }
     ctx.strokeStyle = '#0b294d';
     ctx.lineWidth = 2;
     ctx.beginPath();
-    ctx.moveTo(margin, 154);
-    ctx.lineTo(pageWidth - margin, 154);
+    ctx.moveTo(margin, 118);
+    ctx.lineTo(pageWidth - margin, 118);
     ctx.stroke();
     ctx.fillStyle = '#071d38';
-    ctx.font = '700 28px "IBM Plex Sans Thai", sans-serif';
-    ctx.fillText(source.querySelector('.report-title span')?.textContent || 'แบบสอบสวนโรค', margin, 199);
+    ctx.font = '700 23px "IBM Plex Sans Thai", sans-serif';
+    ctx.fillText(source.querySelector('.report-title span')?.textContent || 'แบบสอบสวนโรค', margin, 153);
     ctx.fillStyle = '#416582';
-    ctx.font = '500 16px "IBM Plex Sans Thai", sans-serif';
-    ctx.fillText(`เอกสารแบบสอบสวนโรค · หน้าที่ ${pages.length}`, margin, 227);
+    ctx.font = '500 14px "IBM Plex Sans Thai", sans-serif';
+    ctx.fillText('เอกสารแบบสอบสวนโรค', margin, 176);
     ctx.strokeStyle = '#d5e0ea';
     ctx.lineWidth = 1;
     ctx.beginPath();
@@ -141,88 +141,69 @@ export const downloadCleanPdf = async (source, disease) => {
     ctx.textAlign = 'right';
     ctx.fillText(`พิมพ์เมื่อ ${new Date().toLocaleString('th-TH')}`, pageWidth - margin, pageHeight - 28);
     ctx.textAlign = 'left';
-    if (pages.length === 1) {
-      const overview = [
-        ['แบบฟอร์ม', disease],
-        ['ผู้ป่วย', fieldValue('patient')],
-        ['HN', fieldValue('hn')],
-        ['วันเริ่มป่วย', fieldValue('onset')]
-      ];
-      const cardWidth = (bodyWidth - 36) / 4;
-      overview.forEach(([label, value], index) => {
-        const x = margin + index * (cardWidth + 12);
-        ctx.fillStyle = '#f4f8fc';
-        ctx.fillRect(x, 264, cardWidth, 64);
-        ctx.fillStyle = '#416582';
-        ctx.font = '600 14px "IBM Plex Sans Thai", sans-serif';
-        ctx.fillText(label, x + 14, 286);
-        ctx.fillStyle = '#071d38';
-        ctx.font = '700 17px "IBM Plex Sans Thai", sans-serif';
-        const valueLine = lineWrap(ctx, value, cardWidth - 28)[0] || '-';
-        ctx.fillText(valueLine, x + 14, 312);
-      });
-      y = 350;
-    } else y = 264;
+    y = 204;
     column = 0;
     rowHeight = 0;
   };
 
   const drawSection = title => {
     if (column) {
-      y += rowHeight + 10;
+      y += rowHeight + 5;
       column = 0;
       rowHeight = 0;
     }
-    if (y + 40 > pageHeight - margin) startPage();
+    if (y + 32 > pageHeight - margin) startPage();
     ctx.fillStyle = '#edf5fc';
-    ctx.fillRect(margin, y, bodyWidth, 36);
+    ctx.fillRect(margin, y, bodyWidth, 28);
     ctx.fillStyle = '#176fca';
-    ctx.fillRect(margin, y, 6, 36);
+    ctx.fillRect(margin, y, 5, 28);
     ctx.fillStyle = '#0b3f76';
-    ctx.font = '700 20px "IBM Plex Sans Thai", sans-serif';
-    ctx.fillText(title, margin + 20, y + 24);
-    y += 48;
+    ctx.font = '700 17px "IBM Plex Sans Thai", sans-serif';
+    ctx.fillText(title, margin + 14, y + 19);
+    y += 36;
   };
 
   const drawField = ({ name, value }) => {
-    const isWide = String(value).length > 54 || name.length > 38 || /ที่อยู่|รายละเอียด|อาการ|ประวัติ|หมายเหตุ|ผลการ|สถานที่|ความสัมพันธ์/.test(name);
+    const columns = 3;
+    const isWide = String(value).length > 96 || name.length > 64 || /รายละเอียด|ประวัติ|หมายเหตุ|ความสัมพันธ์/.test(name);
     if (isWide && column) {
-      y += rowHeight + 10;
+      y += rowHeight + 5;
       column = 0;
       rowHeight = 0;
     }
-    const gutter = 22;
-    const width = isWide ? bodyWidth : (bodyWidth - gutter) / 2;
+    const gutter = 16;
+    const width = isWide ? bodyWidth : (bodyWidth - gutter * (columns - 1)) / columns;
     const x = isWide ? margin : margin + column * (width + gutter);
-    ctx.font = '700 18px "IBM Plex Sans Thai", sans-serif';
-    const titleLines = lineWrap(ctx, name, width - 36);
-    ctx.font = '600 18px "IBM Plex Sans Thai", sans-serif';
-    const valueLines = lineWrap(ctx, value, width - 36);
-    const height = Math.max(70, titleLines.length * 22 + valueLines.length * 23 + 25);
+    ctx.font = '700 14px "IBM Plex Sans Thai", sans-serif';
+    const titleLines = lineWrap(ctx, name, width - 16);
+    ctx.font = '600 14px "IBM Plex Sans Thai", sans-serif';
+    const valueLines = lineWrap(ctx, value, width - 16);
+    const height = Math.max(42, titleLines.length * 16 + valueLines.length * 17 + 10);
     if (y + height > pageHeight - margin) {
       startPage();
       if (currentSection) drawSection(currentSection);
     }
-    ctx.fillStyle = '#ffffff';
-    ctx.fillRect(x, y - 4, width, height - 8);
-    ctx.strokeStyle = '#d5e0ea';
+    ctx.strokeStyle = '#dce7f0';
     ctx.lineWidth = 1;
-    ctx.strokeRect(x, y - 4, width, height - 8);
+    ctx.beginPath();
+    ctx.moveTo(x, y + height - 3);
+    ctx.lineTo(x + width, y + height - 3);
+    ctx.stroke();
     ctx.fillStyle = '#123b6d';
-    ctx.font = '700 18px "IBM Plex Sans Thai", sans-serif';
-    titleLines.forEach((line, index) => ctx.fillText(line, x + 18, y + 17 + index * 22));
+    ctx.font = '700 14px "IBM Plex Sans Thai", sans-serif';
+    titleLines.forEach((line, index) => ctx.fillText(line, x + 8, y + 13 + index * 16));
     ctx.fillStyle = String(value) === '-' ? '#8a9bad' : '#071d38';
-    ctx.font = '600 18px "IBM Plex Sans Thai", sans-serif';
-    valueLines.forEach((line, index) => ctx.fillText(line, x + 18, y + 17 + titleLines.length * 22 + index * 23));
+    ctx.font = '600 14px "IBM Plex Sans Thai", sans-serif';
+    valueLines.forEach((line, index) => ctx.fillText(line, x + 8, y + 13 + titleLines.length * 16 + index * 17));
     if (isWide) {
-      y += height + 8;
+      y += height + 5;
       column = 0;
       rowHeight = 0;
     } else {
       rowHeight = Math.max(rowHeight, height);
-      if (column === 0) column = 1;
+      if (column < columns - 1) column += 1;
       else {
-        y += rowHeight + 8;
+        y += rowHeight + 5;
         column = 0;
         rowHeight = 0;
       }
