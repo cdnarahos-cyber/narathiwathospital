@@ -178,7 +178,10 @@ export const downloadCleanPdf = async (source, disease) => {
     const titleLines = lineWrap(ctx, name, width - 16);
     ctx.font = '600 14px "IBM Plex Sans Thai", sans-serif';
     const valueLines = lineWrap(ctx, value, width - 16);
-    const height = Math.max(42, titleLines.length * 16 + valueLines.length * 17 + 10);
+    const titleLineHeight = 18;
+    const valueLineHeight = 18;
+    const titleValueGap = 7;
+    const height = Math.max(50, titleLines.length * titleLineHeight + titleValueGap + valueLines.length * valueLineHeight + 12);
     if (y + height > pageHeight - margin) {
       startPage();
       if (currentSection) drawSection(currentSection);
@@ -191,10 +194,10 @@ export const downloadCleanPdf = async (source, disease) => {
     ctx.stroke();
     ctx.fillStyle = '#123b6d';
     ctx.font = '700 14px "IBM Plex Sans Thai", sans-serif';
-    titleLines.forEach((line, index) => ctx.fillText(line, x + 8, y + 13 + index * 16));
+    titleLines.forEach((line, index) => ctx.fillText(line, x + 8, y + 14 + index * titleLineHeight));
     ctx.fillStyle = String(value) === '-' ? '#8a9bad' : '#071d38';
     ctx.font = '600 14px "IBM Plex Sans Thai", sans-serif';
-    valueLines.forEach((line, index) => ctx.fillText(line, x + 8, y + 13 + titleLines.length * 16 + index * 17));
+    valueLines.forEach((line, index) => ctx.fillText(line, x + 8, y + 14 + titleLines.length * titleLineHeight + titleValueGap + index * valueLineHeight));
     if (isWide) {
       y += height + 5;
       column = 0;
