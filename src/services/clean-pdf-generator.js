@@ -40,7 +40,9 @@ const readFields = source => {
     const value = control.tagName === 'SELECT' ? control.options[control.selectedIndex]?.text || '-' : control.value || '-';
     fields.push({ name, value, section });
   });
-  return fields.map(field => Array.isArray(field.value) ? { ...field, value: field.value.length ? field.value.join(' • ') : '-' } : field);
+  return fields
+    .map(field => Array.isArray(field.value) ? { ...field, value: field.value.length ? field.value.join(' • ') : '-' } : field)
+    .filter(field => String(field.value || '').trim() !== '-');
 };
 
 const makePdf = (pages) => {
