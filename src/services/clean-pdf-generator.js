@@ -141,47 +141,47 @@ export const downloadCleanPdf = async (source, disease) => {
     ctx.textAlign = 'right';
     ctx.fillText(`พิมพ์เมื่อ ${new Date().toLocaleString('th-TH')}`, pageWidth - margin, pageHeight - 28);
     ctx.textAlign = 'left';
-    y = 204;
+    y = 188;
     column = 0;
     rowHeight = 0;
   };
 
   const drawSection = title => {
     if (column) {
-      y += rowHeight + 5;
+      y += rowHeight + 3;
       column = 0;
       rowHeight = 0;
     }
-    if (y + 32 > pageHeight - margin) startPage();
+    if (y + 28 > pageHeight - margin) startPage();
     ctx.fillStyle = '#edf5fc';
-    ctx.fillRect(margin, y, bodyWidth, 28);
+    ctx.fillRect(margin, y, bodyWidth, 24);
     ctx.fillStyle = '#176fca';
-    ctx.fillRect(margin, y, 5, 28);
+    ctx.fillRect(margin, y, 5, 24);
     ctx.fillStyle = '#0b3f76';
-    ctx.font = '700 17px "IBM Plex Sans Thai", sans-serif';
-    ctx.fillText(title, margin + 14, y + 19);
-    y += 36;
+    ctx.font = '700 16px "IBM Plex Sans Thai", sans-serif';
+    ctx.fillText(title, margin + 14, y + 17);
+    y += 30;
   };
 
   const drawField = ({ name, value }) => {
-    const columns = 3;
-    const isWide = String(value).length > 96 || name.length > 64 || /รายละเอียด|ประวัติ|หมายเหตุ|ความสัมพันธ์/.test(name);
+    const columns = 4;
+    const isWide = String(value).length > 120 || name.length > 72 || /รายละเอียด|หมายเหตุ|ความสัมพันธ์/.test(name);
     if (isWide && column) {
-      y += rowHeight + 5;
+      y += rowHeight + 3;
       column = 0;
       rowHeight = 0;
     }
-    const gutter = 16;
+    const gutter = 12;
     const width = isWide ? bodyWidth : (bodyWidth - gutter * (columns - 1)) / columns;
     const x = isWide ? margin : margin + column * (width + gutter);
-    ctx.font = '700 14px "IBM Plex Sans Thai", sans-serif';
-    const titleLines = lineWrap(ctx, name, width - 16);
-    ctx.font = '600 14px "IBM Plex Sans Thai", sans-serif';
-    const valueLines = lineWrap(ctx, value, width - 16);
-    const titleLineHeight = 17;
-    const valueLineHeight = 17;
-    const titleValueGap = titleLines.length > 1 ? 7 : 4;
-    const height = Math.max(46, titleLines.length * titleLineHeight + titleValueGap + valueLines.length * valueLineHeight + 11);
+    ctx.font = '700 13px "IBM Plex Sans Thai", sans-serif';
+    const titleLines = lineWrap(ctx, name, width - 14);
+    ctx.font = '600 13px "IBM Plex Sans Thai", sans-serif';
+    const valueLines = lineWrap(ctx, value, width - 14);
+    const titleLineHeight = 16;
+    const valueLineHeight = 16;
+    const titleValueGap = titleLines.length > 1 ? 6 : 4;
+    const height = Math.max(40, titleLines.length * titleLineHeight + titleValueGap + valueLines.length * valueLineHeight + 8);
     if (y + height > pageHeight - margin) {
       startPage();
       if (currentSection) drawSection(currentSection);
@@ -193,20 +193,20 @@ export const downloadCleanPdf = async (source, disease) => {
     ctx.lineTo(x + width, y + height - 3);
     ctx.stroke();
     ctx.fillStyle = '#123b6d';
-    ctx.font = '700 14px "IBM Plex Sans Thai", sans-serif';
-    titleLines.forEach((line, index) => ctx.fillText(line, x + 8, y + 14 + index * titleLineHeight));
+    ctx.font = '700 13px "IBM Plex Sans Thai", sans-serif';
+    titleLines.forEach((line, index) => ctx.fillText(line, x + 7, y + 12 + index * titleLineHeight));
     ctx.fillStyle = String(value) === '-' ? '#8a9bad' : '#071d38';
-    ctx.font = '600 14px "IBM Plex Sans Thai", sans-serif';
-    valueLines.forEach((line, index) => ctx.fillText(line, x + 8, y + 14 + titleLines.length * titleLineHeight + titleValueGap + index * valueLineHeight));
+    ctx.font = '600 13px "IBM Plex Sans Thai", sans-serif';
+    valueLines.forEach((line, index) => ctx.fillText(line, x + 7, y + 12 + titleLines.length * titleLineHeight + titleValueGap + index * valueLineHeight));
     if (isWide) {
-      y += height + 5;
+      y += height + 3;
       column = 0;
       rowHeight = 0;
     } else {
       rowHeight = Math.max(rowHeight, height);
       if (column < columns - 1) column += 1;
       else {
-        y += rowHeight + 5;
+        y += rowHeight + 3;
         column = 0;
         rowHeight = 0;
       }
