@@ -178,10 +178,10 @@ export const downloadCleanPdf = async (source, disease) => {
     const titleLines = lineWrap(ctx, name, width - 16);
     ctx.font = '600 14px "IBM Plex Sans Thai", sans-serif';
     const valueLines = lineWrap(ctx, value, width - 16);
-    const titleLineHeight = 18;
-    const valueLineHeight = 18;
-    const titleValueGap = 7;
-    const height = Math.max(50, titleLines.length * titleLineHeight + titleValueGap + valueLines.length * valueLineHeight + 12);
+    const titleLineHeight = 17;
+    const valueLineHeight = 17;
+    const titleValueGap = titleLines.length > 1 ? 7 : 4;
+    const height = Math.max(46, titleLines.length * titleLineHeight + titleValueGap + valueLines.length * valueLineHeight + 11);
     if (y + height > pageHeight - margin) {
       startPage();
       if (currentSection) drawSection(currentSection);
