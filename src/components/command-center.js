@@ -23,6 +23,10 @@ const readAudit = () => {
   try { return JSON.parse(localStorage.getItem('ndss-audit-log') || '[]'); }
   catch { return []; }
 };
+const readLab = () => {
+  try { return JSON.parse(localStorage.getItem('ndss-lab-results') || '[]'); }
+  catch { return []; }
+};
 
 const values = () => {
   const rows = read506();
@@ -96,6 +100,14 @@ const tracking = () => {
   return `${title('ติดตามและควบคุมโรค', 'มอบหมายผู้รับผิดชอบ ติดตามกำหนดเสร็จ และบันทึกผลการดำเนินงานของแต่ละเคส')}<section class="work-panel"><div class="panel-top"><h2>มอบหมายงานสอบสวน / ควบคุมโรค</h2><small>งานจะถูกบันทึกในเบราว์เซอร์นี้</small></div>${cases.length ? `<form class="form-grid" data-response-task><label>เคสที่รับผิดชอบ<select name="caseIndex" required>${cases.map((item,index)=>`<option value="${index}">${item.disease || 'ไม่ระบุโรค'} · ${item.patient || item.hn || `เคส ${index+1}`} · ${item.location || item.subdistrict || '-'}</option>`).join('')}</select></label><label>ผู้รับผิดชอบ<input name="owner" required placeholder="ชื่อเจ้าหน้าที่ / ทีม SRRT" /></label><label>กำหนดเสร็จ<input name="dueDate" type="date" required /></label><label>ระดับความเร่งด่วน<select name="priority"><option>ปกติ</option><option>เฝ้าระวัง</option><option>เร่งด่วน</option></select></label><label>รายละเอียดงาน<input name="note" placeholder="เช่น ตรวจสอบผู้สัมผัสและพื้นที่เสี่ยง" /></label><label>สถานะเริ่มต้น<select name="status"><option>รอรับทราบ</option><option>กำลังดำเนินการ</option></select></label><div class="form-actions"><button class="primary">บันทึกมอบหมายงาน</button></div></form>` : empty('ยังไม่มีเคสสำหรับมอบหมาย', 'เริ่มจากบันทึกข้อมูลในแบบสอบสวนโรคออนไลน์')}</section>${statCards([['งานทั้งหมด', `${tasks.length} งาน`, 'รายการที่มอบหมายแล้ว', 'blue'], ['กำลังดำเนินการ', `${active} งาน`, 'ต้องติดตามโดยผู้รับผิดชอบ', 'orange'], ['ควบคุมแล้ว', `${done} งาน`, 'บันทึกผลเสร็จสิ้นแล้ว', 'green'], ['ยังไม่มอบหมาย', `${Math.max(0,cases.length-tasks.length)} เคส`, 'เปรียบเทียบกับเคสที่บันทึก', 'purple']])}<section class="work-panel"><div class="panel-top"><h2>ตารางติดตามงาน</h2><small>การเปลี่ยนสถานะจะบันทึกทันที</small></div>${tasks.length ? `<div class="history-table-wrap"><table><thead><tr><th>เคส</th><th>ผู้รับผิดชอบ</th><th>กำหนดเสร็จ</th><th>ความเร่งด่วน</th><th>สถานะ</th><th>จัดการ</th></tr></thead><tbody>${tasks.map((task,index)=>{ const item=cases[Number(task.caseIndex)] || {}; return `<tr><td><b>${item.disease || 'ไม่ระบุโรค'}</b><br/><small>${item.patient || item.hn || '-'}</small></td><td>${task.owner}</td><td>${task.dueDate ? new Date(task.dueDate).toLocaleDateString('th-TH') : '-'}</td><td><mark class="${task.priority==='เร่งด่วน'?'red':task.priority==='เฝ้าระวัง'?'gold':'blue'}">${task.priority}</mark></td><td><mark class="${task.status==='ควบคุมแล้ว'?'green':'blue'}">${task.status}</mark></td><td>${task.status==='ควบคุมแล้ว' ? '<span class="task-done">✓ เสร็จสิ้น</span>' : `<button class="table-action" data-complete-response="${index}">บันทึกควบคุมแล้ว</button>`}</td></tr>`; }).join('')}</tbody></table></div>` : empty('ยังไม่มีงานที่มอบหมาย', 'กรอกแบบฟอร์มด้านบนเพื่อเริ่มติดตามงาน')}</section>`;
 };
 
+const lab = () => {
+  const results=readLab();
+  const positive=results.filter(item=>item.result==='Positive').length;
+  const pending=results.filter(item=>item.result==='รอตรวจสอบ').length;
+  const cases=readCases();
+  return `${title('รายงานห้องปฏิบัติการ', 'บันทึกผลตรวจ ติดตามรายการรอตรวจสอบ และเชื่อมโยงกับเคสสอบสวนที่มีในอุปกรณ์นี้')}<section class="work-panel"><div class="panel-top"><h2>เพิ่มผลตรวจ</h2><small>ผลตรวจจะบันทึกในเบราว์เซอร์นี้</small></div><form class="form-grid" data-lab-result><label>เลขที่สิ่งส่งตรวจ<input name="specimenNo" required placeholder="เช่น LAB-2569-0001" /></label><label>เคสที่เกี่ยวข้อง<select name="caseIndex"><option value="">ไม่ระบุ / ยังไม่ผูกเคส</option>${cases.map((item,index)=>`<option value="${index}">${item.disease || 'ไม่ระบุโรค'} · ${item.patient || item.hn || `เคส ${index+1}`}</option>`).join('')}</select></label><label>ประเภทการตรวจ<select name="test" required><option>Influenza A</option><option>Influenza B</option><option>COVID-19</option><option>Dengue NS1 Ag</option><option>Dengue IgG</option><option>Dengue IgM</option><option>AFB Smear</option><option>GeneXpert MTB/RIF</option><option>อื่น ๆ</option></select></label><label>วันที่รับสิ่งส่งตรวจ<input name="receivedAt" type="date" required /></label><label>ผลตรวจ<select name="result" required><option>รอตรวจสอบ</option><option>Positive</option><option>Negative</option><option>ไม่สามารถทดสอบได้</option></select></label><label>รายละเอียดเพิ่มเติม<input name="note" placeholder="เช่น ชนิดสิ่งส่งตรวจ / ข้อสังเกต" /></label><div class="form-actions"><button class="primary">บันทึกผลตรวจ</button></div></form></section>${statCards([['ผลตรวจทั้งหมด', `${results.length} รายการ`, 'ที่บันทึกในระบบนี้', 'blue'], ['ผล Positive', `${positive} รายการ`, 'ต้องตรวจทานตามแนวทาง', 'red'], ['รอตรวจสอบ', `${pending} รายการ`, 'ยังไม่ลงผลสุดท้าย', 'orange'], ['เชื่อมโยงเคส', `${results.filter(item=>item.caseIndex!=='').length} รายการ`, 'อ้างอิงแบบสอบสวน', 'green']])}<section class="work-panel"><div class="panel-top"><h2>ผลตรวจล่าสุด</h2><input class="table-search" data-lab-search placeholder="ค้นหาเลขสิ่งส่งตรวจ, ประเภท, ผลตรวจ" /></div>${results.length ? `<div class="history-table-wrap"><table><thead><tr><th>วันที่รับ</th><th>เลขสิ่งส่งตรวจ</th><th>การตรวจ</th><th>ผล</th><th>เคสอ้างอิง</th><th>จัดการ</th></tr></thead><tbody data-lab-rows>${results.map((item,index)=>{ const linked=cases[Number(item.caseIndex)] || {}; const tone=item.result==='Positive'?'red':item.result==='Negative'?'green':item.result==='รอตรวจสอบ'?'orange':'blue'; return `<tr><td>${item.receivedAt ? new Date(item.receivedAt).toLocaleDateString('th-TH') : '-'}</td><td>${item.specimenNo}</td><td>${item.test}</td><td><mark class="${tone}">${item.result}</mark></td><td>${linked.patient || linked.hn || '-'}</td><td><button class="table-action danger" data-delete-lab="${index}">ลบ</button></td></tr>`; }).join('')}</tbody></table></div>` : empty('ยังไม่มีผลตรวจ', 'เพิ่มผลตรวจจากแบบฟอร์มด้านบนเพื่อเริ่มติดตาม')}</section>`;
+};
+
 const alerts = () => {
   const signals=clusterSignals();
   const tasks=readTasks();
@@ -142,6 +154,7 @@ export function commandCenterView(id) {
   if (id === 'clusters') return clusters();
   if (id === 'epidemiology') return epidemiology();
   if (id === 'tracking') return tracking();
+  if (id === 'lab') return lab();
   if (id === 'alerts') return alerts();
   if (id === 'audit') return audit();
   if (id === 'report506') return report506();
