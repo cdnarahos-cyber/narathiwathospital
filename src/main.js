@@ -245,6 +245,12 @@ document.addEventListener('click', event => {
   if(event.target.closest('[data-clear-506]')) { localStorage.removeItem('ndss-506-records'); localStorage.removeItem('ndss-506-import-meta'); recordAudit('ล้างข้อมูล รง.506','ล้างข้อมูลที่นำเข้าในอุปกรณ์นี้'); root.querySelector('[data-import-status]')?.replaceChildren(document.createTextNode('ล้างข้อมูลนำเข้าแล้ว')); showToast('ล้างข้อมูล รง.506 แล้ว'); }
   if(event.target.closest('[data-clear-audit]')) { localStorage.removeItem('ndss-audit-log'); root.innerHTML=`<div class="module-page">${moduleView('audit')}</div>`; document.querySelectorAll('.nav-link').forEach(link=>link.classList.toggle('active',link.dataset.view==='audit')); showToast('ล้างบันทึกกิจกรรมแล้ว'); }
   if(event.target.closest('[data-backup-local]')) backupLocalData();
+  const queueFilter=event.target.closest('[data-queue-filter]');
+  if(queueFilter) {
+    const filter=queueFilter.dataset.queueFilter;
+    root.querySelectorAll('[data-queue-filter]').forEach(button=>button.classList.toggle('active',button===queueFilter));
+    root.querySelectorAll('[data-command-queue-rows] tr').forEach(row=>row.hidden=filter!=='all' && row.dataset.queueKind!==filter);
+  }
   const alertAction=event.target.closest('[data-ack-alert]');
   if(alertAction) {
     let state={}; try { state=JSON.parse(localStorage.getItem('ndss-alert-state') || '{}'); } catch { state={}; }
