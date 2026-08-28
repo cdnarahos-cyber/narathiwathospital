@@ -1,14 +1,19 @@
 export function shell(content) {
   const groups = [
-    ['NDSS', [{id:'dashboard',label:'🏠 Dashboard'}]],
-    ['📊 Dashboard ระบาดวิทยา', [{id:'epidemiology',label:'สถานการณ์โรค',epi:'situation'},{id:'epidemiology',label:'Trend',epi:'trend'},{id:'epidemiology',label:'Epidemic Curve',epi:'curve'},{id:'epidemiology',label:'Person',epi:'person'},{id:'epidemiology',label:'Place',epi:'place'},{id:'epidemiology',label:'Time',epi:'time'}]],
-    ['📝 แบบสอบสวนโรคออนไลน์', [{id:'investigation',label:'Case'},{id:'investigation',label:'Investigation'},{id:'investigation',label:'Contact'},{id:'reports',label:'Documents'}]],
-    ['🦠 ติดตามและควบคุมโรค', [{id:'tracking',label:'Case Management'},{id:'tracking',label:'Contact Tracing'},{id:'tracking',label:'Follow-up'},{id:'tracking',label:'Case Closure'}]],
-    ['🚨 ระบบแจ้งเตือน', [{id:'alerts',label:'Threshold'},{id:'clusters',label:'Cluster'},{id:'queue',label:'Outbreak'},{id:'lab',label:'Lab Alert'},{id:'import506',label:'Data Quality Alert'}]],
-    ['🔥 Outbreak Management', [{id:'queue',label:'จัดการเหตุการณ์และคิวสอบสวน'}]],
-    ['รายงานและข้อมูล', [{id:'report506',label:'📄 รายงาน 506'},{id:'lab',label:'🧪 รายงานห้องปฏิบัติการ'},{id:'executive',label:'👨‍💼 รายงานผู้บริหาร'},{id:'area-map',label:'🗺️ แผนที่ระบาดวิทยา'},{id:'export',label:'📥 Export Report'},{id:'knowledge',label:'📚 Knowledge Center'}]],
-    ['⚙️ ตั้งค่า / ผู้ดูแลระบบ', [{id:'security',label:'User'},{id:'security',label:'Role'},{id:'security',label:'Permission'},{id:'settings',label:'Master Data'},{id:'import506',label:'Data Source'},{id:'settings',label:'API'},{id:'audit',label:'Audit Log'},{id:'settings',label:'System Configuration'}]]
+    {root:true,items:[{id:'dashboard',label:'🏠 Dashboard'}]},
+    {heading:'📊 Dashboard ระบาดวิทยา',items:[{id:'epidemiology',label:'สถานการณ์โรค',epi:'situation'},{id:'epidemiology',label:'Trend',epi:'trend'},{id:'epidemiology',label:'Epidemic Curve',epi:'curve'},{id:'epidemiology',label:'Person',epi:'person'},{id:'epidemiology',label:'Place',epi:'place'},{id:'epidemiology',label:'Time',epi:'time'}]},
+    {heading:'📝 แบบสอบสวนโรคออนไลน์',items:[{id:'investigation',label:'Case'},{id:'investigation',label:'Investigation'},{id:'investigation',label:'Contact'},{id:'reports',label:'Documents'}]},
+    {heading:'🦠 ติดตามและควบคุมโรค',items:[{id:'tracking',label:'Case Management'},{id:'tracking',label:'Contact Tracing'},{id:'tracking',label:'Follow-up'},{id:'tracking',label:'Case Closure'}]},
+    {heading:'🚨 ระบบแจ้งเตือน',items:[{id:'alerts',label:'Threshold'},{id:'clusters',label:'Cluster'},{id:'queue',label:'Outbreak'},{id:'lab',label:'Lab Alert'},{id:'import506',label:'Data Quality Alert'}]},
+    {root:true,items:[{id:'queue',label:'🔥 Outbreak Management'}]},
+    {root:true,items:[{id:'report506',label:'📄 รายงาน 506'}]},
+    {root:true,items:[{id:'lab',label:'🧪 รายงานห้องปฏิบัติการ'}]},
+    {root:true,items:[{id:'executive',label:'👨‍💼 รายงานผู้บริหาร'}]},
+    {root:true,items:[{id:'area-map',label:'🗺️ แผนที่ระบาดวิทยา'}]},
+    {root:true,items:[{id:'export',label:'📥 Export Report'}]},
+    {root:true,items:[{id:'knowledge',label:'📚 Knowledge Center'}]},
+    {heading:'⚙️ ตั้งค่า / ผู้ดูแลระบบ',items:[{id:'security',label:'User'},{id:'security',label:'Role'},{id:'security',label:'Permission'},{id:'settings',label:'Master Data'},{id:'import506',label:'Data Source'},{id:'settings',label:'API'},{id:'audit',label:'Audit Log'},{id:'settings',label:'System Configuration'}]}
   ];
-  const menu=groups.map(([heading,items])=>`<section class="nav-group ${items.length>1?'has-children':''}"><p>${heading}</p>${items.map(({id,label,epi})=>{ const hasIcon=/^[^A-Za-zก-๙]/.test(label); const icon=hasIcon ? label.slice(0,label.indexOf(' ')) : '•'; const text=hasIcon ? label.slice(label.indexOf(' ')+1) : label; return `<button class="nav-link ${id==='dashboard'?'active':''}" data-view="${id}"${epi ? ` data-epi-target="${epi}"` : ''}><i>${icon}</i><span>${text}</span></button>`; }).join('')}</section>`).join('');
+  const menu=groups.map(({heading,items,root:topLevel})=>`<section class="nav-group ${!topLevel&&items.length>1?'has-children':''} ${topLevel?'root-menu':''}">${heading ? `<p>${heading}</p>` : ''}${items.map(({id,label,epi})=>{ const hasIcon=/^[^A-Za-zก-๙]/.test(label); const icon=hasIcon ? label.slice(0,label.indexOf(' ')) : '•'; const text=hasIcon ? label.slice(label.indexOf(' ')+1) : label; return `<button class="nav-link ${id==='dashboard'?'active':''}" data-view="${id}"${epi ? ` data-epi-target="${epi}"` : ''}><i>${icon}</i><span>${text}</span></button>`; }).join('')}</section>`).join('');
   return `<aside class="sidebar command-sidebar"><div class="sidebar-identity"><img src="./public/assets/naradhiwas-hospital-logo.jpg" alt="โลโก้โรงพยาบาล" /><div><strong>ศูนย์บัญชาการข้อมูลโรค</strong><small>โรงพยาบาลนราธิวาสราชนครินทร์</small></div></div><div class="system-name"><b>NDSS</b><small>ระบบเฝ้าระวัง สอบสวน และวิเคราะห์<br/>สถานการณ์โรคระดับพื้นที่</small></div><nav aria-label="เมนูหลัก">${menu}</nav><div class="sync"><b><em>●</em> สถานะการเชื่อมต่อ</b><span>ข้อมูลจากอุปกรณ์นี้</span><small>เชื่อมฐานข้อมูลกลางได้จากเมนูตั้งค่า</small></div></aside><main><header class="top-header command-header"><div class="header-context"><b>ศูนย์บัญชาการระบาดวิทยา</b><small>ข้อมูลจริงจาก รง.506 และแบบสอบสวนโรคออนไลน์</small></div><div class="header-actions"><button class="header-import" type="button" data-open-506-import>＋ นำเข้า Excel</button><button class="notification" type="button" aria-label="การแจ้งเตือน">♧<i>0</i></button><div class="profile-chip"><span>👩‍⚕️</span><div><b>ผู้ใช้งานระบบ</b><small>NDSS Narathiwat</small></div><em>⌄</em></div></div></header><div id="module-root">${content}</div></main>`;
 }
