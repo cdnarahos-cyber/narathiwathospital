@@ -28,6 +28,13 @@ const values = () => {
   return { rows, cases, byDisease, byTambon };
 };
 
+const clusterSignals = () => {
+  const records=[...read506(),...readCases()];
+  const week = value => { const date=new Date(value); if(Number.isNaN(date)) return ''; const first=new Date(date.getFullYear(),0,1); return `${date.getFullYear()}-W${String(Math.ceil((((date-first)/86400000)+first.getDay()+1)/7)).padStart(2,'0')}`; };
+  const grouped=records.reduce((all,row) => { const period=week(row.onset || row.createdAt); const area=row.tambon || row.subdistrict || row.district || 'ไม่ระบุพื้นที่'; const disease=row.disease || 'ไม่ระบุโรค'; if(!period || disease==='ไม่ระบุโรค') return all; const key=[disease,area,period].join('|'); all[key]=all[key] || {disease,area,period,count:0,records:[]}; all[key].count++; all[key].records.push(row); return all; },{});
+  return Object.values(grouped).filter(item=>item.count>=3).sort((a,b)=>b.count-a.count);
+};
+
 const statCards = items => `<section class="command-stats">${items.map(([label, value, note, tone = 'blue']) => `<article class="${tone}"><span>${label}</span><strong>${value}</strong><small>${note}</small></article>`).join('')}</section>`;
 
 const ranked = (source, label) => {
@@ -54,6 +61,11 @@ const queue = () => {
   return `${title('กลุ่มโรคที่ต้องสอบสวน', 'คิวติดตามงานสอบสวนสำหรับทีม SRRT จากรายการที่บันทึกในระบบ', '<button class="primary" data-view="investigation">＋ เปิดแบบสอบสวนโรค</button>')}${statCards([['รายการในคิว', `${cases.length} ราย`, 'ข้อมูลจากแบบสอบสวน', 'orange'], ['บันทึกแล้ว', `${cases.length} ราย`, 'มีรายละเอียดในระบบ', 'green'], ['รอคัดกรอง', 'ยังไม่มีข้อมูล', 'ต้องนำเข้า/บันทึกข้อมูลเพิ่ม', 'blue'], ['ความเร่งด่วน', 'กำหนดโดยทีม', 'ระบบไม่ประเมินแทนผู้ปฏิบัติงาน', 'purple']])}<section class="work-panel"><div class="panel-top"><h2>ตารางงานสอบสวนรายบุคคล</h2><input class="table-search" data-command-queue-search placeholder="ค้นหาชื่อ, HN, โรค, พื้นที่" /></div>${cases.length ? `<div class="history-table-wrap"><table><thead><tr><th>วันที่บันทึก</th><th>โรค</th><th>ผู้ป่วย</th><th>พื้นที่</th><th>สถานะ</th><th>ดำเนินการ</th></tr></thead><tbody data-command-queue-rows>${cases.map((item,index) => `<tr><td>${item.createdAt ? new Date(item.createdAt).toLocaleDateString('th-TH') : '-'}</td><td>${item.disease || '-'}</td><td>${item.patient || '-'}</td><td>${item.location || item.subdistrict || '-'}</td><td><mark class="blue">บันทึกแล้ว</mark></td><td><button class="table-action" data-edit-case="${index}">เปิดแบบสอบสวน</button></td></tr>`).join('')}</tbody></table></div>` : empty('ยังไม่มีคิวสอบสวน', 'เริ่มต้นด้วยการเปิดแบบสอบสวนโรคออนไลน์และบันทึกเคส')}</section>`;
 };
 
+const clusters = () => {
+  const signals=clusterSignals();
+  return `${title('ตรวจจับกลุ่มก้อนโรค', 'คัดกรองรายการที่มีรายงานโรคเดียวกันในพื้นที่เดียวกันภายในสัปดาห์เดียวกัน เพื่อให้ทีม SRRT ตรวจสอบ')}<section class="cluster-rule"><b>เกณฑ์คัดกรองปัจจุบัน</b><span>ตั้งแต่ 3 ราย · โรคเดียวกัน · พื้นที่เดียวกัน · สัปดาห์เริ่มป่วยเดียวกัน</span><small>เป็นสัญญาณคัดกรองเชิงพรรณนา ไม่ใช่การยืนยันการระบาดหรือสรุปสาเหตุ</small></section>${statCards([['สัญญาณที่พบ', `${signals.length} กลุ่ม`, 'ตามเกณฑ์คัดกรอง', 'orange'], ['เคสในสัญญาณ', `${signals.reduce((sum,item)=>sum+item.count,0)} ราย`, 'รวมทุกกลุ่มที่เข้าเงื่อนไข', 'blue'], ['เกณฑ์ที่ใช้', '3 ราย', 'ปรับใช้โดยผู้ดูแลได้ในอนาคต', 'purple'], ['สถานะ', signals.length?'รอตรวจสอบ':'ยังไม่มีข้อมูล', 'ต้องตรวจทานโดย SRRT', 'green']])}<section class="work-panel"><div class="panel-top"><h2>รายการที่ต้องตรวจสอบ</h2><button class="primary" data-view="investigation">เปิดแบบสอบสวนโรค</button></div>${signals.length ? `<div class="cluster-list">${signals.map((item,index)=>`<article><span class="cluster-index">${index+1}</span><div><h3>${item.disease}</h3><p>${item.area} · ${item.period}</p><small>รายงาน ${item.count} รายในช่วงข้อมูลเดียวกัน</small></div><strong>${item.count}<small>ราย</small></strong></article>`).join('')}</div>` : empty('ยังไม่พบกลุ่มที่เข้าเกณฑ์คัดกรอง', 'ระบบต้องมีข้อมูลโรค พื้นที่ และวันเริ่มป่วยอย่างน้อย 3 รายในสัปดาห์เดียวกัน')}</section>`;
+};
+
 const reports = () => {
   const { rows, cases, byDisease } = values();
   return `${title('สรุปผลการสอบสวนและรายงาน', 'สร้างตารางสรุปตามข้อมูลที่บันทึกไว้ โดยไม่ใช้ข้อมูลจำลอง', '<div class="command-actions"><button class="secondary" data-export-506-csv>⇩ CSV</button><button class="primary" data-print-command-report>▣ พิมพ์รายงาน</button></div>')}${statCards([['ข้อมูล รง.506', `${rows.length} ราย`, 'รายการจากการนำเข้า', 'blue'], ['แบบสอบสวน', `${cases.length} ราย`, 'รายการที่บันทึก', 'green'], ['โรคที่สรุปได้', `${Object.keys(byDisease).length} โรค`, 'จากคอลัมน์โรค', 'purple']])}<section class="work-panel printable-command-report"><div class="panel-top"><h2>สรุปตามโรค</h2><small>หน่วย: ราย</small></div>${Object.keys(byDisease).length ? `<table><thead><tr><th>โรค</th><th>จำนวนผู้ป่วย</th><th>แบบสอบสวนที่บันทึก</th></tr></thead><tbody>${Object.entries(byDisease).sort((a,b)=>b[1]-a[1]).map(([d,count]) => `<tr><td>${d}</td><td>${count} ราย</td><td>${cases.filter(x=>x.disease===d).length} ราย</td></tr>`).join('')}</tbody></table>` : empty('ยังไม่มีข้อมูลรายงาน', 'นำเข้าข้อมูล รง.506 ก่อนสร้างรายงานสรุป')}</section>`;
@@ -70,6 +82,7 @@ export function commandCenterView(id) {
   if (id === 'import506') return importer();
   if (id === 'area-map') return areaMap();
   if (id === 'queue') return queue();
+  if (id === 'clusters') return clusters();
   if (id === 'reports') return reports();
   if (id === 'ai-brief') return aiBrief();
   if (id === 'line-notify') return lineNotify();
