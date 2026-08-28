@@ -5,7 +5,20 @@ import { addNarathiwatBoundaries } from './components/narathiwat-boundaries.js';
 import { shell } from './components/layout.js'; import { metricsGrid } from './components/metrics.js'; import { analytics } from './components/charts.js'; import { caseTracking } from './components/case-tracking.js'; import { rightRail } from './components/alerts.js'; import { moduleView, diseaseMeta, investigationForm } from './components/modules.js';
 const data = await getDashboardData();
 const escapeOverview = value => String(value ?? '-').replace(/[&<>"']/g, char => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[char]));
-const overviewCases = () => { try { return JSON.parse(localStorage.getItem('ndss-investigations') || '[]'); } catch { return []; } };
+const overviewCases = () => {
+  let investigations=[], reports=[];
+  try { investigations=JSON.parse(localStorage.getItem('ndss-investigations') || '[]'); } catch { investigations=[]; }
+  try { reports=JSON.parse(localStorage.getItem('ndss-506-records') || '[]'); } catch { reports=[]; }
+  const imported=reports.map(row => ({
+    ...row,
+    location:row.location || [row.tambon,row.district].filter(Boolean).join(' '),
+    subdistrict:row.subdistrict || row.tambon,
+    createdAt:row.importedAt || row.onset || '',
+    updatedAt:row.importedAt || row.onset || '',
+    source:'506'
+  }));
+  return [...investigations.map(row=>({...row,source:'investigation'})),...imported];
+};
 const countBy = (items, key, fallback = 'ไม่ระบุ') => items.reduce((all, item) => { const value = String(item[key] || fallback).trim() || fallback; all[value] = (all[value] || 0) + 1; return all; }, {});
 const rankedRows = (records, key, unit = 'ราย') => Object.entries(countBy(records, key)).sort((a,b) => b[1] - a[1]).map(([label,value]) => `<div><b>${escapeOverview(label)}</b><span><i style="width:${Math.max(8, value / Math.max(...Object.values(countBy(records,key)), 1) * 100)}%"></i></span><strong>${value} ${unit}</strong></div>`).join('');
 const overviewDashboard = () => {
@@ -74,14 +87,17 @@ const fieldValue = (row, names) => {
 };
 const normalize506 = rows => rows.map(row => ({
   disease: fieldValue(row,['disease','โรค','diag','icd10']),
+  patient: fieldValue(row,['patient','name','ชื่อ','ผู้ป่วย']),
   onset: fieldValue(row,['onset','วันที่เริ่มป่วย','dateonset','illdate']),
   sex: fieldValue(row,['sex','เพศ']),
   age: fieldValue(row,['age','อายุ']),
+  nationality: fieldValue(row,['nationality','สัญชาติ']),
   tambon: fieldValue(row,['tambon','subdistrict','ตำบล','ตําบล']),
   district: fieldValue(row,['district','amphoe','อำเภอ','อําเภอ']),
   latitude: fieldValue(row,['latitude','lat','ละติจูด']),
   longitude: fieldValue(row,['longitude','lng','lon','ลองจิจูด']),
-  raw: row
+  raw: row,
+  importedAt: new Date().toISOString()
 })).filter(row => Object.values(row).some(value => commandText(value)));
 const csvRows = text => {
   const lines = text.replace(/^\uFEFF/,'').split(/\r?\n/).filter(Boolean);
