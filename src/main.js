@@ -173,7 +173,10 @@ document.addEventListener('change', event => {
     document.querySelectorAll('.nav-link').forEach(link=>link.classList.toggle('active',link.dataset.view==='report506'));
   }
 });
-document.addEventListener('input', event => { if(event.target.matches('[data-command-queue-search]')) { const keyword=event.target.value.toLowerCase(); root.querySelectorAll('[data-command-queue-rows] tr').forEach(row=>row.hidden=!row.textContent.toLowerCase().includes(keyword)); } });
+document.addEventListener('input', event => {
+  if(event.target.matches('[data-command-queue-search]')) { const keyword=event.target.value.toLowerCase(); root.querySelectorAll('[data-command-queue-rows] tr').forEach(row=>row.hidden=!row.textContent.toLowerCase().includes(keyword)); }
+  if(event.target.matches('[data-lab-search]')) { const keyword=event.target.value.toLowerCase(); root.querySelectorAll('[data-lab-rows] tr').forEach(row=>row.hidden=!row.textContent.toLowerCase().includes(keyword)); }
+});
 document.addEventListener('click', event => {
   const commandView=event.target.closest('[data-view]')?.dataset.view;
   if(commandView==='area-map') setTimeout(renderCommandMap,0);
@@ -188,6 +191,18 @@ document.addEventListener('click', event => {
   if(event.target.closest('[data-send-line]')) showToast('การส่ง LINE OA ต้องตั้งค่า Messaging API และสิทธิ์ผู้ใช้งานก่อน');
 });
 document.addEventListener('submit', event => {
+  if(event.target.matches('[data-lab-result]')) {
+    event.preventDefault();
+    const results=(()=>{ try { return JSON.parse(localStorage.getItem('ndss-lab-results') || '[]'); } catch { return []; } })();
+    const result={...Object.fromEntries(new FormData(event.target)),createdAt:new Date().toISOString()};
+    results.unshift(result);
+    localStorage.setItem('ndss-lab-results',JSON.stringify(results));
+    recordAudit('บันทึกผลตรวจห้องปฏิบัติการ',`${result.test} · ${result.result} · ${result.specimenNo}`);
+    root.innerHTML=`<div class="module-page">${moduleView('lab')}</div>`;
+    document.querySelectorAll('.nav-link').forEach(link=>link.classList.toggle('active',link.dataset.view==='lab'));
+    showToast('บันทึกผลตรวจแล้ว');
+    return;
+  }
   if(!event.target.matches('[data-response-task]')) return;
   event.preventDefault();
   const tasks=(()=>{ try { return JSON.parse(localStorage.getItem('ndss-response-tasks') || '[]'); } catch { return []; } })();
@@ -198,6 +213,19 @@ document.addEventListener('submit', event => {
   root.innerHTML=`<div class="module-page">${moduleView('tracking')}</div>`;
   document.querySelectorAll('.nav-link').forEach(link=>link.classList.toggle('active',link.dataset.view==='tracking'));
   showToast('บันทึกมอบหมายงานแล้ว');
+});
+document.addEventListener('click', event => {
+  const action=event.target.closest('[data-delete-lab]');
+  if(!action) return;
+  const results=(()=>{ try { return JSON.parse(localStorage.getItem('ndss-lab-results') || '[]'); } catch { return []; } })();
+  const item=results[Number(action.dataset.deleteLab)];
+  if(!item || !window.confirm(`ลบผลตรวจ ${item.specimenNo} ใช่หรือไม่?`)) return;
+  results.splice(Number(action.dataset.deleteLab),1);
+  localStorage.setItem('ndss-lab-results',JSON.stringify(results));
+  recordAudit('ลบผลตรวจห้องปฏิบัติการ',`เลขสิ่งส่งตรวจ ${item.specimenNo}`);
+  root.innerHTML=`<div class="module-page">${moduleView('lab')}</div>`;
+  document.querySelectorAll('.nav-link').forEach(link=>link.classList.toggle('active',link.dataset.view==='lab'));
+  showToast('ลบผลตรวจแล้ว');
 });
 document.addEventListener('click', event => {
   const action=event.target.closest('[data-complete-response]');
