@@ -31,6 +31,10 @@ const readAlertState = () => {
   try { return JSON.parse(localStorage.getItem('ndss-alert-state') || '{}'); }
   catch { return {}; }
 };
+const readAiReports = () => {
+  try { return JSON.parse(localStorage.getItem('ndss-ai-reports') || '[]'); }
+  catch { return []; }
+};
 
 const values = () => {
   const rows = read506();
@@ -170,6 +174,10 @@ const reportsSummary = () => {
 };
 
 const aiBrief = () => `${title('AI ช่วยสรุปสถานการณ์', 'สร้างร่างข้อความเชิงพรรณนาจากข้อมูลในระบบ เพื่อให้เจ้าหน้าที่ตรวจทานก่อนเผยแพร่')}<section class="work-panel ai-panel"><div class="form-grid"><label>ช่วงข้อมูล<select data-ai-period><option>ข้อมูลทั้งหมดที่นำเข้า</option><option>เดือนปัจจุบัน</option></select></label><label>รูปแบบข้อความ<select data-ai-tone><option>รายงานสถานการณ์</option><option>สรุปสำหรับทีม SRRT</option></select></label><label>ขอบเขตพื้นที่<select data-ai-area><option>ทุกพื้นที่</option><option>เฉพาะข้อมูลที่มีตำบล</option></select></label></div><div class="form-actions"><button class="primary" data-generate-ai-brief>✦ สร้างร่างบทวิเคราะห์</button></div><article class="ai-output" data-ai-output><h2>ร่างบทวิเคราะห์</h2><p>เลือกเงื่อนไขแล้วกด “สร้างร่างบทวิเคราะห์” ระบบจะแสดงข้อความเชิงพรรณนาจากข้อมูลที่มี โดยไม่สรุปสาเหตุเกินข้อมูล</p></article></section><section class="work-panel"><h2>หลักการใช้งาน</h2><ul class="command-list"><li>ผลลัพธ์เป็นร่างสำหรับตรวจทาน ไม่ใช่ข้อสรุปทางระบาดวิทยาอัตโนมัติ</li><li>หากไม่มีข้อมูล ระบบจะแสดง “ยังไม่มีข้อมูล” โดยไม่สร้างข้อมูลตัวอย่าง</li><li>การเชื่อมต่อ AI ภายนอกต้องกำหนดคีย์และนโยบายข้อมูลในส่วนผู้ดูแลก่อนใช้งานจริง</li></ul></section>`;
+const aiReportCenter = () => {
+  const reports=readAiReports();
+  return `${title('AI ช่วยสรุปรายงานสถานการณ์', 'สร้างร่างรายงานจากข้อมูลจริงในระบบ และเก็บฉบับที่ตรวจทานแล้วไว้ในอุปกรณ์นี้')}<section class="work-panel ai-panel"><div class="report-filter-panel"><label>ช่วงข้อมูล<select data-ai-period><option>เดือนปัจจุบัน</option><option>ข้อมูลทั้งหมดที่นำเข้า</option></select></label><label>รูปแบบการวิเคราะห์<select data-ai-tone><option>รายงานสถานการณ์</option><option>สรุปสำหรับทีม SRRT</option></select></label><label>ขอบเขตพื้นที่<select data-ai-area><option>ทุกพื้นที่</option><option>เฉพาะข้อมูลที่มีตำบล</option></select></label></div><div class="ai-report-actions"><button class="primary" data-generate-ai-brief>✦ สร้างรายงานสถานการณ์</button><button class="secondary" data-save-ai-brief>▣ บันทึก (ร่าง)</button><button class="secondary" data-print-ai-brief>▥ พิมพ์ / PDF</button></div><article class="ai-output ai-report-output" data-ai-output><h2>ร่างรายงานสถานการณ์</h2><p>เลือกเงื่อนไขและกด “สร้างรายงานสถานการณ์” ระบบจะสรุปเชิงพรรณนาจากข้อมูลที่มี โดยไม่สรุปสาเหตุเกินข้อมูล</p></article></section><section class="work-panel"><div class="panel-top"><div><h2>รายการรายงานสถานการณ์</h2><small>ฉบับที่บันทึกไว้ในอุปกรณ์นี้</small></div><span class="report-disease-count">${reports.length} ฉบับ</span></div>${reports.length ? `<div class="history-table-wrap"><table><thead><tr><th>วันที่บันทึก</th><th>ช่วงข้อมูล</th><th>รูปแบบ</th><th>สถานะ</th><th>จัดการ</th></tr></thead><tbody>${reports.map((report,index)=>`<tr><td>${new Date(report.createdAt).toLocaleString('th-TH')}</td><td>${report.period}</td><td>${report.tone}</td><td><mark class="green">บันทึกร่างแล้ว</mark></td><td><button class="table-action" data-open-ai-report="${index}">เปิดรายงาน</button><button class="table-action danger" data-delete-ai-report="${index}">ลบ</button></td></tr>`).join('')}</tbody></table></div>` : empty('ยังไม่มีรายงานที่บันทึก', 'สร้างร่างและตรวจทานก่อนกดบันทึกรายงาน')}</section><section class="work-panel no-print"><h2>หลักการใช้งาน</h2><ul class="command-list"><li>ผลลัพธ์เป็นร่างสำหรับตรวจทาน ไม่ใช่ข้อสรุปทางระบาดวิทยาอัตโนมัติ</li><li>หากไม่มีข้อมูลตามขอบเขต ระบบจะแสดง “ยังไม่มีข้อมูล” โดยไม่สร้างข้อมูลตัวอย่าง</li><li>การเชื่อมต่อ AI ภายนอกต้องกำหนดคีย์และนโยบายข้อมูลในส่วนผู้ดูแลก่อนใช้งานจริง</li></ul></section>`;
+};
 
 const lineNotify = () => { const {rows,cases,byDisease}=values(); const areas=[...new Set(rows.map(row=>row.tambon || row.district).filter(Boolean))]; return `${title('ส่งข้อมูลแจ้งเตือนผ่าน LINE OA', 'เตรียมข้อความสรุปจากข้อมูลในระบบเพื่อนำไปใช้กับ LINE Official Account ตามสิทธิ์ของหน่วยงาน')}<section class="work-panel"><div class="form-grid"><label>กลุ่มเป้าหมาย<select data-line-target><option>ทีม SRRT</option><option>ผู้บริหาร</option><option>ผู้รับผิดชอบรายพื้นที่</option></select></label><label>พื้นที่<select data-line-area><option value="">ทุกพื้นที่</option>${areas.map(area=>`<option value="${area}">${area}</option>`).join('')}</select></label><label>ระดับการแจ้งเตือน<select data-line-level><option>ติดตามสถานการณ์</option><option>เฝ้าระวัง</option><option>เร่งด่วน</option></select></label><label>โรค<select data-line-disease><option value="">ทุกโรค</option>${Object.keys(byDisease).map(disease=>`<option value="${disease}">${disease}</option>`).join('')}</select></label><label>จำนวนข้อมูล รง.506<input value="${rows.length} ราย" disabled /></label><label>แบบสอบสวนที่บันทึก<input value="${cases.length} ราย" disabled /></label></div><div class="form-actions"><button class="secondary" data-preview-line>ดูตัวอย่าง</button><button class="secondary" data-copy-line hidden>คัดลอกข้อความ</button><button class="primary" data-send-line>ส่งผ่าน LINE OA</button></div><div class="line-preview" data-line-preview>ยังไม่ได้สร้างข้อความแจ้งเตือน</div><p class="scope-note">ปุ่มส่งผ่าน LINE OA จะใช้งานได้เมื่อผู้ดูแลกำหนด Channel access token และสิทธิ์ผู้ใช้งานในระบบจริงแล้ว</p></section>`; };
 
@@ -194,7 +202,7 @@ export function commandCenterView(id) {
   if (id === 'report506') return report506();
   if (id === 'export') return exporter();
   if (id === 'reports') return reportsSummary();
-  if (id === 'ai-brief') return aiBrief();
+  if (id === 'ai-brief') return aiReportCenter();
   if (id === 'line-notify') return lineNotify();
   if (id === 'security') return security();
   if (id === 'settings') return settings();
