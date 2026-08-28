@@ -223,11 +223,19 @@ const filterReportRows = () => {
     row.hidden=(!row.textContent.toLowerCase().includes(query)) || (status!=='all' && row.dataset.reportStatus!==status);
   });
 };
+const filterEventReportRows = () => {
+  const query=(root.querySelector('[data-event-report-search]')?.value || '').toLowerCase();
+  const status=root.querySelector('[data-event-report-status]')?.value || 'all';
+  root.querySelectorAll('[data-event-report-rows] tr').forEach(row=>{
+    row.hidden=(!row.textContent.toLowerCase().includes(query)) || (status!=='all' && row.dataset.eventReportStatus!==status);
+  });
+};
 document.addEventListener('change', event => {
   if(event.target.matches('[data-import-506]')) import506File(event.target.files?.[0]);
   if(event.target.matches('[data-restore-local]')) restoreLocalData(event.target.files?.[0]);
   if(event.target.matches('[data-command-map-scope]')) renderCommandMap();
   if(event.target.matches('[data-report-status]')) filterReportRows();
+  if(event.target.matches('[data-event-report-status]')) filterEventReportRows();
   if(event.target.matches('[data-disease-analytics-select]')) {
     localStorage.setItem('ndss-analytics-disease',event.target.value);
     root.innerHTML=`<div class="module-page">${moduleView('epidemiology')}</div>`;
@@ -246,6 +254,7 @@ document.addEventListener('input', event => {
   if(event.target.matches('[data-command-queue-search]')) { const keyword=event.target.value.toLowerCase(); root.querySelectorAll('[data-command-queue-rows] tr').forEach(row=>row.hidden=!row.textContent.toLowerCase().includes(keyword)); }
   if(event.target.matches('[data-lab-search]')) { const keyword=event.target.value.toLowerCase(); root.querySelectorAll('[data-lab-rows] tr').forEach(row=>row.hidden=!row.textContent.toLowerCase().includes(keyword)); }
   if(event.target.matches('[data-report-search]')) filterReportRows();
+  if(event.target.matches('[data-event-report-search]')) filterEventReportRows();
 });
 document.addEventListener('click', event => {
   const commandView=event.target.closest('[data-view]')?.dataset.view;
