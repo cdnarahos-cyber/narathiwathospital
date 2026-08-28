@@ -156,6 +156,23 @@ const commandCsv = () => {
   const blob=new Blob([[head,...body].map(line=>line.map(value=>`"${String(value).replaceAll('"','""')}"`).join(',')).join('\n')],{type:'text/csv;charset=utf-8'});
   const link=document.createElement('a'); link.href=URL.createObjectURL(blob); link.download='ndss-506-summary.csv'; link.click(); setTimeout(()=>URL.revokeObjectURL(link.href),500);
 };
+const commandExport = ({dataset,filename}) => {
+  const sources={
+    '506': commandRecords(),
+    investigation: commandCases(),
+    lab: (()=>{ try { return JSON.parse(localStorage.getItem('ndss-lab-results') || '[]'); } catch { return []; } })(),
+    tasks: (()=>{ try { return JSON.parse(localStorage.getItem('ndss-response-tasks') || '[]'); } catch { return []; } })()
+  };
+  const rows=sources[dataset] || [];
+  if(!rows.length) { showToast('ยังไม่มีข้อมูลในชุดที่เลือกสำหรับส่งออก'); return; }
+  const keys=[...new Set(rows.flatMap(row=>Object.keys(row).filter(key=>!['raw','pdfData'].includes(key))))];
+  const csv=[keys,...rows.map(row=>keys.map(key=>typeof row[key]==='object' ? JSON.stringify(row[key]) : row[key] ?? ''))].map(line=>line.map(value=>`"${String(value).replaceAll('"','""')}"`).join(',')).join('\n');
+  const safeName=(filename || `ndss-${dataset}-${new Date().toISOString().slice(0,10)}`).replace(/[^a-zA-Z0-9ก-๙_\-]/g,'-');
+  const blob=new Blob([`\ufeff${csv}`],{type:'text/csv;charset=utf-8'});
+  const link=document.createElement('a'); link.href=URL.createObjectURL(blob); link.download=`${safeName}.csv`; link.click(); setTimeout(()=>URL.revokeObjectURL(link.href),500);
+  recordAudit('ส่งออกข้อมูล CSV',`ชุดข้อมูล ${dataset} · ${rows.length} รายการ`);
+  showToast(`ดาวน์โหลด ${rows.length} รายการแล้ว`);
+};
 document.addEventListener('change', event => {
   if(event.target.matches('[data-import-506]')) import506File(event.target.files?.[0]);
   if(event.target.matches('[data-command-map-scope]')) renderCommandMap();
@@ -191,6 +208,11 @@ document.addEventListener('click', event => {
   if(event.target.closest('[data-send-line]')) showToast('การส่ง LINE OA ต้องตั้งค่า Messaging API และสิทธิ์ผู้ใช้งานก่อน');
 });
 document.addEventListener('submit', event => {
+  if(event.target.matches('[data-command-export]')) {
+    event.preventDefault();
+    commandExport(Object.fromEntries(new FormData(event.target)));
+    return;
+  }
   if(event.target.matches('[data-lab-result]')) {
     event.preventDefault();
     const results=(()=>{ try { return JSON.parse(localStorage.getItem('ndss-lab-results') || '[]'); } catch { return []; } })();
