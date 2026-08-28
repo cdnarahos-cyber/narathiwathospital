@@ -19,6 +19,10 @@ const readTasks = () => {
   try { return JSON.parse(localStorage.getItem('ndss-response-tasks') || '[]'); }
   catch { return []; }
 };
+const readAudit = () => {
+  try { return JSON.parse(localStorage.getItem('ndss-audit-log') || '[]'); }
+  catch { return []; }
+};
 
 const values = () => {
   const rows = read506();
@@ -102,6 +106,8 @@ const alerts = () => {
   return `${title('ระบบแจ้งเตือน', 'สรุปสัญญาณจากข้อมูลที่บันทึก เพื่อให้ทีมตรวจสอบและดำเนินการตามบทบาท')}<section class="alert-notice"><b>หลักการแจ้งเตือน</b><span>ระบบแสดงสัญญาณจากเกณฑ์ข้อมูลและกำหนดงาน ไม่ยืนยันเหตุการณ์หรือสาเหตุแทนผู้ปฏิบัติงาน</span></section>${statCards([['สัญญาณกลุ่มก้อน', `${signals.length} กลุ่ม`, 'ตามเกณฑ์คัดกรอง', 'red'], ['งานเกินกำหนด', `${overdue.length} งาน`, 'กำหนดเสร็จก่อนวันนี้', 'orange'], ['รอรับทราบ', `${waiting.length} งาน`, 'งานที่ยังไม่เริ่มดำเนินการ', 'blue'], ['แจ้งเตือนรวม', `${items.length} รายการ`, 'ตามข้อมูลปัจจุบัน', 'purple']])}<section class="work-panel"><div class="panel-top"><h2>รายการแจ้งเตือน</h2><button class="primary" data-view="line-notify">เตรียมส่ง LINE OA</button></div>${items.length ? `<div class="alert-feed">${items.map(item=>`<article class="${item.tone}"><i></i><div><b>${item.title}</b><span>${item.detail}</span></div><button class="table-action" data-view="${item.view}">เปิดดู</button></article>`).join('')}</div>` : empty('ยังไม่มีรายการแจ้งเตือน', 'เมื่อมีสัญญาณกลุ่มก้อน งานเกินกำหนด หรือรายการรอรับทราบ ระบบจะแสดงในหน้านี้')}</section>`;
 };
 
+const audit = () => { const entries=readAudit(); return `${title('บันทึกกิจกรรมระบบ', 'ประวัติเหตุการณ์สำคัญสำหรับตรวจสอบการทำงานของระบบ โดยไม่แสดงข้อมูลผู้ป่วยรายบุคคล')}<section class="work-panel"><div class="panel-top"><h2>กิจกรรมล่าสุด</h2><button class="secondary" data-clear-audit>ล้างประวัติในอุปกรณ์นี้</button></div>${entries.length ? `<div class="audit-list">${entries.slice(0,100).map(entry=>`<article><i></i><div><b>${entry.action}</b><span>${entry.detail}</span></div><time>${new Date(entry.at).toLocaleString('th-TH')}</time></article>`).join('')}</div>` : empty('ยังไม่มีบันทึกกิจกรรม', 'ระบบจะบันทึกการนำเข้าข้อมูล การบันทึกเคส และการมอบหมาย/ปิดงานจากอุปกรณ์นี้')}</section>`; };
+
 const reports = () => {
   const { rows, cases, byDisease } = values();
   const issuedAt=new Date().toLocaleString('th-TH');
@@ -126,6 +132,7 @@ export function commandCenterView(id) {
   if (id === 'epidemiology') return epidemiology();
   if (id === 'tracking') return tracking();
   if (id === 'alerts') return alerts();
+  if (id === 'audit') return audit();
   if (id === 'reports') return reports();
   if (id === 'ai-brief') return aiBrief();
   if (id === 'line-notify') return lineNotify();
