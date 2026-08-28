@@ -156,7 +156,23 @@ const commandCsv = () => {
   const blob=new Blob([[head,...body].map(line=>line.map(value=>`"${String(value).replaceAll('"','""')}"`).join(',')).join('\n')],{type:'text/csv;charset=utf-8'});
   const link=document.createElement('a'); link.href=URL.createObjectURL(blob); link.download='ndss-506-summary.csv'; link.click(); setTimeout(()=>URL.revokeObjectURL(link.href),500);
 };
-document.addEventListener('change', event => { if(event.target.matches('[data-import-506]')) import506File(event.target.files?.[0]); if(event.target.matches('[data-command-map-scope]')) renderCommandMap(); if(event.target.matches('[data-disease-analytics-select]')) { localStorage.setItem('ndss-analytics-disease',event.target.value); root.innerHTML=`<div class="module-page">${moduleView('epidemiology')}</div>`; document.querySelectorAll('.nav-link').forEach(link=>link.classList.toggle('active',link.dataset.view==='epidemiology')); } });
+document.addEventListener('change', event => {
+  if(event.target.matches('[data-import-506]')) import506File(event.target.files?.[0]);
+  if(event.target.matches('[data-command-map-scope]')) renderCommandMap();
+  if(event.target.matches('[data-disease-analytics-select]')) {
+    localStorage.setItem('ndss-analytics-disease',event.target.value);
+    root.innerHTML=`<div class="module-page">${moduleView('epidemiology')}</div>`;
+    document.querySelectorAll('.nav-link').forEach(link=>link.classList.toggle('active',link.dataset.view==='epidemiology'));
+  }
+  if(event.target.matches('[data-506-report-disease],[data-506-report-area]')) {
+    const disease=root.querySelector('[data-506-report-disease]')?.value || '';
+    const area=root.querySelector('[data-506-report-area]')?.value || '';
+    localStorage.setItem('ndss-506-report-disease',disease);
+    localStorage.setItem('ndss-506-report-area',area);
+    root.innerHTML=`<div class="module-page">${moduleView('report506')}</div>`;
+    document.querySelectorAll('.nav-link').forEach(link=>link.classList.toggle('active',link.dataset.view==='report506'));
+  }
+});
 document.addEventListener('input', event => { if(event.target.matches('[data-command-queue-search]')) { const keyword=event.target.value.toLowerCase(); root.querySelectorAll('[data-command-queue-rows] tr').forEach(row=>row.hidden=!row.textContent.toLowerCase().includes(keyword)); } });
 document.addEventListener('click', event => {
   const commandView=event.target.closest('[data-view]')?.dataset.view;
