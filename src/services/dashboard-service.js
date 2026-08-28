@@ -1,8 +1,7 @@
 import { hasSupabaseCredentials, supabaseConfig } from '../config/supabase.js';
-import { metrics, cases, alerts } from '../data/dashboard-data.js';
 
 export async function getDashboardData() {
-  if (!hasSupabaseCredentials) return { metrics, cases, alerts, source: 'demo' };
+  if (!hasSupabaseCredentials) return { metrics: [], cases: [], alerts: [], source: 'unconfigured' };
 
   const headers = {
     apikey: supabaseConfig.publishableKey,
@@ -27,7 +26,7 @@ export async function getDashboardData() {
       source: 'live',
     };
   } catch (error) {
-    console.warn('Supabase dashboard query unavailable; displaying demo data.', error);
-    return { metrics, cases, alerts, source: 'demo' };
+    console.warn('Supabase dashboard query unavailable.', error);
+    return { metrics: [], cases: [], alerts: [], source: 'unavailable' };
   }
 }
