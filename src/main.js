@@ -216,10 +216,18 @@ const restoreLocalData = async file => {
     showToast('กู้คืนข้อมูลเรียบร้อยแล้ว');
   } catch(error) { showToast('ไม่สามารถอ่านไฟล์สำรองนี้ได้'); }
 };
+const filterReportRows = () => {
+  const query=(root.querySelector('[data-report-search]')?.value || '').toLowerCase();
+  const status=root.querySelector('[data-report-status]')?.value || 'all';
+  root.querySelectorAll('[data-report-rows] tr').forEach(row=>{
+    row.hidden=(!row.textContent.toLowerCase().includes(query)) || (status!=='all' && row.dataset.reportStatus!==status);
+  });
+};
 document.addEventListener('change', event => {
   if(event.target.matches('[data-import-506]')) import506File(event.target.files?.[0]);
   if(event.target.matches('[data-restore-local]')) restoreLocalData(event.target.files?.[0]);
   if(event.target.matches('[data-command-map-scope]')) renderCommandMap();
+  if(event.target.matches('[data-report-status]')) filterReportRows();
   if(event.target.matches('[data-disease-analytics-select]')) {
     localStorage.setItem('ndss-analytics-disease',event.target.value);
     root.innerHTML=`<div class="module-page">${moduleView('epidemiology')}</div>`;
@@ -237,6 +245,7 @@ document.addEventListener('change', event => {
 document.addEventListener('input', event => {
   if(event.target.matches('[data-command-queue-search]')) { const keyword=event.target.value.toLowerCase(); root.querySelectorAll('[data-command-queue-rows] tr').forEach(row=>row.hidden=!row.textContent.toLowerCase().includes(keyword)); }
   if(event.target.matches('[data-lab-search]')) { const keyword=event.target.value.toLowerCase(); root.querySelectorAll('[data-lab-rows] tr').forEach(row=>row.hidden=!row.textContent.toLowerCase().includes(keyword)); }
+  if(event.target.matches('[data-report-search]')) filterReportRows();
 });
 document.addEventListener('click', event => {
   const commandView=event.target.closest('[data-view]')?.dataset.view;
@@ -262,6 +271,7 @@ document.addEventListener('click', event => {
     showToast('บันทึกรับทราบการแจ้งเตือนแล้ว');
   }
   if(event.target.closest('[data-export-506-csv]')) commandCsv();
+  if(event.target.closest('[data-print-summary]')) window.print();
   if(event.target.closest('[data-print-command-report]')) window.print();
   if(event.target.closest('[data-generate-ai-brief]')) {
     const period=root.querySelector('[data-ai-period]')?.value || 'ข้อมูลทั้งหมดที่นำเข้า';
