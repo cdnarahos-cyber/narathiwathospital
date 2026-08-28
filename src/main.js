@@ -165,3 +165,25 @@ document.addEventListener('click', event => {
   if(event.target.closest('[data-preview-line]')) { const rows=commandRecords(); const box=root.querySelector('[data-line-preview]'); if(box) box.textContent=rows.length ? `สรุปสถานการณ์: มีข้อมูลรายงาน ${rows.length} รายในระบบ โปรดตรวจสอบรายละเอียดใน NDSS ก่อนดำเนินการ` : 'ยังไม่มีข้อมูลสำหรับสร้างข้อความแจ้งเตือน'; }
   if(event.target.closest('[data-send-line]')) showToast('การส่ง LINE OA ต้องตั้งค่า Messaging API และสิทธิ์ผู้ใช้งานก่อน');
 });
+document.addEventListener('submit', event => {
+  if(!event.target.matches('[data-response-task]')) return;
+  event.preventDefault();
+  const tasks=(()=>{ try { return JSON.parse(localStorage.getItem('ndss-response-tasks') || '[]'); } catch { return []; } })();
+  tasks.push({...Object.fromEntries(new FormData(event.target)),createdAt:new Date().toISOString()});
+  localStorage.setItem('ndss-response-tasks',JSON.stringify(tasks));
+  root.innerHTML=`<div class="module-page">${moduleView('tracking')}</div>`;
+  document.querySelectorAll('.nav-link').forEach(link=>link.classList.toggle('active',link.dataset.view==='tracking'));
+  showToast('บันทึกมอบหมายงานแล้ว');
+});
+document.addEventListener('click', event => {
+  const action=event.target.closest('[data-complete-response]');
+  if(!action) return;
+  const tasks=(()=>{ try { return JSON.parse(localStorage.getItem('ndss-response-tasks') || '[]'); } catch { return []; } })();
+  const task=tasks[Number(action.dataset.completeResponse)];
+  if(!task) return;
+  task.status='ควบคุมแล้ว'; task.completedAt=new Date().toISOString();
+  localStorage.setItem('ndss-response-tasks',JSON.stringify(tasks));
+  root.innerHTML=`<div class="module-page">${moduleView('tracking')}</div>`;
+  document.querySelectorAll('.nav-link').forEach(link=>link.classList.toggle('active',link.dataset.view==='tracking'));
+  showToast('บันทึกสถานะควบคุมแล้ว');
+});
