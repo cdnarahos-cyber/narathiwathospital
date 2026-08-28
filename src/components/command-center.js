@@ -15,6 +15,10 @@ const readCases = () => {
   try { return JSON.parse(localStorage.getItem('ndss-investigations') || '[]'); }
   catch { return []; }
 };
+const readTasks = () => {
+  try { return JSON.parse(localStorage.getItem('ndss-response-tasks') || '[]'); }
+  catch { return []; }
+};
 
 const values = () => {
   const rows = read506();
@@ -66,6 +70,13 @@ const clusters = () => {
   return `${title('ตรวจจับกลุ่มก้อนโรค', 'คัดกรองรายการที่มีรายงานโรคเดียวกันในพื้นที่เดียวกันภายในสัปดาห์เดียวกัน เพื่อให้ทีม SRRT ตรวจสอบ')}<section class="cluster-rule"><b>เกณฑ์คัดกรองปัจจุบัน</b><span>ตั้งแต่ 3 ราย · โรคเดียวกัน · พื้นที่เดียวกัน · สัปดาห์เริ่มป่วยเดียวกัน</span><small>เป็นสัญญาณคัดกรองเชิงพรรณนา ไม่ใช่การยืนยันการระบาดหรือสรุปสาเหตุ</small></section>${statCards([['สัญญาณที่พบ', `${signals.length} กลุ่ม`, 'ตามเกณฑ์คัดกรอง', 'orange'], ['เคสในสัญญาณ', `${signals.reduce((sum,item)=>sum+item.count,0)} ราย`, 'รวมทุกกลุ่มที่เข้าเงื่อนไข', 'blue'], ['เกณฑ์ที่ใช้', '3 ราย', 'ปรับใช้โดยผู้ดูแลได้ในอนาคต', 'purple'], ['สถานะ', signals.length?'รอตรวจสอบ':'ยังไม่มีข้อมูล', 'ต้องตรวจทานโดย SRRT', 'green']])}<section class="work-panel"><div class="panel-top"><h2>รายการที่ต้องตรวจสอบ</h2><button class="primary" data-view="investigation">เปิดแบบสอบสวนโรค</button></div>${signals.length ? `<div class="cluster-list">${signals.map((item,index)=>`<article><span class="cluster-index">${index+1}</span><div><h3>${item.disease}</h3><p>${item.area} · ${item.period}</p><small>รายงาน ${item.count} รายในช่วงข้อมูลเดียวกัน</small></div><strong>${item.count}<small>ราย</small></strong></article>`).join('')}</div>` : empty('ยังไม่พบกลุ่มที่เข้าเกณฑ์คัดกรอง', 'ระบบต้องมีข้อมูลโรค พื้นที่ และวันเริ่มป่วยอย่างน้อย 3 รายในสัปดาห์เดียวกัน')}</section>`;
 };
 
+const tracking = () => {
+  const cases=readCases(), tasks=readTasks();
+  const done=tasks.filter(task=>task.status==='ควบคุมแล้ว').length;
+  const active=tasks.filter(task=>task.status==='กำลังดำเนินการ').length;
+  return `${title('ติดตามและควบคุมโรค', 'มอบหมายผู้รับผิดชอบ ติดตามกำหนดเสร็จ และบันทึกผลการดำเนินงานของแต่ละเคส')}<section class="work-panel"><div class="panel-top"><h2>มอบหมายงานสอบสวน / ควบคุมโรค</h2><small>งานจะถูกบันทึกในเบราว์เซอร์นี้</small></div>${cases.length ? `<form class="form-grid" data-response-task><label>เคสที่รับผิดชอบ<select name="caseIndex" required>${cases.map((item,index)=>`<option value="${index}">${item.disease || 'ไม่ระบุโรค'} · ${item.patient || item.hn || `เคส ${index+1}`} · ${item.location || item.subdistrict || '-'}</option>`).join('')}</select></label><label>ผู้รับผิดชอบ<input name="owner" required placeholder="ชื่อเจ้าหน้าที่ / ทีม SRRT" /></label><label>กำหนดเสร็จ<input name="dueDate" type="date" required /></label><label>ระดับความเร่งด่วน<select name="priority"><option>ปกติ</option><option>เฝ้าระวัง</option><option>เร่งด่วน</option></select></label><label>รายละเอียดงาน<input name="note" placeholder="เช่น ตรวจสอบผู้สัมผัสและพื้นที่เสี่ยง" /></label><label>สถานะเริ่มต้น<select name="status"><option>รอรับทราบ</option><option>กำลังดำเนินการ</option></select></label><div class="form-actions"><button class="primary">บันทึกมอบหมายงาน</button></div></form>` : empty('ยังไม่มีเคสสำหรับมอบหมาย', 'เริ่มจากบันทึกข้อมูลในแบบสอบสวนโรคออนไลน์')}</section>${statCards([['งานทั้งหมด', `${tasks.length} งาน`, 'รายการที่มอบหมายแล้ว', 'blue'], ['กำลังดำเนินการ', `${active} งาน`, 'ต้องติดตามโดยผู้รับผิดชอบ', 'orange'], ['ควบคุมแล้ว', `${done} งาน`, 'บันทึกผลเสร็จสิ้นแล้ว', 'green'], ['ยังไม่มอบหมาย', `${Math.max(0,cases.length-tasks.length)} เคส`, 'เปรียบเทียบกับเคสที่บันทึก', 'purple']])}<section class="work-panel"><div class="panel-top"><h2>ตารางติดตามงาน</h2><small>การเปลี่ยนสถานะจะบันทึกทันที</small></div>${tasks.length ? `<div class="history-table-wrap"><table><thead><tr><th>เคส</th><th>ผู้รับผิดชอบ</th><th>กำหนดเสร็จ</th><th>ความเร่งด่วน</th><th>สถานะ</th><th>จัดการ</th></tr></thead><tbody>${tasks.map((task,index)=>{ const item=cases[Number(task.caseIndex)] || {}; return `<tr><td><b>${item.disease || 'ไม่ระบุโรค'}</b><br/><small>${item.patient || item.hn || '-'}</small></td><td>${task.owner}</td><td>${task.dueDate ? new Date(task.dueDate).toLocaleDateString('th-TH') : '-'}</td><td><mark class="${task.priority==='เร่งด่วน'?'red':task.priority==='เฝ้าระวัง'?'gold':'blue'}">${task.priority}</mark></td><td><mark class="${task.status==='ควบคุมแล้ว'?'green':'blue'}">${task.status}</mark></td><td>${task.status==='ควบคุมแล้ว' ? '<span class="task-done">✓ เสร็จสิ้น</span>' : `<button class="table-action" data-complete-response="${index}">บันทึกควบคุมแล้ว</button>`}</td></tr>`; }).join('')}</tbody></table></div>` : empty('ยังไม่มีงานที่มอบหมาย', 'กรอกแบบฟอร์มด้านบนเพื่อเริ่มติดตามงาน')}</section>`;
+};
+
 const reports = () => {
   const { rows, cases, byDisease } = values();
   return `${title('สรุปผลการสอบสวนและรายงาน', 'สร้างตารางสรุปตามข้อมูลที่บันทึกไว้ โดยไม่ใช้ข้อมูลจำลอง', '<div class="command-actions"><button class="secondary" data-export-506-csv>⇩ CSV</button><button class="primary" data-print-command-report>▣ พิมพ์รายงาน</button></div>')}${statCards([['ข้อมูล รง.506', `${rows.length} ราย`, 'รายการจากการนำเข้า', 'blue'], ['แบบสอบสวน', `${cases.length} ราย`, 'รายการที่บันทึก', 'green'], ['โรคที่สรุปได้', `${Object.keys(byDisease).length} โรค`, 'จากคอลัมน์โรค', 'purple']])}<section class="work-panel printable-command-report"><div class="panel-top"><h2>สรุปตามโรค</h2><small>หน่วย: ราย</small></div>${Object.keys(byDisease).length ? `<table><thead><tr><th>โรค</th><th>จำนวนผู้ป่วย</th><th>แบบสอบสวนที่บันทึก</th></tr></thead><tbody>${Object.entries(byDisease).sort((a,b)=>b[1]-a[1]).map(([d,count]) => `<tr><td>${d}</td><td>${count} ราย</td><td>${cases.filter(x=>x.disease===d).length} ราย</td></tr>`).join('')}</tbody></table>` : empty('ยังไม่มีข้อมูลรายงาน', 'นำเข้าข้อมูล รง.506 ก่อนสร้างรายงานสรุป')}</section>`;
@@ -83,6 +94,7 @@ export function commandCenterView(id) {
   if (id === 'area-map') return areaMap();
   if (id === 'queue') return queue();
   if (id === 'clusters') return clusters();
+  if (id === 'tracking') return tracking();
   if (id === 'reports') return reports();
   if (id === 'ai-brief') return aiBrief();
   if (id === 'line-notify') return lineNotify();
