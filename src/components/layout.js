@@ -6,11 +6,12 @@ export function shell(content) {
       {id:'investigation',label:'📝 แบบสอบสวนโรคออนไลน์'},
       {id:'tracking',label:'🦠 ติดตามและควบคุมโรค'},
       {id:'alerts',label:'🚨 ระบบแจ้งเตือน'},
-      {id:'queue',label:'🔥 Outbreak Management'},
+      {id:'queue',label:'🔥 Qutbreak Management'},
       {id:'report506',label:'📄 รายงาน 506'},
       {id:'lab',label:'🧪 รายงานห้องปฏิบัติการ'},
       {id:'executive',label:'👨‍💼 รายงานผู้บริหาร'},
       {id:'area-map',label:'🗺️ แผนที่ระบาดวิทยา'},
+      {id:'export',label:'📥 Export Report'},
       {id:'knowledge',label:'📚 Knowledge Center'},
       {id:'settings',label:'⚙️ ตั้งค่า / ผู้ดูแลระบบ'}
     ]}
