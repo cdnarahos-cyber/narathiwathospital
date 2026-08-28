@@ -173,8 +173,32 @@ const commandExport = ({dataset,filename}) => {
   recordAudit('ส่งออกข้อมูล CSV',`ชุดข้อมูล ${dataset} · ${rows.length} รายการ`);
   showToast(`ดาวน์โหลด ${rows.length} รายการแล้ว`);
 };
+const backupKeys=['ndss-506-records','ndss-506-import-meta','ndss-investigations','ndss-response-tasks','ndss-lab-results','ndss-alert-state','ndss-audit-log'];
+const backupLocalData = () => {
+  const records=Object.fromEntries(backupKeys.map(key=>[key,JSON.parse(localStorage.getItem(key) || (key.includes('state') ? '{}' : '[]'))]));
+  const blob=new Blob([JSON.stringify({version:1,createdAt:new Date().toISOString(),records},null,2)],{type:'application/json'});
+  const link=document.createElement('a'); link.href=URL.createObjectURL(blob); link.download=`ndss-local-backup-${new Date().toISOString().slice(0,10)}.json`; link.click(); setTimeout(()=>URL.revokeObjectURL(link.href),500);
+  recordAudit('สำรองข้อมูลในอุปกรณ์','สร้างไฟล์สำรอง JSON');
+  showToast('ดาวน์โหลดไฟล์สำรองข้อมูลแล้ว');
+};
+const restoreLocalData = async file => {
+  if(!file) return;
+  try {
+    const backup=JSON.parse(await file.text());
+    if(backup?.version!==1 || !backup.records || typeof backup.records!=='object') throw new Error('invalid');
+    if(!window.confirm('กู้คืนข้อมูลจะเขียนทับข้อมูลในอุปกรณ์นี้ ต้องการดำเนินการหรือไม่?')) return;
+    backupKeys.forEach(key=>{
+      if(Object.hasOwn(backup.records,key)) localStorage.setItem(key,JSON.stringify(backup.records[key]));
+    });
+    recordAudit('กู้คืนข้อมูลในอุปกรณ์',`กู้คืนจากไฟล์ ${file.name}`);
+    root.innerHTML=`<div class="module-page">${moduleView('settings')}</div>`;
+    document.querySelectorAll('.nav-link').forEach(link=>link.classList.toggle('active',link.dataset.view==='settings'));
+    showToast('กู้คืนข้อมูลเรียบร้อยแล้ว');
+  } catch(error) { showToast('ไม่สามารถอ่านไฟล์สำรองนี้ได้'); }
+};
 document.addEventListener('change', event => {
   if(event.target.matches('[data-import-506]')) import506File(event.target.files?.[0]);
+  if(event.target.matches('[data-restore-local]')) restoreLocalData(event.target.files?.[0]);
   if(event.target.matches('[data-command-map-scope]')) renderCommandMap();
   if(event.target.matches('[data-disease-analytics-select]')) {
     localStorage.setItem('ndss-analytics-disease',event.target.value);
@@ -200,6 +224,7 @@ document.addEventListener('click', event => {
   if(event.target.closest('[data-open-506-import]')) document.querySelector('.nav-link[data-view="import506"]')?.click();
   if(event.target.closest('[data-clear-506]')) { localStorage.removeItem('ndss-506-records'); localStorage.removeItem('ndss-506-import-meta'); recordAudit('ล้างข้อมูล รง.506','ล้างข้อมูลที่นำเข้าในอุปกรณ์นี้'); root.querySelector('[data-import-status]')?.replaceChildren(document.createTextNode('ล้างข้อมูลนำเข้าแล้ว')); showToast('ล้างข้อมูล รง.506 แล้ว'); }
   if(event.target.closest('[data-clear-audit]')) { localStorage.removeItem('ndss-audit-log'); root.innerHTML=`<div class="module-page">${moduleView('audit')}</div>`; document.querySelectorAll('.nav-link').forEach(link=>link.classList.toggle('active',link.dataset.view==='audit')); showToast('ล้างบันทึกกิจกรรมแล้ว'); }
+  if(event.target.closest('[data-backup-local]')) backupLocalData();
   const alertAction=event.target.closest('[data-ack-alert]');
   if(alertAction) {
     let state={}; try { state=JSON.parse(localStorage.getItem('ndss-alert-state') || '{}'); } catch { state={}; }
