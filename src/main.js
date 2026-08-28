@@ -23,13 +23,15 @@ const countBy = (items, key, fallback = 'ไม่ระบุ') => items.reduce
 const rankedRows = (records, key, unit = 'ราย') => Object.entries(countBy(records, key)).sort((a,b) => b[1] - a[1]).map(([label,value]) => `<div><b>${escapeOverview(label)}</b><span><i style="width:${Math.max(8, value / Math.max(...Object.values(countBy(records,key)), 1) * 100)}%"></i></span><strong>${value} ${unit}</strong></div>`).join('');
 const overviewDashboard = () => {
   const cases = overviewCases();
+  const importedCount=cases.filter(item=>item.source==='506').length;
+  const investigationCount=cases.filter(item=>item.source==='investigation').length;
   const asOf = cases.reduce((latest, item) => !latest || String(item.updatedAt || item.createdAt || '') > String(latest.updatedAt || latest.createdAt || '') ? item : latest, null);
   const asOfText = asOf ? new Date(asOf.updatedAt || asOf.createdAt).toLocaleString('th-TH') : 'ยังไม่มีข้อมูล';
   const deaths = cases.filter(item => String(item.outcome || '').includes('เสียชีวิต')).length;
   const cfr = cases.length ? `${(deaths / cases.length * 100).toFixed(2)} ร้อยละ` : 'ยังไม่มีข้อมูล';
   const empty = message => `<section class="work-panel epi-empty"><strong>ยังไม่มีข้อมูล</strong><p>${message}</p></section>`;
   const tabs = [['situation','สถานการณ์โรค'],['trend','Trend'],['curve','Epidemic Curve'],['person','Person'],['place','Place'],['time','Time']];
-  const disease = cases.length ? `<section class="work-panel"><h2>จำนวนผู้ป่วยจำแนกตามโรค</h2><div class="epi-disease-list">${rankedRows(cases,'disease')}</div></section>` : empty('ยังไม่มีเคสที่บันทึกจากระบบแบบสอบสวนโรคออนไลน์');
+  const disease = cases.length ? `<section class="work-panel"><div class="panel-top"><h2>จำนวนผู้ป่วยจำแนกตามโรค</h2><small>รง.506 ${importedCount} ราย · แบบสอบสวน ${investigationCount} ราย</small></div><div class="epi-disease-list">${rankedRows(cases,'disease')}</div></section>` : empty('ยังไม่มีข้อมูล รง.506 หรือเคสที่บันทึกจากระบบแบบสอบสวนโรคออนไลน์');
   const year = new Date().getFullYear();
   const trend = cases.length ? `<section class="work-panel"><h2>จำนวนผู้ป่วยรายเดือนย้อนหลัง 3 ปี</h2><small>Legend: ${[year-2,year-1,year].map((y,i)=>`<i class="epi-year y${i}"></i> ${y+543}`).join('　')}</small><div class="epi-month-chart">${Array.from({length:12},(_,month)=>{ const values=[year-2,year-1,year].map(y=>cases.filter(item=>{ const d=new Date(item.onset || item.createdAt); return !Number.isNaN(d) && d.getFullYear()===y && d.getMonth()===month; }).length); return `<div><span>${values.map((v,i)=>`<b class="y${i}" style="height:${Math.max(3,v*12)}px" title="${v} ราย"></b>`).join('')}</span><small>${month+1}</small></div>`; }).join('')}</div><p class="epi-note">กราฟแสดงจำนวนเคสที่มีวันเริ่มป่วยหรือวันบันทึกอยู่ในแต่ละเดือน</p></section>` : empty('ต้องมีวันเริ่มป่วยหรือวันบันทึกจึงจะแสดงกราฟย้อนหลังได้');
   const dated = cases.filter(item => item.onset || item.createdAt);
