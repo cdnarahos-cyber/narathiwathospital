@@ -134,9 +134,11 @@ let commandMap;
 const renderCommandMap = () => {
   const node=root.querySelector('[data-command-map]'); if(!node) return;
   if(!window.L) { node.textContent='กำลังโหลดแผนที่ Leaflet…'; return; }
+  node.closest('.command-map-panel')?.querySelectorAll('.map-area-search').forEach(element=>element.remove());
   if(commandMap) commandMap.remove();
   commandMap=window.L.map(node,{scrollWheelZoom:false}).setView([6.426,101.825],11);
   window.L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'© OpenStreetMap contributors'}).addTo(commandMap);
+  addNarathiwatBoundaries(commandMap);
   const scope=root.querySelector('[data-command-map-scope]')?.value || 'all';
   const points=[...commandRecords().filter(row => scope==='all' || row.disease===scope),...commandCases().filter(row => scope==='all' || row.disease===scope)].map((row,index)=>({row,lat:Number(row.latitude || row.lat),lng:Number(row.longitude || row.lng),index})).filter(point=>Number.isFinite(point.lat)&&Number.isFinite(point.lng));
   const bounds=[];
