@@ -82,6 +82,7 @@ document.addEventListener('submit', event => { if(event.target.matches('[data-in
 // until a server-side 506 integration is configured by the administrator.
 const commandRecords = () => { try { return JSON.parse(localStorage.getItem('ndss-506-records') || '[]'); } catch { return []; } };
 const commandCases = () => { try { return JSON.parse(localStorage.getItem('ndss-investigations') || '[]'); } catch { return []; } };
+const recordAudit = (action, detail) => { let entries=[]; try { entries=JSON.parse(localStorage.getItem('ndss-audit-log') || '[]'); } catch { entries=[]; } entries.unshift({action,detail,at:new Date().toISOString()}); localStorage.setItem('ndss-audit-log',JSON.stringify(entries.slice(0,100))); };
 const commandText = value => String(value ?? '').trim();
 const fieldValue = (row, names) => {
   const found = Object.keys(row).find(key => names.some(name => key.toLowerCase().replaceAll(/[ _.-]/g,'').includes(name)));
@@ -125,6 +126,7 @@ const import506File = async file => {
     localStorage.setItem('ndss-506-records',JSON.stringify(combined));
     const meta={fileName:file.name,imported:unique.length,duplicates:normalized.length-unique.length,incomplete,at:new Date().toLocaleString('th-TH')};
     localStorage.setItem('ndss-506-import-meta',JSON.stringify(meta));
+    recordAudit('นำเข้าข้อมูล รง.506',`ไฟล์ ${file.name} · เพิ่ม ${unique.length} ราย · ซ้ำ ${meta.duplicates} ราย`);
     root.querySelector('[data-import-status]')?.replaceChildren(document.createTextNode(`นำเข้าข้อมูลใหม่ ${unique.length} ราย · รวมข้อมูล รง.506 ${combined.length} ราย`));
     window.dispatchEvent(new Event('ndss-cases-updated'));
     showToast(`นำเข้าข้อมูล รง.506 ใหม่ ${unique.length} รายแล้ว`);
@@ -160,7 +162,8 @@ document.addEventListener('click', event => {
   const commandView=event.target.closest('[data-view]')?.dataset.view;
   if(commandView==='area-map') setTimeout(renderCommandMap,0);
   if(event.target.closest('[data-open-506-import]')) document.querySelector('.nav-link[data-view="import506"]')?.click();
-  if(event.target.closest('[data-clear-506]')) { localStorage.removeItem('ndss-506-records'); localStorage.removeItem('ndss-506-import-meta'); root.querySelector('[data-import-status]')?.replaceChildren(document.createTextNode('ล้างข้อมูลนำเข้าแล้ว')); showToast('ล้างข้อมูล รง.506 แล้ว'); }
+  if(event.target.closest('[data-clear-506]')) { localStorage.removeItem('ndss-506-records'); localStorage.removeItem('ndss-506-import-meta'); recordAudit('ล้างข้อมูล รง.506','ล้างข้อมูลที่นำเข้าในอุปกรณ์นี้'); root.querySelector('[data-import-status]')?.replaceChildren(document.createTextNode('ล้างข้อมูลนำเข้าแล้ว')); showToast('ล้างข้อมูล รง.506 แล้ว'); }
+  if(event.target.closest('[data-clear-audit]')) { localStorage.removeItem('ndss-audit-log'); root.innerHTML=`<div class="module-page">${moduleView('audit')}</div>`; document.querySelectorAll('.nav-link').forEach(link=>link.classList.toggle('active',link.dataset.view==='audit')); showToast('ล้างบันทึกกิจกรรมแล้ว'); }
   if(event.target.closest('[data-export-506-csv]')) commandCsv();
   if(event.target.closest('[data-print-command-report]')) window.print();
   if(event.target.closest('[data-generate-ai-brief]')) { const rows=commandRecords(), cases=commandCases(); const byDisease=rows.reduce((all,row)=>{ const disease=row.disease||'ไม่ระบุโรค'; all[disease]=(all[disease]||0)+1; return all; },{}); const leading=Object.entries(byDisease).sort((a,b)=>b[1]-a[1])[0]; const output=root.querySelector('[data-ai-output]'); if(output) output.innerHTML=rows.length ? `<h2>ร่างบทวิเคราะห์</h2><p>ข้อมูลที่นำเข้ามีผู้ป่วย ${rows.length} ราย และแบบสอบสวนที่บันทึก ${cases.length} ราย โรคที่มีรายงานมากที่สุดในขอบเขตข้อมูลคือ ${escapeOverview(leading?.[0])} (${leading?.[1] || 0} ราย) ข้อความนี้เป็นการพรรณนาจากข้อมูลที่มี ควรตรวจทานความครบถ้วนของวันเริ่มป่วย พื้นที่ และการจัดกลุ่มเหตุการณ์ก่อนนำไปใช้สื่อสารหรือสั่งการ</p>` : '<h2>ร่างบทวิเคราะห์</h2><p>ยังไม่มีข้อมูล รง.506 สำหรับสร้างร่างบทวิเคราะห์</p>'; }
@@ -172,8 +175,10 @@ document.addEventListener('submit', event => {
   if(!event.target.matches('[data-response-task]')) return;
   event.preventDefault();
   const tasks=(()=>{ try { return JSON.parse(localStorage.getItem('ndss-response-tasks') || '[]'); } catch { return []; } })();
-  tasks.push({...Object.fromEntries(new FormData(event.target)),createdAt:new Date().toISOString()});
+  const task={...Object.fromEntries(new FormData(event.target)),createdAt:new Date().toISOString()};
+  tasks.push(task);
   localStorage.setItem('ndss-response-tasks',JSON.stringify(tasks));
+  recordAudit('มอบหมายงานติดตาม',`ผู้รับผิดชอบ: ${task.owner} · กำหนด ${task.dueDate || '-'}`);
   root.innerHTML=`<div class="module-page">${moduleView('tracking')}</div>`;
   document.querySelectorAll('.nav-link').forEach(link=>link.classList.toggle('active',link.dataset.view==='tracking'));
   showToast('บันทึกมอบหมายงานแล้ว');
@@ -186,7 +191,13 @@ document.addEventListener('click', event => {
   if(!task) return;
   task.status='ควบคุมแล้ว'; task.completedAt=new Date().toISOString();
   localStorage.setItem('ndss-response-tasks',JSON.stringify(tasks));
+  recordAudit('ปิดงานติดตาม','บันทึกสถานะควบคุมแล้ว');
   root.innerHTML=`<div class="module-page">${moduleView('tracking')}</div>`;
   document.querySelectorAll('.nav-link').forEach(link=>link.classList.toggle('active',link.dataset.view==='tracking'));
   showToast('บันทึกสถานะควบคุมแล้ว');
+});
+document.addEventListener('submit', event => {
+  if(!event.target.matches('[data-investigation-form]')) return;
+  const disease=event.target.querySelector('[data-disease]')?.value || 'ไม่ระบุโรค';
+  setTimeout(()=>recordAudit('บันทึกแบบสอบสวนโรค',`บันทึกแบบสอบสวน ${disease}`),0);
 });
