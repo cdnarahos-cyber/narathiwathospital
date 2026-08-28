@@ -18,8 +18,12 @@ const loadBoundary = async name => {
   return cache[name];
 };
 
-const caseCount = place => JSON.parse(localStorage.getItem('ndss-investigations') || '[]')
-  .filter(item => [item.subdistrict, item.district, item.location].filter(Boolean).join(' ').includes(place)).length;
+const caseCount = place => {
+  let investigations=[], reports=[];
+  try { investigations=JSON.parse(localStorage.getItem('ndss-investigations') || '[]'); } catch { investigations=[]; }
+  try { reports=JSON.parse(localStorage.getItem('ndss-506-records') || '[]'); } catch { reports=[]; }
+  return [...investigations,...reports].filter(item => [item.subdistrict,item.tambon,item.district,item.location].filter(Boolean).join(' ').includes(place)).length;
+};
 
 const caseColor = count => count >= 5 ? '#dc2626' : count >= 2 ? '#f59e0b' : count >= 1 ? '#16a34a' : '#0b63b6';
 
