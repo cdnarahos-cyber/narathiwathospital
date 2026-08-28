@@ -101,6 +101,7 @@ const normalize506 = rows => rows.map(row => ({
   raw: row,
   importedAt: new Date().toISOString()
 })).filter(row => Object.values(row).some(value => commandText(value)));
+const recordFingerprint = row => [row.disease,row.onset,row.tambon || row.subdistrict,row.district,row.patient].map(commandText).join('|').toLowerCase();
 const csvRows = text => {
   const lines = text.replace(/^\uFEFF/,'').split(/\r?\n/).filter(Boolean);
   if (!lines.length) return [];
@@ -116,10 +117,17 @@ const import506File = async file => {
     else throw new Error('ไม่พบตัวอ่านไฟล์ Excel');
     const normalized=normalize506(rows);
     if(!normalized.length) throw new Error('ไม่พบแถวข้อมูลที่นำเข้าได้');
-    localStorage.setItem('ndss-506-records',JSON.stringify(normalized));
-    root.querySelector('[data-import-status]')?.replaceChildren(document.createTextNode(`นำเข้าข้อมูล ${normalized.length} รายจากไฟล์ ${file.name} แล้ว`));
+    const existing=commandRecords();
+    const seen=new Set(existing.map(recordFingerprint));
+    const unique=normalized.filter(row => { const fingerprint=recordFingerprint(row); if(seen.has(fingerprint)) return false; seen.add(fingerprint); return true; });
+    const incomplete=normalized.filter(row => !row.disease || !row.onset || !(row.tambon || row.district)).length;
+    const combined=[...existing,...unique];
+    localStorage.setItem('ndss-506-records',JSON.stringify(combined));
+    const meta={fileName:file.name,imported:unique.length,duplicates:normalized.length-unique.length,incomplete,at:new Date().toLocaleString('th-TH')};
+    localStorage.setItem('ndss-506-import-meta',JSON.stringify(meta));
+    root.querySelector('[data-import-status]')?.replaceChildren(document.createTextNode(`นำเข้าข้อมูลใหม่ ${unique.length} ราย · รวมข้อมูล รง.506 ${combined.length} ราย`));
     window.dispatchEvent(new Event('ndss-cases-updated'));
-    showToast(`นำเข้าข้อมูล รง.506 ${normalized.length} รายแล้ว`);
+    showToast(`นำเข้าข้อมูล รง.506 ใหม่ ${unique.length} รายแล้ว`);
   } catch(error) { console.error(error); showToast(`นำเข้าข้อมูลไม่สำเร็จ: ${error.message}`); }
 };
 let commandMap;
@@ -150,7 +158,7 @@ document.addEventListener('click', event => {
   const commandView=event.target.closest('[data-view]')?.dataset.view;
   if(commandView==='area-map') setTimeout(renderCommandMap,0);
   if(event.target.closest('[data-open-506-import]')) document.querySelector('.nav-link[data-view="import506"]')?.click();
-  if(event.target.closest('[data-clear-506]')) { localStorage.removeItem('ndss-506-records'); root.querySelector('[data-import-status]')?.replaceChildren(document.createTextNode('ล้างข้อมูลนำเข้าแล้ว')); showToast('ล้างข้อมูล รง.506 แล้ว'); }
+  if(event.target.closest('[data-clear-506]')) { localStorage.removeItem('ndss-506-records'); localStorage.removeItem('ndss-506-import-meta'); root.querySelector('[data-import-status]')?.replaceChildren(document.createTextNode('ล้างข้อมูลนำเข้าแล้ว')); showToast('ล้างข้อมูล รง.506 แล้ว'); }
   if(event.target.closest('[data-export-506-csv]')) commandCsv();
   if(event.target.closest('[data-print-command-report]')) window.print();
   if(event.target.closest('[data-generate-ai-brief]')) { const rows=commandRecords(), cases=commandCases(); const byDisease=rows.reduce((all,row)=>{ const disease=row.disease||'ไม่ระบุโรค'; all[disease]=(all[disease]||0)+1; return all; },{}); const leading=Object.entries(byDisease).sort((a,b)=>b[1]-a[1])[0]; const output=root.querySelector('[data-ai-output]'); if(output) output.innerHTML=rows.length ? `<h2>ร่างบทวิเคราะห์</h2><p>ข้อมูลที่นำเข้ามีผู้ป่วย ${rows.length} ราย และแบบสอบสวนที่บันทึก ${cases.length} ราย โรคที่มีรายงานมากที่สุดในขอบเขตข้อมูลคือ ${escapeOverview(leading?.[0])} (${leading?.[1] || 0} ราย) ข้อความนี้เป็นการพรรณนาจากข้อมูลที่มี ควรตรวจทานความครบถ้วนของวันเริ่มป่วย พื้นที่ และการจัดกลุ่มเหตุการณ์ก่อนนำไปใช้สื่อสารหรือสั่งการ</p>` : '<h2>ร่างบทวิเคราะห์</h2><p>ยังไม่มีข้อมูล รง.506 สำหรับสร้างร่างบทวิเคราะห์</p>'; }
