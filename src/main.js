@@ -273,6 +273,57 @@ document.addEventListener('click', event => {
   if(event.target.closest('[data-export-506-csv]')) commandCsv();
   if(event.target.closest('[data-print-summary]')) window.print();
   if(event.target.closest('[data-print-command-report]')) window.print();
+  if(event.target.closest('[data-print-ai-brief]')) {
+    document.body.classList.add('printing-ai-report');
+    window.print();
+    window.setTimeout(()=>document.body.classList.remove('printing-ai-report'),250);
+  }
+  if(event.target.closest('[data-save-ai-brief]')) {
+    const output=root.querySelector('[data-ai-output]');
+    const text=output?.innerText?.trim() || '';
+    if(!text || text.includes('เลือกเงื่อนไข')) { showToast('สร้างร่างรายงานก่อนบันทึก'); return; }
+    let reports=[]; try { reports=JSON.parse(localStorage.getItem('ndss-ai-reports') || '[]'); } catch { reports=[]; }
+    const report={
+      period:root.querySelector('[data-ai-period]')?.value || 'ข้อมูลทั้งหมดที่นำเข้า',
+      tone:root.querySelector('[data-ai-tone]')?.value || 'รายงานสถานการณ์',
+      area:root.querySelector('[data-ai-area]')?.value || 'ทุกพื้นที่',
+      text,
+      createdAt:new Date().toISOString()
+    };
+    reports.unshift(report);
+    localStorage.setItem('ndss-ai-reports',JSON.stringify(reports.slice(0,100)));
+    recordAudit('บันทึกรายงานสถานการณ์',`${report.period} · ${report.tone}`);
+    root.innerHTML=`<div class="module-page">${moduleView('ai-brief')}</div>`;
+    document.querySelectorAll('.nav-link').forEach(link=>link.classList.toggle('active',link.dataset.view==='ai-brief'));
+    showToast('บันทึกร่างรายงานแล้ว');
+    return;
+  }
+  const openAiReport=event.target.closest('[data-open-ai-report]');
+  if(openAiReport) {
+    let reports=[]; try { reports=JSON.parse(localStorage.getItem('ndss-ai-reports') || '[]'); } catch { reports=[]; }
+    const report=reports[Number(openAiReport.dataset.openAiReport)];
+    const output=root.querySelector('[data-ai-output]');
+    if(!report || !output) return;
+    output.replaceChildren();
+    const heading=document.createElement('h2'); heading.textContent=`ร่าง${report.tone}`;
+    const detail=document.createElement('p'); detail.textContent=report.text;
+    const metadata=document.createElement('small'); metadata.textContent=`บันทึกเมื่อ ${new Date(report.createdAt).toLocaleString('th-TH')} · ${report.period} · ${report.area}`;
+    output.append(heading,detail,metadata);
+    output.scrollIntoView({behavior:'smooth',block:'center'});
+  }
+  const deleteAiReport=event.target.closest('[data-delete-ai-report]');
+  if(deleteAiReport) {
+    let reports=[]; try { reports=JSON.parse(localStorage.getItem('ndss-ai-reports') || '[]'); } catch { reports=[]; }
+    const index=Number(deleteAiReport.dataset.deleteAiReport);
+    if(!reports[index] || !window.confirm('ลบร่างรายงานฉบับนี้ใช่หรือไม่?')) return;
+    reports.splice(index,1);
+    localStorage.setItem('ndss-ai-reports',JSON.stringify(reports));
+    recordAudit('ลบร่างรายงานสถานการณ์','ลบรายงานที่บันทึกไว้');
+    root.innerHTML=`<div class="module-page">${moduleView('ai-brief')}</div>`;
+    document.querySelectorAll('.nav-link').forEach(link=>link.classList.toggle('active',link.dataset.view==='ai-brief'));
+    showToast('ลบร่างรายงานแล้ว');
+    return;
+  }
   if(event.target.closest('[data-generate-ai-brief]')) {
     const period=root.querySelector('[data-ai-period]')?.value || 'ข้อมูลทั้งหมดที่นำเข้า';
     const tone=root.querySelector('[data-ai-tone]')?.value || 'รายงานสถานการณ์';
