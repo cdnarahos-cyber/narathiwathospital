@@ -70,6 +70,21 @@ const clusters = () => {
   return `${title('ตรวจจับกลุ่มก้อนโรค', 'คัดกรองรายการที่มีรายงานโรคเดียวกันในพื้นที่เดียวกันภายในสัปดาห์เดียวกัน เพื่อให้ทีม SRRT ตรวจสอบ')}<section class="cluster-rule"><b>เกณฑ์คัดกรองปัจจุบัน</b><span>ตั้งแต่ 3 ราย · โรคเดียวกัน · พื้นที่เดียวกัน · สัปดาห์เริ่มป่วยเดียวกัน</span><small>เป็นสัญญาณคัดกรองเชิงพรรณนา ไม่ใช่การยืนยันการระบาดหรือสรุปสาเหตุ</small></section>${statCards([['สัญญาณที่พบ', `${signals.length} กลุ่ม`, 'ตามเกณฑ์คัดกรอง', 'orange'], ['เคสในสัญญาณ', `${signals.reduce((sum,item)=>sum+item.count,0)} ราย`, 'รวมทุกกลุ่มที่เข้าเงื่อนไข', 'blue'], ['เกณฑ์ที่ใช้', '3 ราย', 'ปรับใช้โดยผู้ดูแลได้ในอนาคต', 'purple'], ['สถานะ', signals.length?'รอตรวจสอบ':'ยังไม่มีข้อมูล', 'ต้องตรวจทานโดย SRRT', 'green']])}<section class="work-panel"><div class="panel-top"><h2>รายการที่ต้องตรวจสอบ</h2><button class="primary" data-view="investigation">เปิดแบบสอบสวนโรค</button></div>${signals.length ? `<div class="cluster-list">${signals.map((item,index)=>`<article><span class="cluster-index">${index+1}</span><div><h3>${item.disease}</h3><p>${item.area} · ${item.period}</p><small>รายงาน ${item.count} รายในช่วงข้อมูลเดียวกัน</small></div><strong>${item.count}<small>ราย</small></strong></article>`).join('')}</div>` : empty('ยังไม่พบกลุ่มที่เข้าเกณฑ์คัดกรอง', 'ระบบต้องมีข้อมูลโรค พื้นที่ และวันเริ่มป่วยอย่างน้อย 3 รายในสัปดาห์เดียวกัน')}</section>`;
 };
 
+const epidemiology = () => {
+  const {rows,cases}=values();
+  const all=[...rows,...cases];
+  const diseases=[...new Set(all.map(item=>item.disease).filter(Boolean))].sort();
+  const selected=localStorage.getItem('ndss-analytics-disease') || '';
+  const records=selected ? all.filter(item=>item.disease===selected) : all;
+  const areas=records.reduce((all,item)=>{ const key=item.tambon || item.subdistrict || item.district || 'ไม่ระบุพื้นที่'; all[key]=(all[key]||0)+1; return all; },{});
+  const sexes=records.reduce((all,item)=>{ const key=item.sex || 'ไม่ระบุ'; all[key]=(all[key]||0)+1; return all; },{});
+  const ageGroup=age => { const number=Number(age); return !Number.isFinite(number) ? 'ไม่ระบุ' : number<5?'0–4 ปี':number<15?'5–14 ปี':number<60?'15–59 ปี':'60 ปีขึ้นไป'; };
+  const ages=records.reduce((all,item)=>{ const key=ageGroup(item.age); all[key]=(all[key]||0)+1; return all; },{});
+  const dated=records.filter(item=>item.onset || item.createdAt);
+  const latest=dated.map(item=>new Date(item.onset || item.createdAt)).filter(date=>!Number.isNaN(date)).sort((a,b)=>b-a)[0];
+  return `${title('สถานการณ์ระบาดวิทยา', 'วิเคราะห์ข้อมูลแบบ Person · Place · Time จากรายการจริงในระบบ')}<section class="work-panel analytics-filter"><label>เลือกโรคสำหรับวิเคราะห์<select data-disease-analytics-select><option value="">ทุกโรค</option>${diseases.map(disease=>`<option value="${disease}" ${selected===disease?'selected':''}>${disease}</option>`).join('')}</select></label><small>ข้อมูล ณ วันที่: ${latest ? latest.toLocaleDateString('th-TH') : 'ยังไม่มีข้อมูล'}</small></section>${statCards([['ผู้ป่วยในขอบเขต', `${records.length} ราย`, selected || 'ทุกโรค', 'blue'], ['พื้นที่ที่มีรายงาน', `${Object.keys(areas).length} พื้นที่`, 'ตามข้อมูลที่บันทึก', 'green'], ['ข้อมูลวันเริ่มป่วย', `${dated.length} ราย`, 'ใช้วิเคราะห์ตามเวลาได้', 'purple'], ['แบบสอบสวน', `${cases.filter(item=>!selected || item.disease===selected).length} ราย`, 'มีรายละเอียดการสอบสวน', 'orange']])}${records.length ? `<section class="command-grid"><article class="work-panel"><div class="panel-top"><h2>Person · กลุ่มอายุ</h2><small>หน่วย: ราย</small></div>${ranked(ages,'กลุ่มอายุ')}</article><article class="work-panel"><div class="panel-top"><h2>Person · เพศ</h2><small>หน่วย: ราย</small></div>${ranked(sexes,'เพศ')}</article><article class="work-panel"><div class="panel-top"><h2>Place · พื้นที่ที่มีรายงาน</h2><small>เรียงตามจำนวนรายงาน</small></div>${ranked(areas,'พื้นที่')}</article><article class="work-panel"><div class="panel-top"><h2>Time · วันเริ่มป่วย</h2><small>ข้อมูลที่มีวันเริ่มป่วย</small></div>${ranked(dated.reduce((all,item)=>{const date=new Date(item.onset || item.createdAt); const key=Number.isNaN(date)?'ไม่ระบุ':date.toLocaleDateString('th-TH'); all[key]=(all[key]||0)+1; return all;},{}),'วันเริ่มป่วย')}<p class="analysis-note">เป็นการแสดงการกระจายตามเวลาจากข้อมูลที่มี ไม่สรุปสาเหตุการเพิ่มขึ้นหรือลดลง</p></article></section>` : empty('ยังไม่มีข้อมูลสำหรับวิเคราะห์', 'นำเข้าข้อมูล รง.506 หรือบันทึกแบบสอบสวนโรคก่อนเลือกโรคเพื่อดู Person · Place · Time')}`;
+};
+
 const tracking = () => {
   const cases=readCases(), tasks=readTasks();
   const done=tasks.filter(task=>task.status==='ควบคุมแล้ว').length;
@@ -98,6 +113,7 @@ export function commandCenterView(id) {
   if (id === 'area-map') return areaMap();
   if (id === 'queue') return queue();
   if (id === 'clusters') return clusters();
+  if (id === 'epidemiology') return epidemiology();
   if (id === 'tracking') return tracking();
   if (id === 'reports') return reports();
   if (id === 'ai-brief') return aiBrief();
