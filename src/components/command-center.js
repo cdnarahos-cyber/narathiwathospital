@@ -108,6 +108,17 @@ const alerts = () => {
 
 const audit = () => { const entries=readAudit(); return `${title('บันทึกกิจกรรมระบบ', 'ประวัติเหตุการณ์สำคัญสำหรับตรวจสอบการทำงานของระบบ โดยไม่แสดงข้อมูลผู้ป่วยรายบุคคล')}<section class="work-panel"><div class="panel-top"><h2>กิจกรรมล่าสุด</h2><button class="secondary" data-clear-audit>ล้างประวัติในอุปกรณ์นี้</button></div>${entries.length ? `<div class="audit-list">${entries.slice(0,100).map(entry=>`<article><i></i><div><b>${entry.action}</b><span>${entry.detail}</span></div><time>${new Date(entry.at).toLocaleString('th-TH')}</time></article>`).join('')}</div>` : empty('ยังไม่มีบันทึกกิจกรรม', 'ระบบจะบันทึกการนำเข้าข้อมูล การบันทึกเคส และการมอบหมาย/ปิดงานจากอุปกรณ์นี้')}</section>`; };
 
+const report506 = () => {
+  const { rows } = values();
+  const diseases=[...new Set(rows.map(row=>row.disease).filter(Boolean))].sort();
+  const areas=[...new Set(rows.map(row=>row.tambon || row.district).filter(Boolean))].sort();
+  const selectedDisease=localStorage.getItem('ndss-506-report-disease') || '';
+  const selectedArea=localStorage.getItem('ndss-506-report-area') || '';
+  const filtered=rows.filter(row=>(!selectedDisease || row.disease===selectedDisease) && (!selectedArea || (row.tambon || row.district)===selectedArea));
+  const dated=filtered.map(row=>new Date(row.onset)).filter(date=>!Number.isNaN(date)).sort((a,b)=>b-a)[0];
+  return `${title('รายงาน รง.506', 'ตรวจสอบรายการนำเข้าและสร้างรายงานตามขอบเขตข้อมูลที่เลือก', '<div class="command-actions no-print"><button class="secondary" data-export-506-csv>⇩ ดาวน์โหลด CSV</button><button class="primary" data-print-command-report>▣ พิมพ์รายงาน</button></div>')}${statCards([['รายการในรายงาน', `${filtered.length} ราย`, 'ตามตัวกรองที่เลือก', 'blue'], ['โรคที่พบ', `${new Set(filtered.map(row=>row.disease).filter(Boolean)).size} โรค`, 'จากข้อมูลที่เลือก', 'purple'], ['พื้นที่ที่พบ', `${new Set(filtered.map(row=>row.tambon || row.district).filter(Boolean)).size} พื้นที่`, 'ตำบลหรืออำเภอตามข้อมูล', 'green'], ['ข้อมูลล่าสุด', dated ? dated.toLocaleDateString('th-TH') : 'ยังไม่มีข้อมูล', 'อ้างอิงวันเริ่มป่วย', 'orange']])}<section class="work-panel no-print"><div class="panel-top"><h2>คัดกรองข้อมูลรายงาน</h2><small>การกรองไม่แก้ไขข้อมูลต้นฉบับ</small></div><div class="form-grid"><label>โรค<select data-506-report-disease><option value="">ทุกโรค</option>${diseases.map(disease=>`<option value="${disease}" ${selectedDisease===disease?'selected':''}>${disease}</option>`).join('')}</select></label><label>พื้นที่<select data-506-report-area><option value="">ทุกพื้นที่</option>${areas.map(area=>`<option value="${area}" ${selectedArea===area?'selected':''}>${area}</option>`).join('')}</select></label></div></section><section class="work-panel"><div class="panel-top"><h2>รายการ รง.506</h2><small>แสดง ${filtered.length} ราย · หน่วย: ราย</small></div>${filtered.length ? `<div class="history-table-wrap"><table><thead><tr><th>วันที่เริ่มป่วย</th><th>โรค</th><th>ผู้ป่วย</th><th>อายุ</th><th>เพศ</th><th>ตำบล / อำเภอ</th></tr></thead><tbody>${filtered.map(row=>`<tr><td>${row.onset ? new Date(row.onset).toLocaleDateString('th-TH') : '-'}</td><td>${row.disease || '-'}</td><td>${row.patient || '-'}</td><td>${row.age || '-'}</td><td>${row.sex || '-'}</td><td>${row.tambon || '-'}${row.district ? ` / ${row.district}` : ''}</td></tr>`).join('')}</tbody></table></div>` : empty('ยังไม่มีข้อมูลตามเงื่อนไขที่เลือก', 'เลือกตัวกรองอื่น หรือนำเข้าข้อมูล รง.506 เพื่อเริ่มสร้างรายงาน')}</section>`;
+};
+
 const reports = () => {
   const { rows, cases, byDisease } = values();
   const issuedAt=new Date().toLocaleString('th-TH');
@@ -133,6 +144,7 @@ export function commandCenterView(id) {
   if (id === 'tracking') return tracking();
   if (id === 'alerts') return alerts();
   if (id === 'audit') return audit();
+  if (id === 'report506') return report506();
   if (id === 'reports') return reports();
   if (id === 'ai-brief') return aiBrief();
   if (id === 'line-notify') return lineNotify();
