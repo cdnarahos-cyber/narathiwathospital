@@ -200,6 +200,16 @@ document.addEventListener('click', event => {
   if(event.target.closest('[data-open-506-import]')) document.querySelector('.nav-link[data-view="import506"]')?.click();
   if(event.target.closest('[data-clear-506]')) { localStorage.removeItem('ndss-506-records'); localStorage.removeItem('ndss-506-import-meta'); recordAudit('ล้างข้อมูล รง.506','ล้างข้อมูลที่นำเข้าในอุปกรณ์นี้'); root.querySelector('[data-import-status]')?.replaceChildren(document.createTextNode('ล้างข้อมูลนำเข้าแล้ว')); showToast('ล้างข้อมูล รง.506 แล้ว'); }
   if(event.target.closest('[data-clear-audit]')) { localStorage.removeItem('ndss-audit-log'); root.innerHTML=`<div class="module-page">${moduleView('audit')}</div>`; document.querySelectorAll('.nav-link').forEach(link=>link.classList.toggle('active',link.dataset.view==='audit')); showToast('ล้างบันทึกกิจกรรมแล้ว'); }
+  const alertAction=event.target.closest('[data-ack-alert]');
+  if(alertAction) {
+    let state={}; try { state=JSON.parse(localStorage.getItem('ndss-alert-state') || '{}'); } catch { state={}; }
+    state[alertAction.dataset.ackAlert]=new Date().toISOString();
+    localStorage.setItem('ndss-alert-state',JSON.stringify(state));
+    recordAudit('รับทราบการแจ้งเตือน',alertAction.closest('article')?.querySelector('b')?.textContent || 'รายการแจ้งเตือน');
+    root.innerHTML=`<div class="module-page">${moduleView('alerts')}</div>`;
+    document.querySelectorAll('.nav-link').forEach(link=>link.classList.toggle('active',link.dataset.view==='alerts'));
+    showToast('บันทึกรับทราบการแจ้งเตือนแล้ว');
+  }
   if(event.target.closest('[data-export-506-csv]')) commandCsv();
   if(event.target.closest('[data-print-command-report]')) window.print();
   if(event.target.closest('[data-generate-ai-brief]')) { const rows=commandRecords(), cases=commandCases(); const byDisease=rows.reduce((all,row)=>{ const disease=row.disease||'ไม่ระบุโรค'; all[disease]=(all[disease]||0)+1; return all; },{}); const leading=Object.entries(byDisease).sort((a,b)=>b[1]-a[1])[0]; const output=root.querySelector('[data-ai-output]'); if(output) output.innerHTML=rows.length ? `<h2>ร่างบทวิเคราะห์</h2><p>ข้อมูลที่นำเข้ามีผู้ป่วย ${rows.length} ราย และแบบสอบสวนที่บันทึก ${cases.length} ราย โรคที่มีรายงานมากที่สุดในขอบเขตข้อมูลคือ ${escapeOverview(leading?.[0])} (${leading?.[1] || 0} ราย) ข้อความนี้เป็นการพรรณนาจากข้อมูลที่มี ควรตรวจทานความครบถ้วนของวันเริ่มป่วย พื้นที่ และการจัดกลุ่มเหตุการณ์ก่อนนำไปใช้สื่อสารหรือสั่งการ</p>` : '<h2>ร่างบทวิเคราะห์</h2><p>ยังไม่มีข้อมูล รง.506 สำหรับสร้างร่างบทวิเคราะห์</p>'; }
