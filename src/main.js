@@ -138,6 +138,20 @@ const filterSettings = () => {
   if (empty) empty.hidden = visible > 0;
 };
 
+const filterAudit = () => {
+  const search = root.querySelector('[data-audit-search]');
+  if (!search) return;
+  const term = search.value.trim().toLocaleLowerCase('th-TH');
+  let visible = 0;
+  root.querySelectorAll('[data-audit-row]').forEach(row => {
+    const match = !term || row.textContent.toLocaleLowerCase('th-TH').includes(term);
+    row.hidden = !match;
+    if (match) visible += 1;
+  });
+  const empty = root.querySelector('[data-audit-empty]');
+  if (empty) empty.hidden = visible > 0;
+};
+
 const refreshAlertView = () => {
   if (!root.querySelector('.alert-feed')) return;
   root.innerHTML = `<div class="module-page">${moduleView('alerts')}</div>`;
@@ -161,6 +175,7 @@ document.addEventListener('click', event => {
 document.addEventListener('input', event => {
   if (event.target.matches('[data-knowledge-search]')) filterKnowledge();
   if (event.target.matches('[data-settings-search]')) filterSettings();
+  if (event.target.matches('[data-audit-search]')) filterAudit();
 });
 
 document.addEventListener('change', event => {
