@@ -98,13 +98,16 @@ const showToast = (message, icon = 'success') => {
   const resolvedIcon = icon === 'success' && /ไม่สามารถ|ไม่สำเร็จ/.test(message) ? 'error' : icon === 'success' && /ยังไม่มี/.test(message) ? 'info' : icon;
   if (window.Swal) {
     window.Swal.fire({
-      toast: true,
-      position: 'top-end',
+      toast: false,
+      position: 'center',
       icon: resolvedIcon,
       title: message,
       showConfirmButton: false,
       timer: 2600,
       timerProgressBar: true,
+      backdrop: false,
+      allowOutsideClick: true,
+      width: 360,
       customClass: { popup: 'ndss-swal-popup' }
     });
     return;
