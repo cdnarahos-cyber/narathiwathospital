@@ -47,6 +47,30 @@ const overviewDashboard = () => {
 document.querySelector('#app').innerHTML = shell(overviewDashboard());
 const root = document.querySelector('#module-root');
 enableHistoryAreaFilter(root);
+const readLocalList = key => { try { return JSON.parse(localStorage.getItem(key) || '[]'); } catch { return []; } };
+const updateNotificationBadge = () => {
+  const tasks=readLocalList('ndss-response-tasks');
+  const labs=readLocalList('ndss-lab-results');
+  const reports=readLocalList('ndss-506-records');
+  const today=new Date().toISOString().slice(0,10);
+  const overdue=tasks.filter(item=>item.status!=='ควบคุมแล้ว' && item.dueDate && item.dueDate<today).length;
+  const waiting=tasks.filter(item=>item.status==='รอรับทราบ').length;
+  const positive=labs.filter(item=>item.result==='Positive').length;
+  const incomplete=reports.filter(item=>!item.disease || !(item.tambon || item.district) || !item.onset).length;
+  const total=overdue+waiting+positive+incomplete;
+  const badge=document.querySelector('.notification i');
+  const button=document.querySelector('.notification');
+  if(badge) badge.textContent=String(total);
+  if(button) button.setAttribute('aria-label',total ? `การแจ้งเตือน ${total} รายการ` : 'การแจ้งเตือน ไม่มีรายการค้าง');
+};
+updateNotificationBadge();
+document.addEventListener('click', event => {
+  if(event.target.closest('.notification')) {
+    root.innerHTML=`<div class="module-page">${moduleView('alerts')}</div>`;
+    document.querySelectorAll('.nav-link').forEach(link=>link.classList.toggle('active',link.dataset.view==='alerts'));
+  }
+  window.setTimeout(updateNotificationBadge,0);
+});
 const renderCommandDashboard = () => {
   const page=root.querySelector('.overview-page');
   if(!page || page.querySelector('.reference-dashboard')) return;
