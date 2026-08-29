@@ -422,6 +422,28 @@ document.addEventListener('submit', event => {
   showToast('บันทึกมอบหมายงานแล้ว');
 });
 document.addEventListener('click', event => {
+  const contactAction=event.target.closest('[data-complete-contact],[data-delete-contact]');
+  if(contactAction) {
+    const contacts=(()=>{ try { return JSON.parse(localStorage.getItem('ndss-case-contacts') || '[]'); } catch { return []; } })();
+    const index=Number(contactAction.dataset.completeContact ?? contactAction.dataset.deleteContact);
+    const contact=contacts[index];
+    if(!contact) return;
+    if(contactAction.dataset.deleteContact !== undefined) {
+      if(!window.confirm(`ลบข้อมูลผู้สัมผัส ${contact.contactName} ใช่หรือไม่?`)) return;
+      contacts.splice(index,1);
+      recordAudit('ลบข้อมูลผู้สัมผัส',contact.contactName);
+      showToast('ลบข้อมูลผู้สัมผัสแล้ว');
+    } else {
+      contact.followup='ติดตามครบแล้ว';
+      contact.completedAt=new Date().toISOString();
+      recordAudit('ปิดการติดตามผู้สัมผัส',contact.contactName);
+      showToast('บันทึกว่าติดตามครบแล้ว');
+    }
+    localStorage.setItem('ndss-case-contacts',JSON.stringify(contacts));
+    root.innerHTML=`<div class="module-page">${moduleView('tracking')}</div>`;
+    document.querySelectorAll('.nav-link').forEach(link=>link.classList.toggle('active',link.dataset.view==='tracking'));
+    return;
+  }
   const action=event.target.closest('[data-delete-lab]');
   if(!action) return;
   const results=(()=>{ try { return JSON.parse(localStorage.getItem('ndss-lab-results') || '[]'); } catch { return []; } })();
