@@ -217,7 +217,7 @@ const commandExport = ({dataset,filename}) => {
   recordAudit('ส่งออกข้อมูล CSV',`ชุดข้อมูล ${dataset} · ${rows.length} รายการ`);
   showToast(`ดาวน์โหลด ${rows.length} รายการแล้ว`);
 };
-const backupKeys=['ndss-506-records','ndss-506-import-meta','ndss-investigations','ndss-response-tasks','ndss-lab-results','ndss-alert-state','ndss-audit-log'];
+const backupKeys=['ndss-506-records','ndss-506-import-meta','ndss-investigations','ndss-response-tasks','ndss-case-contacts','ndss-lab-results','ndss-alert-state','ndss-audit-log'];
 const backupLocalData = () => {
   const records=Object.fromEntries(backupKeys.map(key=>[key,JSON.parse(localStorage.getItem(key) || (key.includes('state') ? '{}' : '[]'))]));
   const blob=new Blob([JSON.stringify({version:1,createdAt:new Date().toISOString(),records},null,2)],{type:'application/json'});
@@ -396,6 +396,18 @@ document.addEventListener('submit', event => {
     root.innerHTML=`<div class="module-page">${moduleView('lab')}</div>`;
     document.querySelectorAll('.nav-link').forEach(link=>link.classList.toggle('active',link.dataset.view==='lab'));
     showToast('บันทึกผลตรวจแล้ว');
+    return;
+  }
+  if(event.target.matches('[data-contact-tracing]')) {
+    event.preventDefault();
+    const contacts=(()=>{ try { return JSON.parse(localStorage.getItem('ndss-case-contacts') || '[]'); } catch { return []; } })();
+    const contact={...Object.fromEntries(new FormData(event.target)),createdAt:new Date().toISOString()};
+    contacts.unshift(contact);
+    localStorage.setItem('ndss-case-contacts',JSON.stringify(contacts));
+    recordAudit('บันทึกผู้สัมผัส',`${contact.contactName} · ${contact.relationship || 'ไม่ระบุความสัมพันธ์'}`);
+    root.innerHTML=`<div class="module-page">${moduleView('tracking')}</div>`;
+    document.querySelectorAll('.nav-link').forEach(link=>link.classList.toggle('active',link.dataset.view==='tracking'));
+    showToast('บันทึกข้อมูลผู้สัมผัสแล้ว');
     return;
   }
   if(!event.target.matches('[data-response-task]')) return;
