@@ -425,11 +425,21 @@ const renderCommandMap = () => {
   setTimeout(()=>commandMap.invalidateSize(),100);
 };
 const commandCsv = () => {
-  const rows=commandRecords(); if(!rows.length) { showToast('ยังไม่มีข้อมูล รง.506 สำหรับส่งออก'); return; }
+  const selectedDisease=root.querySelector('[data-506-report-disease]')?.value || '';
+  const selectedArea=root.querySelector('[data-506-report-area]')?.value || '';
+  const search=(root.querySelector('[data-506-report-search]')?.value || '').trim().toLocaleLowerCase('th-TH');
+  const rows=commandRecords().filter(row=>{
+    const matchDisease=!selectedDisease || row.disease===selectedDisease;
+    const matchArea=!selectedArea || (row.tambon || row.district)===selectedArea;
+    const matchSearch=!search || [row.disease,row.patient,row.tambon,row.district].join(' ').toLocaleLowerCase('th-TH').includes(search);
+    return matchDisease && matchArea && matchSearch;
+  });
+  if(!rows.length) { showToast('ยังไม่มีข้อมูล รง.506 ตามเงื่อนไขที่เลือก'); return; }
   const head=['โรค','วันเริ่มป่วย','เพศ','อายุ','ตำบล','อำเภอ','ละติจูด','ลองจิจูด'];
   const body=rows.map(r=>[r.disease,r.onset,r.sex,r.age,r.tambon,r.district,r.latitude,r.longitude]);
   const blob=new Blob([[head,...body].map(line=>line.map(value=>`"${String(value).replaceAll('"','""')}"`).join(',')).join('\n')],{type:'text/csv;charset=utf-8'});
-  const link=document.createElement('a'); link.href=URL.createObjectURL(blob); link.download='ndss-506-summary.csv'; link.click(); setTimeout(()=>URL.revokeObjectURL(link.href),500);
+  const link=document.createElement('a'); link.href=URL.createObjectURL(blob); link.download=`ndss-506-${new Date().toISOString().slice(0,10)}.csv`; link.click(); setTimeout(()=>URL.revokeObjectURL(link.href),500);
+  showToast(`ดาวน์โหลด CSV ${rows.length} รายการแล้ว`);
 };
 const commandExport = ({dataset,filename}) => {
   const sources={
