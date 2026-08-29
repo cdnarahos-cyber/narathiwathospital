@@ -124,6 +124,20 @@ const filterKnowledge = () => {
   if (empty) empty.hidden = visible > 0;
 };
 
+const filterSettings = () => {
+  const search = root.querySelector('[data-settings-search]');
+  if (!search) return;
+  const term = search.value.trim().toLocaleLowerCase('th-TH');
+  let visible = 0;
+  root.querySelectorAll('[data-settings-item]').forEach(item => {
+    const match = !term || item.textContent.toLocaleLowerCase('th-TH').includes(term);
+    item.hidden = !match;
+    if (match) visible += 1;
+  });
+  const empty = root.querySelector('[data-settings-empty]');
+  if (empty) empty.hidden = visible > 0;
+};
+
 const refreshAlertView = () => {
   if (!root.querySelector('.alert-feed')) return;
   root.innerHTML = `<div class="module-page">${moduleView('alerts')}</div>`;
@@ -146,6 +160,7 @@ document.addEventListener('click', event => {
 
 document.addEventListener('input', event => {
   if (event.target.matches('[data-knowledge-search]')) filterKnowledge();
+  if (event.target.matches('[data-settings-search]')) filterSettings();
 });
 
 document.addEventListener('change', event => {
