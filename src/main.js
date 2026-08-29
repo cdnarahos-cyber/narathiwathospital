@@ -118,6 +118,57 @@ const showToast = (message, icon = 'success') => {
   document.body.append(toast);
   setTimeout(() => toast.remove(), 2600);
 };
+const confirmAction = async (title, text) => {
+  if (window.Swal) {
+    const result = await window.Swal.fire({
+      title,
+      text,
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonText: 'ยืนยัน',
+      cancelButtonText: 'ยกเลิก',
+      confirmButtonColor: '#d33',
+      reverseButtons: true,
+      customClass: { popup: 'ndss-swal-popup' }
+    });
+    return result.isConfirmed;
+  }
+  return window.confirm(text);
+};
+document.addEventListener('click', async event => {
+  const action=event.target.closest('[data-delete-case],[data-delete-contact],[data-delete-lab],[data-delete-ai-report]');
+  if(!action) return;
+  event.preventDefault();
+  event.stopImmediatePropagation();
+  if(action.dataset.deleteCase !== undefined) {
+    const index=Number(action.dataset.deleteCase), records=readLocalList('ndss-investigations'), item=records[index];
+    if(!item || !await confirmAction('ยืนยันการลบเคส',`ต้องการลบเคส ${item.patient || item.disease} ใช่หรือไม่?`)) return;
+    records.splice(index,1); localStorage.setItem('ndss-investigations',JSON.stringify(records));
+    window.dispatchEvent(new Event('ndss-cases-updated')); renderPins(); renderHistory(); showToast('ลบเคสแล้ว');
+    return;
+  }
+  if(action.dataset.deleteContact !== undefined) {
+    const index=Number(action.dataset.deleteContact), contacts=readLocalList('ndss-case-contacts'), item=contacts[index];
+    if(!item || !await confirmAction('ยืนยันการลบผู้สัมผัส',`ต้องการลบข้อมูลผู้สัมผัส ${item.contactName} ใช่หรือไม่?`)) return;
+    contacts.splice(index,1); localStorage.setItem('ndss-case-contacts',JSON.stringify(contacts));
+    recordAudit('ลบข้อมูลผู้สัมผัส',item.contactName); root.innerHTML=`<div class="module-page">${moduleView('tracking')}</div>`;
+    document.querySelectorAll('.nav-link').forEach(link=>link.classList.toggle('active',link.dataset.view==='tracking')); showToast('ลบข้อมูลผู้สัมผัสแล้ว');
+    return;
+  }
+  if(action.dataset.deleteLab !== undefined) {
+    const index=Number(action.dataset.deleteLab), results=readLocalList('ndss-lab-results'), item=results[index];
+    if(!item || !await confirmAction('ยืนยันการลบผลตรวจ',`ต้องการลบผลตรวจ ${item.specimenNo} ใช่หรือไม่?`)) return;
+    results.splice(index,1); localStorage.setItem('ndss-lab-results',JSON.stringify(results));
+    recordAudit('ลบผลตรวจห้องปฏิบัติการ',`เลขสิ่งส่งตรวจ ${item.specimenNo}`); root.innerHTML=`<div class="module-page">${moduleView('lab')}</div>`;
+    document.querySelectorAll('.nav-link').forEach(link=>link.classList.toggle('active',link.dataset.view==='lab')); showToast('ลบผลตรวจแล้ว');
+    return;
+  }
+  const index=Number(action.dataset.deleteAiReport), reports=readLocalList('ndss-ai-reports');
+  if(!reports[index] || !await confirmAction('ยืนยันการลบร่างรายงาน','ต้องการลบร่างรายงานฉบับนี้ใช่หรือไม่?')) return;
+  reports.splice(index,1); localStorage.setItem('ndss-ai-reports',JSON.stringify(reports));
+  recordAudit('ลบร่างรายงานสถานการณ์','ลบรายงานที่บันทึกไว้'); root.innerHTML=`<div class="module-page">${moduleView('ai-brief')}</div>`;
+  document.querySelectorAll('.nav-link').forEach(link=>link.classList.toggle('active',link.dataset.view==='ai-brief')); showToast('ลบร่างรายงานแล้ว');
+}, true);
 const canvasLines = (ctx,text,width) => { const lines=[]; let line=''; for(const char of String(text || '-')) { if(ctx.measureText(line+char).width>width && line) { lines.push(line); line=char; } else line+=char; } if(line) lines.push(line); return lines; };
 const downloadCanvasPdf = async (source,disease) => { await document.fonts?.ready; const width=1240,height=1754,margin=72,bodyWidth=width-margin*2; const logo=new Image(); const logoReady=new Promise(resolve=>{logo.onload=logo.onerror=resolve;logo.src='./public/assets/naradhiwas-hospital-logo.svg';}); await logoReady; const pages=[]; let canvas,ctx,y; const header=pageNo=>{ ctx.fillStyle='#fff';ctx.fillRect(0,0,width,height); if(logo.naturalWidth) ctx.drawImage(logo,margin,45,95,95); ctx.fillStyle='#071d38';ctx.font='700 31px "IBM Plex Sans Thai",sans-serif';ctx.fillText('โรงพยาบาลนราธิวาสราชนครินทร์',margin+112,76);ctx.fillStyle='#31567f';ctx.font='600 18px "IBM Plex Sans Thai",sans-serif';ctx.fillText('Naradhiwas Rajanagarindra Hospital',margin+112,104);ctx.strokeStyle='#0b294d';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(margin,154);ctx.lineTo(width-margin,154);ctx.stroke();ctx.fillStyle='#071d38';ctx.font='700 28px "IBM Plex Sans Thai",sans-serif';ctx.fillText(source.querySelector('.report-title span')?.textContent || 'แบบสอบสวนโรค',margin,198);ctx.fillStyle='#416582';ctx.font='500 16px "IBM Plex Sans Thai",sans-serif';ctx.fillText(`เอกสารแบบสอบสวนโรค · หน้า ${pageNo}`,margin,226);y=258;}; const nextPage=()=>{canvas=document.createElement('canvas');canvas.width=width;canvas.height=height;ctx=canvas.getContext('2d');pages.push(canvas);header(pages.length);}; const entry=(label,value)=>{ctx.font='700 18px "IBM Plex Sans Thai",sans-serif';const heading=canvasLines(ctx,label,bodyWidth-36);ctx.font='600 18px "IBM Plex Sans Thai",sans-serif';const answer=canvasLines(ctx,value,bodyWidth-36);const needed=heading.length*24+answer.length*25+32;if(y+needed>height-margin) nextPage();ctx.fillStyle='#fff';ctx.fillRect(margin,y-4,bodyWidth,needed-8);ctx.strokeStyle='#d5e0ea';ctx.lineWidth=1;ctx.strokeRect(margin,y-4,bodyWidth,needed-8);ctx.fillStyle='#123b6d';ctx.font='700 18px "IBM Plex Sans Thai",sans-serif';heading.forEach(line=>{ctx.fillText(line,margin+18,y+18);y+=24;});ctx.fillStyle='#071d38';ctx.font='600 18px "IBM Plex Sans Thai",sans-serif';answer.forEach(line=>{ctx.fillText(line,margin+18,y+18);y+=25;});y+=18;}; nextPage(); source.querySelectorAll('label').forEach(label=>{const field=label.querySelector('input,select,textarea');if(!field)return;const labelCopy=label.cloneNode(true);labelCopy.querySelectorAll('input,select,textarea').forEach(node=>node.remove());const labelText=labelCopy.textContent.trim();let value='-';if(field.type==='checkbox'||field.type==='radio')value=field.checked?'เลือก':'ไม่เลือก';else if(field.tagName==='SELECT')value=field.options[field.selectedIndex]?.text || '-';else value=field.value || '-';entry(labelText,value);}); const encoder=new TextEncoder(),parts=[],offsets=[];let size=0;const rawAdd=chunk=>{parts.push(chunk);size+=chunk.length;};const rawText=text=>rawAdd(encoder.encode(text));const object=(id,content)=>{offsets[id]=size;rawText(`${id} 0 obj\n`);if(typeof content==='string')rawText(content);else content();rawText('\nendobj\n');};const jpegBytes=pages.map(page=>Uint8Array.from(atob(page.toDataURL('image/jpeg',.92).split(',')[1]),char=>char.charCodeAt(0)));const pageIds=pages.map((_,i)=>3+i*3);rawText('%PDF-1.4\n%âãÏÓ\n');object(1,'<< /Type /Catalog /Pages 2 0 R >>');object(2,`<< /Type /Pages /Kids [${pageIds.map(id=>`${id} 0 R`).join(' ')}] /Count ${pages.length} >>`);pages.forEach((page,i)=>{const pageId=3+i*3,imageId=pageId+1,contentId=pageId+2,image=jpegBytes[i],stream=`q\n595.28 0 0 841.89 0 0 cm\n/Im${i} Do\nQ\n`;object(pageId,`<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595.28 841.89] /Resources << /XObject << /Im${i} ${imageId} 0 R >> >> /Contents ${contentId} 0 R >>`);object(imageId,()=>{rawText(`<< /Type /XObject /Subtype /Image /Width ${width} /Height ${height} /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length ${image.length} >>\nstream\n`);rawAdd(image);rawText('\nendstream');});object(contentId,`<< /Length ${encoder.encode(stream).length} >>\nstream\n${stream}endstream`);});const start=size;rawText(`xref\n0 ${offsets.length}\n0000000000 65535 f \n`);for(let i=1;i<offsets.length;i++)rawText(`${String(offsets[i]).padStart(10,'0')} 00000 n \n`);rawText(`trailer\n<< /Size ${offsets.length} /Root 1 0 R >>\nstartxref\n${start}\n%%EOF`);const blob=new Blob(parts,{type:'application/pdf'}),url=URL.createObjectURL(blob),link=document.createElement('a');link.href=url;link.download=`${disease}-แบบสอบสวนโรค.pdf`;link.click();setTimeout(()=>URL.revokeObjectURL(url),1000); };
 const printReport = async () => { const source=root.querySelector('[data-investigation-form]'); if(!source) return; const disease=source.querySelector('[data-disease]')?.value || 'แบบสอบสวนโรค'; const button=source.querySelector('[data-print-report]'); const originalLabel=button?.textContent; if(button) { button.disabled=true; button.textContent='กำลังสร้าง PDF…'; } try { await downloadCleanPdf(source,disease); showToast('สร้างไฟล์ PDF แล้ว'); } catch(error) { console.error(error); showToast('ไม่สามารถสร้าง PDF ได้ในขณะนี้'); } finally { if(button) { button.disabled=false; button.textContent=originalLabel; } } };
@@ -253,7 +304,7 @@ const restoreLocalData = async file => {
   try {
     const backup=JSON.parse(await file.text());
     if(backup?.version!==1 || !backup.records || typeof backup.records!=='object') throw new Error('invalid');
-    if(!window.confirm('กู้คืนข้อมูลจะเขียนทับข้อมูลในอุปกรณ์นี้ ต้องการดำเนินการหรือไม่?')) return;
+    if(!await confirmAction('ยืนยันการกู้คืนข้อมูล','การกู้คืนจะเขียนทับข้อมูลในอุปกรณ์นี้ ต้องการดำเนินการหรือไม่?')) return;
     backupKeys.forEach(key=>{
       if(Object.hasOwn(backup.records,key)) localStorage.setItem(key,JSON.stringify(backup.records[key]));
     });
