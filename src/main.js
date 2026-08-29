@@ -88,13 +88,24 @@ const enhanceAlertFilters = () => {
 };
 
 const applyAlertFilter = filter => {
-  root.querySelectorAll('.alert-feed article').forEach(article => {
+  const feed = root.querySelector('.alert-feed');
+  if (!feed) return;
+  feed.querySelectorAll('article').forEach(article => {
     article.hidden = filter === 'all'
       ? false
       : filter === 'acknowledged'
         ? !article.classList.contains('acknowledged')
         : article.classList.contains('acknowledged');
   });
+  let emptyState = feed.querySelector('.alert-filter-empty');
+  const visible = [...feed.querySelectorAll('article')].some(article => !article.hidden);
+  if (!visible && !emptyState) {
+    emptyState = document.createElement('p');
+    emptyState.className = 'alert-filter-empty';
+    emptyState.textContent = 'ไม่มีรายการในตัวกรองนี้';
+    feed.append(emptyState);
+  }
+  if (emptyState) emptyState.hidden = visible;
 };
 
 new MutationObserver(enhanceAlertFilters).observe(root, { childList: true, subtree: true });
