@@ -51,13 +51,15 @@ const readLocalList = key => { try { return JSON.parse(localStorage.getItem(key)
 const updateNotificationBadge = () => {
   const tasks=readLocalList('ndss-response-tasks');
   const labs=readLocalList('ndss-lab-results');
+  const contacts=readLocalList('ndss-case-contacts');
   const reports=readLocalList('ndss-506-records');
   const today=new Date().toISOString().slice(0,10);
   const overdue=tasks.filter(item=>item.status!=='ควบคุมแล้ว' && item.dueDate && item.dueDate<today).length;
   const waiting=tasks.filter(item=>item.status==='รอรับทราบ').length;
   const positive=labs.filter(item=>item.result==='Positive').length;
   const incomplete=reports.filter(item=>!item.disease || !(item.tambon || item.district) || !item.onset).length;
-  const total=overdue+waiting+positive+incomplete;
+  const symptomaticContacts=contacts.filter(item=>item.symptom==='มีอาการ' && item.followup!=='ติดตามครบแล้ว').length;
+  const total=overdue+waiting+positive+incomplete+symptomaticContacts;
   const badge=document.querySelector('.notification i');
   const button=document.querySelector('.notification');
   if(badge) badge.textContent=String(total);
