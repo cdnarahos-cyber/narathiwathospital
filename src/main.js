@@ -108,6 +108,22 @@ const applyAlertFilter = filter => {
   if (emptyState) emptyState.hidden = visible;
 };
 
+const filterKnowledge = () => {
+  const search = root.querySelector('[data-knowledge-search]');
+  const category = root.querySelector('[data-knowledge-category]');
+  if (!search || !category) return;
+  const term = search.value.trim().toLocaleLowerCase('th-TH');
+  let visible = 0;
+  root.querySelectorAll('[data-knowledge-topic]').forEach(topic => {
+    const match = (!term || topic.textContent.toLocaleLowerCase('th-TH').includes(term))
+      && (!category.value || topic.dataset.knowledgeCategory === category.value);
+    topic.hidden = !match;
+    if (match) visible += 1;
+  });
+  const empty = root.querySelector('[data-knowledge-empty]');
+  if (empty) empty.hidden = visible > 0;
+};
+
 const refreshAlertView = () => {
   if (!root.querySelector('.alert-feed')) return;
   root.innerHTML = `<div class="module-page">${moduleView('alerts')}</div>`;
@@ -126,6 +142,14 @@ document.addEventListener('click', event => {
     button.classList.toggle('active', button === filterButton);
   });
   applyAlertFilter(filterButton.dataset.alertFilter);
+});
+
+document.addEventListener('input', event => {
+  if (event.target.matches('[data-knowledge-search]')) filterKnowledge();
+});
+
+document.addEventListener('change', event => {
+  if (event.target.matches('[data-knowledge-category]')) filterKnowledge();
 });
 
 document.addEventListener('click', event => {
