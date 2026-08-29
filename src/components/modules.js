@@ -30,16 +30,6 @@ const epidemiologyDashboard = () => `${title('Dashboard ระบาดวิท
 export function moduleView(id) {
   const commandView = commandCenterView(id);
   if (commandView) return commandView;
-  if (id === 'executive') return `${title('Dashboard ผู้บริหาร','ภาพรวมผลการดำเนินงานสำหรับผู้บริหาร')} ${cards([['KPI ผ่านเกณฑ์','5/6','green'],['เคสค้างดำเนินการ','3','orange'],['การแจ้งเตือนระดับสูง','2','red'],['ความครบถ้วนรายงาน 506','96%','blue']])} ${list('ประเด็นที่ต้องติดตาม',commonRows)}`;
-  if (id === 'epidemiology') return epidemiologyDashboard();
-  if (id === 'hosxp') return `${title('นำเข้าข้อมูล HOSxP','ตรวจสอบและนำเข้ารายการผู้ป่วยเข้าสู่ระบบ')} ${form('ค้นหารายการนำเข้า',[['วันที่เริ่มต้น','date'],['วันที่สิ้นสุด','date'],['ประเภทบริการ','select',['OPD','IPD','ER']]])} ${list('รายการที่รอประมวลผล',commonRows)}`;
   if (id === 'investigation') return investigation();
-  if (id === 'tracking') return `${title('ติดตามและควบคุมโรค','อัปเดตความคืบหน้าและผลการควบคุมโรค')} ${cards([['รอรับทราบ','12','gold'],['กำลังดำเนินการ','15','blue'],['ควบคุมแล้ว','30','green']])} ${list('เคสติดตาม',commonRows)}`;
-  if (id === 'alerts') return `${title('ระบบแจ้งเตือน','สร้าง ติดตาม และปิดการแจ้งเตือน')} ${form('สร้างการแจ้งเตือน',[['หัวข้อแจ้งเตือน'],['ระดับความรุนแรง','select',['ปกติ','เฝ้าระวัง','วิกฤต']],['รายละเอียด']])} ${list('การแจ้งเตือนที่เปิดอยู่',[['ALT-001','พบผู้ป่วยโรคหัด 1 ราย','red','วิกฤต'],['ALT-002','ไข้เลือดออกเพิ่มขึ้น 30%','orange','เฝ้าระวัง'],['ALT-003','วัณโรคขาดนัด','gold','รอตรวจสอบ']])}`;
-  if (id === 'report506') return `${title('รายงาน 506','จัดทำ ตรวจสอบ และส่งรายงานเฝ้าระวังโรค')} ${form('จัดทำรายงาน 506',[['สัปดาห์ระบาดวิทยา','number'],['โรค','select',['ไข้เลือดออก','หัด','ไข้หวัดใหญ่','HFMD']],['จำนวนผู้ป่วย','number']])} ${list('รายงานที่ส่งแล้ว',commonRows)}`;
-  if (id === 'lab') return `${title('รายงานห้องปฏิบัติการ','บันทึกและติดตามผลตรวจทางห้องปฏิบัติการ')} ${form('เพิ่มผลตรวจ',[['เลขที่สิ่งส่งตรวจ'],['ประเภทการตรวจ','select',['Influenza A','COVID-19','Dengue NS1','AFB Smear']],['ผลตรวจ','select',['Positive','Negative','รอตรวจสอบ']]])} ${list('ผลตรวจล่าสุด',commonRows)}`;
-  if (id === 'management') return `${title('รายงานผู้บริหาร','สรุปผลสำหรับการประชุมและการตัดสินใจ')} ${cards([['รายงานรออนุมัติ','4','gold'],['รายงานพร้อมส่ง','12','green'],['รายงานประจำเดือน','8','blue']])} ${list('รายงานที่จัดทำ',commonRows)}`;
-  if (id === 'export') return `${title('Export Report','เลือกข้อมูลสำหรับดาวน์โหลดเป็น CSV')} ${form('ตั้งค่าการส่งออก',[['ชุดข้อมูล','select',['เคสเฝ้าระวัง','รายงาน 506','ผล LAB','การแจ้งเตือน']],['วันที่เริ่มต้น','date'],['วันที่สิ้นสุด','date']])} <section class="work-panel"><h2>ส่งออกข้อมูล</h2><p>กดปุ่มด้านบนเพื่อดาวน์โหลดรายงานตัวอย่างในรูปแบบ CSV</p><button class="primary" data-export>ดาวน์โหลดรายงาน</button></section>`;
-  if (id === 'settings') return `${title('ตั้งค่า / ผู้ดูแลระบบ','กำหนดค่าระบบและการเชื่อมต่อข้อมูล')} ${form('การตั้งค่าการเชื่อมต่อ',[['ชื่อหน่วยงาน'],['อีเมลผู้ดูแล','email'],['เวลาซิงก์ข้อมูล','select',['ทุก 15 นาที','ทุก 30 นาที','ทุก 1 ชั่วโมง']]])} <section class="work-panel"><h2>สถานะระบบ</h2><p>HOSxP และ LAB: <b class="ok">เชื่อมต่อแล้ว</b></p><p>Supabase: กำหนด publishable key และ access token ใน runtime-config.js ก่อนใช้งานข้อมูลจริง</p></section>`;
   return '';
 }
