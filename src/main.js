@@ -435,13 +435,14 @@ const commandCsv = () => {
     return matchDisease && matchArea && matchSearch;
   });
   if(!rows.length) { showToast('ยังไม่มีข้อมูล รง.506 ตามเงื่อนไขที่เลือก'); return; }
-  const head=['โรค','วันเริ่มป่วย','เพศ','อายุ','ตำบล','อำเภอ','ละติจูด','ลองจิจูด'];
-  const body=rows.map(r=>[r.disease,r.onset,r.sex,r.age,r.tambon,r.district,r.latitude,r.longitude]);
+  const head=['โรค','ชื่อผู้ป่วย','HN','วันเริ่มป่วย','เพศ','อายุ','ตำบล','อำเภอ','ละติจูด','ลองจิจูด'];
+  const body=rows.map(r=>[r.disease,r.patient,r.hn,r.onset,r.sex,r.age,r.tambon,r.district,r.latitude,r.longitude]);
   const csvCell = value => {
     const text=String(value ?? '');
     return /^[=+\-@]/.test(text) ? `'${text}` : text;
   };
-  const blob=new Blob([[head,...body].map(line=>line.map(value=>`"${csvCell(value).replaceAll('"','""')}"`).join(',')).join('\n')],{type:'text/csv;charset=utf-8'});
+  const csv=[head,...body].map(line=>line.map(value=>`"${csvCell(value).replaceAll('"','""')}"`).join(',')).join('\n');
+  const blob=new Blob(['\ufeff',csv],{type:'text/csv;charset=utf-8'});
   const link=document.createElement('a'); link.href=URL.createObjectURL(blob); link.download=`ndss-506-${new Date().toISOString().slice(0,10)}.csv`; link.click(); setTimeout(()=>URL.revokeObjectURL(link.href),500);
   showToast(`ดาวน์โหลด CSV ${rows.length} รายการแล้ว`);
 };
