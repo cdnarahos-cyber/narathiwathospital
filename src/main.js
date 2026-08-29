@@ -95,7 +95,10 @@ const renderCommandDashboard = () => {
 renderCommandDashboard();
 const refreshOverview = () => { if (root.querySelector('.overview-page')) { root.innerHTML = overviewDashboard(); renderCommandDashboard(); } };
 window.addEventListener('ndss-cases-updated', refreshOverview);
-window.addEventListener('storage', event => { if (event.key === 'ndss-investigations') refreshOverview(); });
+window.addEventListener('storage', event => {
+  if (event.key === 'ndss-investigations') refreshOverview();
+  if (['ndss-investigations','ndss-case-contacts','ndss-response-tasks','ndss-lab-results','ndss-506-records'].includes(event.key)) updateNotificationBadge();
+});
 const showToast = (message, icon = 'success') => {
   const resolvedIcon = icon === 'success' && /ไม่สามารถ|ไม่สำเร็จ/.test(message) ? 'error' : icon === 'success' && /ยังไม่มี/.test(message) ? 'info' : icon;
   if (window.Swal) {
