@@ -474,16 +474,35 @@ const restoreLocalData = async file => {
 const filterReportRows = () => {
   const query=(root.querySelector('[data-report-search]')?.value || '').toLowerCase();
   const status=root.querySelector('[data-report-status]')?.value || 'all';
-  root.querySelectorAll('[data-report-rows] tr').forEach(row=>{
+  const rows=[...root.querySelectorAll('[data-report-rows] tr')];
+  rows.forEach(row=>{
     row.hidden=(!row.textContent.toLowerCase().includes(query)) || (status!=='all' && row.dataset.reportStatus!==status);
   });
+  updateFilteredTableMeta(rows,'[data-report-rows]');
 };
 const filterEventReportRows = () => {
   const query=(root.querySelector('[data-event-report-search]')?.value || '').toLowerCase();
   const status=root.querySelector('[data-event-report-status]')?.value || 'all';
-  root.querySelectorAll('[data-event-report-rows] tr').forEach(row=>{
+  const rows=[...root.querySelectorAll('[data-event-report-rows] tr')];
+  rows.forEach(row=>{
     row.hidden=(!row.textContent.toLowerCase().includes(query)) || (status!=='all' && row.dataset.eventReportStatus!==status);
   });
+  updateFilteredTableMeta(rows,'[data-event-report-rows]');
+};
+const updateFilteredTableMeta = (rows, selector) => {
+  const body=root.querySelector(selector);
+  const panel=body?.closest('.work-panel');
+  if(!panel) return;
+  const visible=rows.filter(row=>!row.hidden).length;
+  let meta=panel.querySelector('[data-filtered-table-meta]');
+  if(!meta) {
+    meta=document.createElement('p');
+    meta.className='table-filter-meta';
+    meta.dataset.filteredTableMeta='true';
+    panel.append(meta);
+  }
+  meta.textContent=visible ? `แสดงผลการค้นหา ${visible} รายการ` : 'ไม่พบรายการที่ตรงกับเงื่อนไข';
+  meta.classList.toggle('is-empty',visible===0);
 };
 document.addEventListener('change', event => {
   if(event.target.matches('[data-import-506]')) import506File(event.target.files?.[0]);
