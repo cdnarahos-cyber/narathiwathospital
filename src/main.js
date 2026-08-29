@@ -136,10 +136,27 @@ const confirmAction = async (title, text) => {
   return window.confirm(text);
 };
 document.addEventListener('click', async event => {
-  const action=event.target.closest('[data-delete-case],[data-delete-contact],[data-delete-lab],[data-delete-ai-report]');
+  const action=event.target.closest('[data-delete-case],[data-delete-contact],[data-delete-lab],[data-delete-ai-report],[data-clear-pins],[data-clear-506],[data-clear-audit]');
   if(!action) return;
   event.preventDefault();
   event.stopImmediatePropagation();
+  if(action.matches('[data-clear-pins]')) {
+    if(!await confirmAction('ยืนยันการล้างหมุดเคส','ข้อมูลเคสสอบสวนทั้งหมดในอุปกรณ์นี้จะถูกลบ ต้องการดำเนินการหรือไม่?')) return;
+    localStorage.removeItem('ndss-investigations'); activeDiseaseFilter='all'; window.dispatchEvent(new Event('ndss-cases-updated')); renderPins(); renderHistory(); showToast('ล้างหมุดเคสและข้อมูลเคสแล้ว');
+    return;
+  }
+  if(action.matches('[data-clear-506]')) {
+    if(!await confirmAction('ยืนยันการล้างข้อมูล รง.506','ข้อมูล รง.506 ที่นำเข้าในอุปกรณ์นี้จะถูกลบ ต้องการดำเนินการหรือไม่?')) return;
+    localStorage.removeItem('ndss-506-records'); localStorage.removeItem('ndss-506-import-meta');
+    recordAudit('ล้างข้อมูล รง.506','ล้างข้อมูลที่นำเข้าในอุปกรณ์นี้'); root.querySelector('[data-import-status]')?.replaceChildren(document.createTextNode('ล้างข้อมูลนำเข้าแล้ว')); showToast('ล้างข้อมูล รง.506 แล้ว');
+    return;
+  }
+  if(action.matches('[data-clear-audit]')) {
+    if(!await confirmAction('ยืนยันการล้างประวัติกิจกรรม','ประวัติการทำงานทั้งหมดในอุปกรณ์นี้จะถูกลบ ต้องการดำเนินการหรือไม่?')) return;
+    localStorage.removeItem('ndss-audit-log'); root.innerHTML=`<div class="module-page">${moduleView('audit')}</div>`;
+    document.querySelectorAll('.nav-link').forEach(link=>link.classList.toggle('active',link.dataset.view==='audit')); showToast('ล้างบันทึกกิจกรรมแล้ว');
+    return;
+  }
   if(action.dataset.deleteCase !== undefined) {
     const index=Number(action.dataset.deleteCase), records=readLocalList('ndss-investigations'), item=records[index];
     if(!item || !await confirmAction('ยืนยันการลบเคส',`ต้องการลบเคส ${item.patient || item.disease} ใช่หรือไม่?`)) return;
