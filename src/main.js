@@ -142,7 +142,7 @@ document.addEventListener('click', async event => {
   event.stopImmediatePropagation();
   if(action.matches('[data-clear-pins]')) {
     if(!await confirmAction('ยืนยันการล้างหมุดเคส','ข้อมูลเคสสอบสวนทั้งหมดในอุปกรณ์นี้จะถูกลบ ต้องการดำเนินการหรือไม่?')) return;
-    localStorage.removeItem('ndss-investigations'); activeDiseaseFilter='all'; window.dispatchEvent(new Event('ndss-cases-updated')); renderPins(); renderHistory(); showToast('ล้างหมุดเคสและข้อมูลเคสแล้ว');
+    localStorage.removeItem('ndss-investigations'); activeDiseaseFilter='all'; recordAudit('ล้างเคสสอบสวน','ล้างข้อมูลเคสและหมุดทั้งหมดในอุปกรณ์นี้'); window.dispatchEvent(new Event('ndss-cases-updated')); renderPins(); renderHistory(); showToast('ล้างหมุดเคสและข้อมูลเคสแล้ว');
     return;
   }
   if(action.matches('[data-clear-506]')) {
@@ -160,7 +160,7 @@ document.addEventListener('click', async event => {
   if(action.dataset.deleteCase !== undefined) {
     const index=Number(action.dataset.deleteCase), records=readLocalList('ndss-investigations'), item=records[index];
     if(!item || !await confirmAction('ยืนยันการลบเคส',`ต้องการลบเคส ${item.patient || item.disease} ใช่หรือไม่?`)) return;
-    records.splice(index,1); localStorage.setItem('ndss-investigations',JSON.stringify(records));
+    records.splice(index,1); localStorage.setItem('ndss-investigations',JSON.stringify(records)); recordAudit('ลบเคสสอบสวน',item.patient || item.disease || 'ไม่ระบุเคส');
     window.dispatchEvent(new Event('ndss-cases-updated')); renderPins(); renderHistory(); showToast('ลบเคสแล้ว');
     return;
   }
