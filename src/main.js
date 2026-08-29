@@ -66,6 +66,46 @@ const updateNotificationBadge = () => {
   if(button) button.setAttribute('aria-label',total ? `การแจ้งเตือน ${total} รายการ` : 'การแจ้งเตือน ไม่มีรายการค้าง');
 };
 updateNotificationBadge();
+
+const enhanceAlertFilters = () => {
+  const feed = root.querySelector('.alert-feed');
+  const panel = feed?.closest('.work-panel');
+  const panelTop = panel?.querySelector('.panel-top');
+  if (!feed || !panel || !panelTop || panel.querySelector('[data-alert-filter-controls]')) return;
+
+  const controls = document.createElement('div');
+  controls.className = 'alert-filter-controls';
+  controls.dataset.alertFilterControls = 'true';
+  controls.innerHTML = `
+    <button type="button" class="active" data-alert-filter="all">ทั้งหมด</button>
+    <button type="button" data-alert-filter="active">ยังไม่รับทราบ</button>
+    <button type="button" data-alert-filter="acknowledged">รับทราบแล้ว</button>
+  `;
+  panelTop.append(controls);
+};
+
+const applyAlertFilter = filter => {
+  root.querySelectorAll('.alert-feed article').forEach(article => {
+    article.hidden = filter === 'all'
+      ? false
+      : filter === 'acknowledged'
+        ? !article.classList.contains('acknowledged')
+        : article.classList.contains('acknowledged');
+  });
+};
+
+new MutationObserver(enhanceAlertFilters).observe(root, { childList: true, subtree: true });
+enhanceAlertFilters();
+
+document.addEventListener('click', event => {
+  const filterButton = event.target.closest('[data-alert-filter]');
+  if (!filterButton) return;
+  root.querySelectorAll('[data-alert-filter]').forEach(button => {
+    button.classList.toggle('active', button === filterButton);
+  });
+  applyAlertFilter(filterButton.dataset.alertFilter);
+});
+
 document.addEventListener('click', event => {
   if(event.target.closest('.notification')) {
     root.innerHTML=`<div class="module-page">${moduleView('alerts')}</div>`;
