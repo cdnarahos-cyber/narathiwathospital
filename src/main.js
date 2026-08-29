@@ -108,6 +108,14 @@ const applyAlertFilter = filter => {
   if (emptyState) emptyState.hidden = visible;
 };
 
+const refreshAlertView = () => {
+  if (!root.querySelector('.alert-feed')) return;
+  root.innerHTML = `<div class="module-page">${moduleView('alerts')}</div>`;
+  document.querySelectorAll('.nav-link').forEach(link => {
+    link.classList.toggle('active', link.dataset.view === 'alerts');
+  });
+};
+
 new MutationObserver(enhanceAlertFilters).observe(root, { childList: true, subtree: true });
 enhanceAlertFilters();
 
@@ -151,7 +159,10 @@ const refreshOverview = () => { if (root.querySelector('.overview-page')) { root
 window.addEventListener('ndss-cases-updated', refreshOverview);
 window.addEventListener('storage', event => {
   if (event.key === 'ndss-investigations') refreshOverview();
-  if (['ndss-investigations','ndss-case-contacts','ndss-response-tasks','ndss-lab-results','ndss-506-records'].includes(event.key)) updateNotificationBadge();
+  if (['ndss-investigations','ndss-case-contacts','ndss-response-tasks','ndss-lab-results','ndss-506-records','ndss-alert-state'].includes(event.key)) {
+    updateNotificationBadge();
+    refreshAlertView();
+  }
 });
 const showToast = (message, icon = 'success') => {
   const resolvedIcon = icon === 'success' && /ไม่สามารถ|ไม่สำเร็จ/.test(message) ? 'error' : icon === 'success' && /ยังไม่มี/.test(message) ? 'info' : icon;
