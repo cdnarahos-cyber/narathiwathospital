@@ -252,6 +252,16 @@ const enhanceImportQualityActions = () => {
   button.textContent = '⇩ ดาวน์โหลดรายการตรวจสอบ';
   panelTop.append(button);
 };
+const enhanceKnowledgeForms = () => {
+  const heading = root.querySelector('.command-head h1');
+  const tools = root.querySelector('.knowledge-tools');
+  if (heading?.textContent !== 'Knowledge Center' || !tools || root.querySelector('[data-knowledge-forms]')) return;
+  const section = document.createElement('section');
+  section.className = 'work-panel knowledge-form-library';
+  section.setAttribute('data-knowledge-forms', 'true');
+  section.innerHTML = `<div class="panel-top"><div><h2>คลังแบบสอบสวนต้นฉบับ</h2><small>เปิดเอกสาร PDF ทั้ง 6 ฉบับจากหน้านี้ได้โดยตรง</small></div></div><div class="knowledge-form-links">${Object.entries(diseaseMeta).map(([name, meta], index) => `<a href="./public/forms/${encodeURIComponent(meta.template)}" target="_blank" rel="noopener" style="--disease-color:${meta.color}"><i>${String(index + 1).padStart(2,'0')}</i><span><b>${name}</b><small>${meta.pages} หน้า · PDF ต้นฉบับ</small></span><em>เปิด ↗</em></a>`).join('')}</div>`;
+  tools.after(section);
+};
 
 const enhance506ReportFilters = () => {
   const disease = root.querySelector('[data-506-report-disease]');
@@ -282,6 +292,7 @@ new MutationObserver(() => {
   enhanceTrackingSummary();
   enhanceSettingsHealth();
   enhanceImportQualityActions();
+  enhanceKnowledgeForms();
 }).observe(root, { childList: true, subtree: true });
 enhanceAlertFilters();
 enhance506ReportFilters();
@@ -290,6 +301,7 @@ enhanceTrackingFilters();
 enhanceTrackingSummary();
 enhanceSettingsHealth();
 enhanceImportQualityActions();
+enhanceKnowledgeForms();
 
 document.addEventListener('click', event => {
   const filterButton = event.target.closest('[data-alert-filter]');
