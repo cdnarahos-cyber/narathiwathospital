@@ -209,6 +209,7 @@ document.addEventListener('click', event => {
   localStorage.removeItem('ndss-506-report-disease');
   localStorage.removeItem('ndss-506-report-area');
   localStorage.removeItem('ndss-506-report-page');
+  localStorage.removeItem('ndss-506-report-search');
   root.innerHTML = `<div class="module-page">${moduleView('report506')}</div>`;
   document.querySelectorAll('.nav-link').forEach(link => {
     link.classList.toggle('active', link.dataset.view === 'report506');
@@ -217,6 +218,16 @@ document.addEventListener('click', event => {
 });
 
 document.addEventListener('click', event => {
+  if (event.target.closest('[data-submit-506-report-search]')) {
+    const search = root.querySelector('[data-506-report-search]');
+    localStorage.setItem('ndss-506-report-search', search?.value.trim() || '');
+    localStorage.setItem('ndss-506-report-page', '1');
+    root.innerHTML = `<div class="module-page">${moduleView('report506')}</div>`;
+    document.querySelectorAll('.nav-link').forEach(link => {
+      link.classList.toggle('active', link.dataset.view === 'report506');
+    });
+    return;
+  }
   const button = event.target.closest('[data-506-report-page]');
   if (!button || button.disabled) return;
   const page = Number(button.dataset.506ReportPage);
@@ -233,6 +244,13 @@ document.addEventListener('input', event => {
   if (event.target.matches('[data-settings-search]')) filterSettings();
   if (event.target.matches('[data-audit-search]')) filterAudit();
   if (event.target.matches('[data-506-report-search]')) filter506Report();
+});
+
+document.addEventListener('keydown', event => {
+  if (event.key === 'Enter' && event.target.matches('[data-506-report-search]')) {
+    event.preventDefault();
+    event.target.closest('.report-search-control')?.querySelector('[data-submit-506-report-search]')?.click();
+  }
 });
 
 document.addEventListener('change', event => {
