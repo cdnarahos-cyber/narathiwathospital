@@ -208,11 +208,24 @@ document.addEventListener('click', event => {
   if (!event.target.closest('[data-reset-506-filter]')) return;
   localStorage.removeItem('ndss-506-report-disease');
   localStorage.removeItem('ndss-506-report-area');
+  localStorage.removeItem('ndss-506-report-page');
   root.innerHTML = `<div class="module-page">${moduleView('report506')}</div>`;
   document.querySelectorAll('.nav-link').forEach(link => {
     link.classList.toggle('active', link.dataset.view === 'report506');
   });
   showToast('ล้างตัวกรองรายงาน 506 แล้ว');
+});
+
+document.addEventListener('click', event => {
+  const button = event.target.closest('[data-506-report-page]');
+  if (!button || button.disabled) return;
+  const page = Number(button.dataset.506ReportPage);
+  if (!Number.isInteger(page) || page < 1) return;
+  localStorage.setItem('ndss-506-report-page', String(page));
+  root.innerHTML = `<div class="module-page">${moduleView('report506')}</div>`;
+  document.querySelectorAll('.nav-link').forEach(link => {
+    link.classList.toggle('active', link.dataset.view === 'report506');
+  });
 });
 
 document.addEventListener('input', event => {
@@ -616,6 +629,7 @@ document.addEventListener('change', event => {
     const area=root.querySelector('[data-506-report-area]')?.value || '';
     localStorage.setItem('ndss-506-report-disease',disease);
     localStorage.setItem('ndss-506-report-area',area);
+    localStorage.setItem('ndss-506-report-page','1');
     root.innerHTML=`<div class="module-page">${moduleView('report506')}</div>`;
     document.querySelectorAll('.nav-link').forEach(link=>link.classList.toggle('active',link.dataset.view==='report506'));
   }
