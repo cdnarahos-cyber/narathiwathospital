@@ -80,11 +80,12 @@ const enhanceAlertFilters = () => {
   const acknowledgedCount = feed.querySelectorAll('article.acknowledged').length;
   const activeCount = allCount - acknowledgedCount;
   controls.innerHTML = `
-    <button type="button" class="active" data-alert-filter="all">ทั้งหมด <span>${allCount}</span></button>
-    <button type="button" data-alert-filter="active">ยังไม่รับทราบ <span>${activeCount}</span></button>
+    <button type="button" data-alert-filter="all">ทั้งหมด <span>${allCount}</span></button>
+    <button type="button" class="active" data-alert-filter="active">ยังไม่รับทราบ <span>${activeCount}</span></button>
     <button type="button" data-alert-filter="acknowledged">รับทราบแล้ว <span>${acknowledgedCount}</span></button>
   `;
   panelTop.append(controls);
+  applyAlertFilter('active');
 };
 
 const applyAlertFilter = filter => {
