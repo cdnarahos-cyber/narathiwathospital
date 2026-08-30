@@ -83,6 +83,7 @@ const enhanceAlertFilters = () => {
     <button type="button" data-alert-filter="all">ทั้งหมด <span>${allCount}</span></button>
     <button type="button" class="active" data-alert-filter="active">ยังไม่รับทราบ <span>${activeCount}</span></button>
     <button type="button" data-alert-filter="acknowledged">รับทราบแล้ว <span>${acknowledgedCount}</span></button>
+    <input class="table-search" data-alert-search placeholder="ค้นหาโรค พื้นที่ หรือประเภทแจ้งเตือน" aria-label="ค้นหารายการแจ้งเตือน" />
   `;
   panelTop.append(controls);
   applyAlertFilter('active');
@@ -91,12 +92,14 @@ const enhanceAlertFilters = () => {
 const applyAlertFilter = filter => {
   const feed = root.querySelector('.alert-feed');
   if (!feed) return;
+  const query = root.querySelector('[data-alert-search]')?.value.trim().toLocaleLowerCase('th-TH') || '';
   feed.querySelectorAll('article').forEach(article => {
-    article.hidden = filter === 'all'
-      ? false
+    const matchState = filter === 'all'
+      ? true
       : filter === 'acknowledged'
-        ? !article.classList.contains('acknowledged')
-        : article.classList.contains('acknowledged');
+        ? article.classList.contains('acknowledged')
+        : !article.classList.contains('acknowledged');
+    article.hidden = !matchState || Boolean(query && !article.textContent.toLocaleLowerCase('th-TH').includes(query));
   });
   let emptyState = feed.querySelector('.alert-filter-empty');
   const visible = [...feed.querySelectorAll('article')].some(article => !article.hidden);
@@ -341,6 +344,7 @@ document.addEventListener('input', event => {
   if (event.target.matches('[data-settings-search]')) filterSettings();
   if (event.target.matches('[data-audit-search]')) filterAudit();
   if (event.target.matches('[data-506-report-search]')) filter506Report();
+  if (event.target.matches('[data-alert-search]')) applyAlertFilter(root.querySelector('[data-alert-filter].active')?.dataset.alertFilter || 'active');
 });
 
 document.addEventListener('keydown', event => {
