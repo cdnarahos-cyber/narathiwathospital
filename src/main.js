@@ -242,6 +242,16 @@ const enhanceSettingsHealth = () => {
   });
   heading.closest('.command-head')?.after(section);
 };
+const enhanceImportQualityActions = () => {
+  const panel = [...root.querySelectorAll('.work-panel')].find(item => item.querySelector('.panel-top h2')?.textContent === 'ตรวจสอบคุณภาพข้อมูล');
+  const panelTop = panel?.querySelector('.panel-top');
+  if (!panelTop || panelTop.querySelector('[data-export-506-quality]')) return;
+  const button = document.createElement('button');
+  button.type = 'button'; button.className = 'secondary';
+  button.setAttribute('data-export-506-quality', 'true');
+  button.textContent = '⇩ ดาวน์โหลดรายการตรวจสอบ';
+  panelTop.append(button);
+};
 
 const enhance506ReportFilters = () => {
   const disease = root.querySelector('[data-506-report-disease]');
@@ -271,6 +281,7 @@ new MutationObserver(() => {
   enhanceTrackingFilters();
   enhanceTrackingSummary();
   enhanceSettingsHealth();
+  enhanceImportQualityActions();
 }).observe(root, { childList: true, subtree: true });
 enhanceAlertFilters();
 enhance506ReportFilters();
@@ -278,6 +289,7 @@ enhanceLabFilters();
 enhanceTrackingFilters();
 enhanceTrackingSummary();
 enhanceSettingsHealth();
+enhanceImportQualityActions();
 
 document.addEventListener('click', event => {
   const filterButton = event.target.closest('[data-alert-filter]');
@@ -663,6 +675,22 @@ const commandCsv = () => {
   const link=document.createElement('a'); link.href=URL.createObjectURL(blob); link.download=`ndss-506-${new Date().toISOString().slice(0,10)}.csv`; link.click(); setTimeout(()=>URL.revokeObjectURL(link.href),500);
   showToast(`ดาวน์โหลด CSV ${rows.length} รายการแล้ว`);
 };
+const export506Quality = () => {
+  const rows = commandRecords().filter(row => !row.disease || !row.onset || !(row.tambon || row.district));
+  if (!rows.length) { showToast('ไม่พบรายการ รง.506 ที่ข้อมูลสำคัญไม่ครบ'); return; }
+  const headers = ['ผู้ป่วย / HN', 'โรค', 'วันเริ่มป่วย', 'ตำบล', 'อำเภอ', 'รายการที่ควรตรวจสอบ'];
+  const values = rows.map(row => {
+    const missing = [!row.disease && 'โรค', !row.onset && 'วันเริ่มป่วย', !(row.tambon || row.district) && 'พื้นที่'].filter(Boolean).join(', ');
+    return [row.patient || row.hn || '-', row.disease || '-', row.onset || '-', row.tambon || '-', row.district || '-', missing];
+  });
+  const safe = value => { const text = String(value ?? ''); return /^[=+\-@]/.test(text) ? `'${text}` : text; };
+  const csv = [headers, ...values].map(line => line.map(value => `"${safe(value).replaceAll('"','""')}"`).join(',')).join('\n');
+  const blob = new Blob(['\ufeff', csv], {type:'text/csv;charset=utf-8'});
+  const link = document.createElement('a'); link.href = URL.createObjectURL(blob); link.download = `ndss-506-quality-${new Date().toISOString().slice(0,10)}.csv`; link.click();
+  setTimeout(() => URL.revokeObjectURL(link.href), 500);
+  recordAudit('ส่งออกรายการตรวจสอบ รง.506', `${rows.length} รายการ`);
+  showToast(`ดาวน์โหลดรายการตรวจสอบ ${rows.length} รายการแล้ว`);
+};
 const commandExport = ({dataset,filename,detail='full'}) => {
   const sources={
     '506': commandRecords(),
@@ -806,6 +834,7 @@ document.addEventListener('click', event => {
     showToast('บันทึกรับทราบการแจ้งเตือนแล้ว');
   }
   if(event.target.closest('[data-export-506-csv]')) commandCsv();
+  if(event.target.closest('[data-export-506-quality]')) export506Quality();
   if(event.target.closest('[data-print-summary]')) window.print();
   if(event.target.closest('[data-print-command-report]')) window.print();
   if(event.target.closest('[data-print-ai-brief]')) {
