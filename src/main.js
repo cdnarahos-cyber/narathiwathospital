@@ -602,22 +602,36 @@ const commandCsv = () => {
   const link=document.createElement('a'); link.href=URL.createObjectURL(blob); link.download=`ndss-506-${new Date().toISOString().slice(0,10)}.csv`; link.click(); setTimeout(()=>URL.revokeObjectURL(link.href),500);
   showToast(`ดาวน์โหลด CSV ${rows.length} รายการแล้ว`);
 };
-const commandExport = ({dataset,filename}) => {
+const commandExport = ({dataset,filename,detail='full'}) => {
   const sources={
     '506': commandRecords(),
     investigation: commandCases(),
     lab: (()=>{ try { return JSON.parse(localStorage.getItem('ndss-lab-results') || '[]'); } catch { return []; } })(),
     tasks: (()=>{ try { return JSON.parse(localStorage.getItem('ndss-response-tasks') || '[]'); } catch { return []; } })()
   };
-  const rows=sources[dataset] || [];
+  const source=sources[dataset] || [];
+  const summaryFields = dataset === 'lab'
+    ? [['การตรวจ', row => row.test || 'ไม่ระบุการตรวจ'], ['ผลตรวจ', row => row.result || 'ไม่ระบุผล']]
+    : dataset === 'tasks'
+      ? [['สถานะงาน', row => row.status || 'ไม่ระบุสถานะ'], ['ระดับความเร่งด่วน', row => row.priority || 'ไม่ระบุระดับ']]
+      : [['โรค', row => row.disease || 'ไม่ระบุโรค'], ['พื้นที่', row => row.tambon || row.subdistrict || row.district || row.location || 'ไม่ระบุพื้นที่']];
+  const rows=detail === 'summary'
+    ? Object.values(source.reduce((all,row) => {
+      const values=summaryFields.map(([,get]) => get(row));
+      const key=values.join('\u001f');
+      all[key]=all[key] || Object.fromEntries(summaryFields.map(([label], index) => [label, values[index]]));
+      all[key]['จำนวนรายการ']=(all[key]['จำนวนรายการ'] || 0) + 1;
+      return all;
+    }, {}))
+    : source;
   if(!rows.length) { showToast('ยังไม่มีข้อมูลในชุดที่เลือกสำหรับส่งออก'); return; }
   const keys=[...new Set(rows.flatMap(row=>Object.keys(row).filter(key=>!['raw','pdfData'].includes(key))))];
   const csv=[keys,...rows.map(row=>keys.map(key=>typeof row[key]==='object' ? JSON.stringify(row[key]) : row[key] ?? ''))].map(line=>line.map(value=>`"${String(value).replaceAll('"','""')}"`).join(',')).join('\n');
-  const safeName=(filename || `ndss-${dataset}-${new Date().toISOString().slice(0,10)}`).replace(/[^a-zA-Z0-9ก-๙_\-]/g,'-');
+  const safeName=(filename || `ndss-${dataset}${detail === 'summary' ? '-summary' : ''}-${new Date().toISOString().slice(0,10)}`).replace(/[^a-zA-Z0-9ก-๙_\-]/g,'-');
   const blob=new Blob([`\ufeff${csv}`],{type:'text/csv;charset=utf-8'});
   const link=document.createElement('a'); link.href=URL.createObjectURL(blob); link.download=`${safeName}.csv`; link.click(); setTimeout(()=>URL.revokeObjectURL(link.href),500);
-  recordAudit('ส่งออกข้อมูล CSV',`ชุดข้อมูล ${dataset} · ${rows.length} รายการ`);
-  showToast(`ดาวน์โหลด ${rows.length} รายการแล้ว`);
+  recordAudit('ส่งออกข้อมูล CSV',`ชุดข้อมูล ${dataset} · ${detail === 'summary' ? 'สรุป' : 'รายละเอียด'} · ${rows.length} รายการ`);
+  showToast(`ดาวน์โหลด${detail === 'summary' ? 'ข้อมูลสรุป ' : ''}${rows.length} รายการแล้ว`);
 };
 const backupKeys=['ndss-506-records','ndss-506-import-meta','ndss-investigations','ndss-response-tasks','ndss-case-contacts','ndss-lab-results','ndss-alert-state','ndss-audit-log'];
 const backupLocalData = () => {
