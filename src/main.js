@@ -213,6 +213,10 @@ const enhanceTrackingFilters = () => {
   tools.innerHTML = '<input class="table-search" data-tracking-search placeholder="ค้นหาเคสหรือผู้รับผิดชอบ" /><select class="table-search" data-tracking-status aria-label="คัดกรองสถานะงาน"><option value="">ทุกสถานะ</option><option value="รอรับทราบ">รอรับทราบ</option><option value="กำลังดำเนินการ">กำลังดำเนินการ</option><option value="ควบคุมแล้ว">ปิดเคสแล้ว</option></select>';
   panelTop.append(tools);
 };
+const enhanceTrackingSummary = () => {
+  const label = root.querySelector('.tracking-workflow article:nth-child(3) span');
+  if (label?.textContent.includes('งานกำลังดำเนินการ')) label.textContent = label.textContent.replace('งานกำลังดำเนินการ', 'งานยังไม่ปิด');
+};
 const enhanceSettingsHealth = () => {
   const heading = root.querySelector('.command-head h1');
   if (heading?.textContent !== 'ตั้งค่าและสถานะระบบ' || root.querySelector('[data-settings-health]')) return;
@@ -265,12 +269,14 @@ new MutationObserver(() => {
   enhance506ReportFilters();
   enhanceLabFilters();
   enhanceTrackingFilters();
+  enhanceTrackingSummary();
   enhanceSettingsHealth();
 }).observe(root, { childList: true, subtree: true });
 enhanceAlertFilters();
 enhance506ReportFilters();
 enhanceLabFilters();
 enhanceTrackingFilters();
+enhanceTrackingSummary();
 enhanceSettingsHealth();
 
 document.addEventListener('click', event => {
