@@ -190,6 +190,27 @@ const enhanceLabFilters = () => {
   panelTop.append(filter);
 };
 
+const trackingPanel = () => [...root.querySelectorAll('.work-panel')].find(panel => panel.querySelector('.panel-top h2')?.textContent.includes('Follow-up / Case Closure'));
+const filterTrackingRows = () => {
+  const panel = trackingPanel();
+  if (!panel) return;
+  const keyword = panel.querySelector('[data-tracking-search]')?.value.trim().toLocaleLowerCase('th-TH') || '';
+  const status = panel.querySelector('[data-tracking-status]')?.value || '';
+  panel.querySelectorAll('tbody tr').forEach(row => {
+    const text = row.textContent.toLocaleLowerCase('th-TH');
+    row.hidden = Boolean((keyword && !text.includes(keyword)) || (status && !text.includes(status)));
+  });
+};
+const enhanceTrackingFilters = () => {
+  const panel = trackingPanel();
+  const panelTop = panel?.querySelector('.panel-top');
+  if (!panelTop || panelTop.querySelector('[data-tracking-search]')) return;
+  const tools = document.createElement('div');
+  tools.className = 'panel-tools';
+  tools.innerHTML = '<input class="table-search" data-tracking-search placeholder="ค้นหาเคสหรือผู้รับผิดชอบ" /><select class="table-search" data-tracking-status aria-label="คัดกรองสถานะงาน"><option value="">ทุกสถานะ</option><option value="รอรับทราบ">รอรับทราบ</option><option value="กำลังดำเนินการ">กำลังดำเนินการ</option><option value="ควบคุมแล้ว">ปิดเคสแล้ว</option></select>';
+  panelTop.append(tools);
+};
+
 const enhance506ReportFilters = () => {
   const disease = root.querySelector('[data-506-report-disease]');
   const panel = disease?.closest('.work-panel');
@@ -215,10 +236,12 @@ new MutationObserver(() => {
   enhanceAlertFilters();
   enhance506ReportFilters();
   enhanceLabFilters();
+  enhanceTrackingFilters();
 }).observe(root, { childList: true, subtree: true });
 enhanceAlertFilters();
 enhance506ReportFilters();
 enhanceLabFilters();
+enhanceTrackingFilters();
 
 document.addEventListener('click', event => {
   const filterButton = event.target.closest('[data-alert-filter]');
@@ -303,6 +326,7 @@ document.addEventListener('keydown', event => {
 document.addEventListener('change', event => {
   if (event.target.matches('[data-knowledge-category]')) filterKnowledge();
   if (event.target.matches('[data-lab-status-filter]')) filterLabRows();
+  if (event.target.matches('[data-tracking-status]')) filterTrackingRows();
 });
 
 document.addEventListener('click', event => {
@@ -717,6 +741,7 @@ document.addEventListener('change', event => {
 document.addEventListener('input', event => {
   if(event.target.matches('[data-command-queue-search]')) { const keyword=event.target.value.toLowerCase(); root.querySelectorAll('[data-command-queue-rows] tr').forEach(row=>row.hidden=!row.textContent.toLowerCase().includes(keyword)); }
   if(event.target.matches('[data-lab-search]')) filterLabRows();
+  if(event.target.matches('[data-tracking-search]')) filterTrackingRows();
   if(event.target.matches('[data-report-search]')) filterReportRows();
   if(event.target.matches('[data-event-report-search]')) filterEventReportRows();
 });
