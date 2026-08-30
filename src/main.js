@@ -267,7 +267,7 @@ const enhanceExportHistory = () => {
   const setupPanel = root.querySelector('[data-command-export]')?.closest('.work-panel');
   if (heading?.textContent !== 'ส่งออกรายงาน' || !setupPanel || root.querySelector('[data-export-history]')) return;
   let audits = []; try { audits = JSON.parse(localStorage.getItem('ndss-audit-log') || '[]'); } catch { /* no history */ }
-  const entries = audits.filter(entry => String(entry.action || '').includes('ส่งออก')).slice(0, 5);
+  const entries = audits.filter(entry => String(entry.action || '').includes('ส่งออก')).slice(0, 10);
   const section = document.createElement('section');
   section.className = 'work-panel export-history'; section.setAttribute('data-export-history', 'true');
   const panelTop = document.createElement('div'); panelTop.className = 'panel-top';
@@ -275,8 +275,12 @@ const enhanceExportHistory = () => {
   const openAudit = document.createElement('button'); openAudit.type = 'button'; openAudit.className = 'secondary'; openAudit.dataset.view = 'audit'; openAudit.textContent = 'ดู Audit Log';
   panelTop.append(title, openAudit); section.append(panelTop);
   if (entries.length) {
+    const search = document.createElement('input');
+    search.type = 'search'; search.className = 'table-search'; search.placeholder = 'ค้นหาชื่อไฟล์หรือชุดข้อมูล';
+    search.setAttribute('data-export-history-search', 'true');
+    section.append(search);
     const list = document.createElement('div'); list.className = 'command-list';
-    entries.forEach(entry => { const row = document.createElement('div'); const label = document.createElement('b'); const detail = document.createElement('span'); label.textContent = entry.action || 'ส่งออกข้อมูล'; detail.textContent = `${entry.detail || '-'} · ${new Date(entry.at).toLocaleString('th-TH')}`; row.append(label, detail); list.append(row); });
+    entries.forEach(entry => { const row = document.createElement('div'); row.setAttribute('data-export-history-row', 'true'); const label = document.createElement('b'); const detail = document.createElement('span'); label.textContent = entry.action || 'ส่งออกข้อมูล'; detail.textContent = `${entry.detail || '-'} · ${new Date(entry.at).toLocaleString('th-TH')}`; row.append(label, detail); list.append(row); });
     section.append(list);
   } else { const note = document.createElement('p'); note.className = 'scope-note'; note.textContent = 'ยังไม่มีประวัติการส่งออกจากอุปกรณ์นี้'; section.append(note); }
   setupPanel.after(section);
@@ -331,6 +335,14 @@ document.addEventListener('click', event => {
     button.classList.toggle('active', button === filterButton);
   });
   applyAlertFilter(filterButton.dataset.alertFilter);
+});
+
+document.addEventListener('input', event => {
+  if (!event.target.matches('[data-export-history-search]')) return;
+  const query = event.target.value.trim().toLocaleLowerCase('th-TH');
+  root.querySelectorAll('[data-export-history-row]').forEach(row => {
+    row.hidden = Boolean(query) && !row.textContent.toLocaleLowerCase('th-TH').includes(query);
+  });
 });
 
 document.addEventListener('click', event => {
