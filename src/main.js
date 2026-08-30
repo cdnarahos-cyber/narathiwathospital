@@ -146,9 +146,18 @@ const filterAudit = () => {
   const search = root.querySelector('[data-audit-search]');
   if (!search) return;
   const term = search.value.trim().toLocaleLowerCase('th-TH');
+  const category = root.querySelector('[data-audit-category]')?.value || '';
+  const categoryOf = action => {
+    if (/ส่งออก|สำรอง/.test(action)) return 'export';
+    if (/นำเข้า|กู้คืน/.test(action)) return 'import';
+    if (/ลบ|ล้าง/.test(action)) return 'delete';
+    if (/บันทึก|มอบหมาย|ปิด|รับทราบ/.test(action)) return 'save';
+    return 'other';
+  };
   let visible = 0;
   root.querySelectorAll('[data-audit-row]').forEach(row => {
-    const match = !term || row.textContent.toLocaleLowerCase('th-TH').includes(term);
+    const match = (!term || row.textContent.toLocaleLowerCase('th-TH').includes(term))
+      && (!category || categoryOf(row.dataset.auditAction || '') === category);
     row.hidden = !match;
     if (match) visible += 1;
   });
@@ -406,6 +415,7 @@ document.addEventListener('input', event => {
   if (event.target.matches('[data-knowledge-search]')) filterKnowledge();
   if (event.target.matches('[data-settings-search]')) filterSettings();
   if (event.target.matches('[data-audit-search]')) filterAudit();
+  if (event.target.matches('[data-audit-category]')) filterAudit();
   if (event.target.matches('[data-506-report-search]')) filter506Report();
   if (event.target.matches('[data-alert-search]')) applyAlertFilter(root.querySelector('[data-alert-filter].active')?.dataset.alertFilter || 'active');
 });
