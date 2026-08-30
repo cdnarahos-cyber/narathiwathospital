@@ -282,9 +282,16 @@ const renderCommandDashboard = () => {
 };
 renderCommandDashboard();
 const refreshOverview = () => { if (root.querySelector('.overview-page')) { root.innerHTML = overviewDashboard(); renderCommandDashboard(); } };
-window.addEventListener('ndss-cases-updated', refreshOverview);
+const refreshEpidemiology = () => {
+  if (document.querySelector('.nav-link.active')?.dataset.view !== 'epidemiology') return;
+  const activeTab=root.querySelector('.epi-dashboard [data-epi-tab].active')?.dataset.epiTab || 'situation';
+  root.innerHTML=`<div class="module-page">${moduleView('epidemiology')}</div>`;
+  root.querySelector(`[data-epi-tab="${activeTab}"]`)?.click();
+};
+const refreshDataViews = () => { refreshOverview(); refreshEpidemiology(); };
+window.addEventListener('ndss-cases-updated', refreshDataViews);
 window.addEventListener('storage', event => {
-  if (event.key === 'ndss-investigations') refreshOverview();
+  if (['ndss-investigations','ndss-506-records'].includes(event.key)) refreshDataViews();
   if (['ndss-investigations','ndss-case-contacts','ndss-response-tasks','ndss-lab-results','ndss-506-records','ndss-alert-state'].includes(event.key)) {
     updateNotificationBadge();
     refreshAlertView();
@@ -344,7 +351,7 @@ document.addEventListener('click', async event => {
   if(action.matches('[data-clear-506]')) {
     if(!await confirmAction('ยืนยันการล้างข้อมูล รง.506','ข้อมูล รง.506 ที่นำเข้าในอุปกรณ์นี้จะถูกลบ ต้องการดำเนินการหรือไม่?')) return;
     localStorage.removeItem('ndss-506-records'); localStorage.removeItem('ndss-506-import-meta');
-    recordAudit('ล้างข้อมูล รง.506','ล้างข้อมูลที่นำเข้าในอุปกรณ์นี้'); root.querySelector('[data-import-status]')?.replaceChildren(document.createTextNode('ล้างข้อมูลนำเข้าแล้ว')); showToast('ล้างข้อมูล รง.506 แล้ว');
+    recordAudit('ล้างข้อมูล รง.506','ล้างข้อมูลที่นำเข้าในอุปกรณ์นี้'); root.querySelector('[data-import-status]')?.replaceChildren(document.createTextNode('ล้างข้อมูลนำเข้าแล้ว')); window.dispatchEvent(new Event('ndss-cases-updated')); showToast('ล้างข้อมูล รง.506 แล้ว');
     return;
   }
   if(action.matches('[data-clear-audit]')) {
@@ -619,7 +626,7 @@ document.addEventListener('click', event => {
   const commandView=event.target.closest('[data-view]')?.dataset.view;
   if(commandView==='area-map') setTimeout(renderCommandMap,0);
   if(event.target.closest('[data-open-506-import]')) document.querySelector('.nav-link[data-view="import506"]')?.click();
-  if(event.target.closest('[data-clear-506]')) { localStorage.removeItem('ndss-506-records'); localStorage.removeItem('ndss-506-import-meta'); recordAudit('ล้างข้อมูล รง.506','ล้างข้อมูลที่นำเข้าในอุปกรณ์นี้'); root.querySelector('[data-import-status]')?.replaceChildren(document.createTextNode('ล้างข้อมูลนำเข้าแล้ว')); showToast('ล้างข้อมูล รง.506 แล้ว'); }
+  if(event.target.closest('[data-clear-506]')) { localStorage.removeItem('ndss-506-records'); localStorage.removeItem('ndss-506-import-meta'); recordAudit('ล้างข้อมูล รง.506','ล้างข้อมูลที่นำเข้าในอุปกรณ์นี้'); root.querySelector('[data-import-status]')?.replaceChildren(document.createTextNode('ล้างข้อมูลนำเข้าแล้ว')); window.dispatchEvent(new Event('ndss-cases-updated')); showToast('ล้างข้อมูล รง.506 แล้ว'); }
   if(event.target.closest('[data-clear-audit]')) { localStorage.removeItem('ndss-audit-log'); root.innerHTML=`<div class="module-page">${moduleView('audit')}</div>`; document.querySelectorAll('.nav-link').forEach(link=>link.classList.toggle('active',link.dataset.view==='audit')); showToast('ล้างบันทึกกิจกรรมแล้ว'); }
   if(event.target.closest('[data-backup-local]')) backupLocalData();
   const queueFilter=event.target.closest('[data-queue-filter]');
