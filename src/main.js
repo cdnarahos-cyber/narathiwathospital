@@ -167,6 +167,28 @@ const filter506Report = () => {
   if (empty) empty.hidden = visible > 0;
 };
 
+const filterLabRows = () => {
+  const keyword = root.querySelector('[data-lab-search]')?.value.trim().toLocaleLowerCase('th-TH') || '';
+  const status = root.querySelector('[data-lab-status-filter]')?.value || '';
+  root.querySelectorAll('[data-lab-rows] tr').forEach(row => {
+    const matchText = !keyword || row.textContent.toLocaleLowerCase('th-TH').includes(keyword);
+    const matchStatus = !status || row.textContent.includes(status);
+    row.hidden = !(matchText && matchStatus);
+  });
+};
+
+const enhanceLabFilters = () => {
+  const search = root.querySelector('[data-lab-search]');
+  const panelTop = search?.closest('.panel-top');
+  if (!search || !panelTop || panelTop.querySelector('[data-lab-status-filter]')) return;
+  const filter = document.createElement('select');
+  filter.className = 'table-search';
+  filter.setAttribute('data-lab-status-filter', 'true');
+  filter.setAttribute('aria-label', 'คัดกรองผลตรวจ');
+  filter.innerHTML = '<option value="">ทุกผลตรวจ</option><option value="Positive">Positive</option><option value="Negative">Negative</option><option value="รอตรวจสอบ">รอตรวจสอบ</option><option value="ไม่สามารถทดสอบได้">ไม่สามารถทดสอบได้</option>';
+  panelTop.append(filter);
+};
+
 const enhance506ReportFilters = () => {
   const disease = root.querySelector('[data-506-report-disease]');
   const panel = disease?.closest('.work-panel');
@@ -191,9 +213,11 @@ const refreshAlertView = () => {
 new MutationObserver(() => {
   enhanceAlertFilters();
   enhance506ReportFilters();
+  enhanceLabFilters();
 }).observe(root, { childList: true, subtree: true });
 enhanceAlertFilters();
 enhance506ReportFilters();
+enhanceLabFilters();
 
 document.addEventListener('click', event => {
   const filterButton = event.target.closest('[data-alert-filter]');
@@ -272,6 +296,7 @@ document.addEventListener('keydown', event => {
 
 document.addEventListener('change', event => {
   if (event.target.matches('[data-knowledge-category]')) filterKnowledge();
+  if (event.target.matches('[data-lab-status-filter]')) filterLabRows();
 });
 
 document.addEventListener('click', event => {
@@ -671,7 +696,7 @@ document.addEventListener('change', event => {
 });
 document.addEventListener('input', event => {
   if(event.target.matches('[data-command-queue-search]')) { const keyword=event.target.value.toLowerCase(); root.querySelectorAll('[data-command-queue-rows] tr').forEach(row=>row.hidden=!row.textContent.toLowerCase().includes(keyword)); }
-  if(event.target.matches('[data-lab-search]')) { const keyword=event.target.value.toLowerCase(); root.querySelectorAll('[data-lab-rows] tr').forEach(row=>row.hidden=!row.textContent.toLowerCase().includes(keyword)); }
+  if(event.target.matches('[data-lab-search]')) filterLabRows();
   if(event.target.matches('[data-report-search]')) filterReportRows();
   if(event.target.matches('[data-event-report-search]')) filterEventReportRows();
 });
