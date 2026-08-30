@@ -175,7 +175,7 @@ const enhance506ReportFilters = () => {
   const reset = document.createElement('button');
   reset.type = 'button';
   reset.className = 'secondary no-print';
-  reset.dataset.reset506Filter = 'true';
+  reset.setAttribute('data-reset-506-filter', 'true');
   reset.textContent = 'ล้างตัวกรอง';
   panelTop.append(reset);
 };
