@@ -262,6 +262,25 @@ const enhanceKnowledgeForms = () => {
   section.innerHTML = `<div class="panel-top"><div><h2>คลังแบบสอบสวนต้นฉบับ</h2><small>เปิดเอกสาร PDF ทั้ง 6 ฉบับจากหน้านี้ได้โดยตรง</small></div></div><div class="knowledge-form-links">${Object.entries(diseaseMeta).map(([name, meta], index) => `<a href="./public/forms/${encodeURIComponent(meta.template)}" target="_blank" rel="noopener" style="--disease-color:${meta.color}"><i>${String(index + 1).padStart(2,'0')}</i><span><b>${name}</b><small>${meta.pages} หน้า · PDF ต้นฉบับ</small></span><em>เปิด ↗</em></a>`).join('')}</div>`;
   tools.after(section);
 };
+const enhanceExportHistory = () => {
+  const heading = root.querySelector('.command-head h1');
+  const setupPanel = root.querySelector('[data-command-export]')?.closest('.work-panel');
+  if (heading?.textContent !== 'ส่งออกรายงาน' || !setupPanel || root.querySelector('[data-export-history]')) return;
+  let audits = []; try { audits = JSON.parse(localStorage.getItem('ndss-audit-log') || '[]'); } catch { /* no history */ }
+  const entries = audits.filter(entry => String(entry.action || '').includes('ส่งออก')).slice(0, 5);
+  const section = document.createElement('section');
+  section.className = 'work-panel export-history'; section.setAttribute('data-export-history', 'true');
+  const panelTop = document.createElement('div'); panelTop.className = 'panel-top';
+  const title = document.createElement('div'); title.innerHTML = '<h2>ประวัติการส่งออกล่าสุด</h2><small>บันทึกเฉพาะกิจกรรมในอุปกรณ์นี้</small>';
+  const openAudit = document.createElement('button'); openAudit.type = 'button'; openAudit.className = 'secondary'; openAudit.dataset.view = 'audit'; openAudit.textContent = 'ดู Audit Log';
+  panelTop.append(title, openAudit); section.append(panelTop);
+  if (entries.length) {
+    const list = document.createElement('div'); list.className = 'command-list';
+    entries.forEach(entry => { const row = document.createElement('div'); const label = document.createElement('b'); const detail = document.createElement('span'); label.textContent = entry.action || 'ส่งออกข้อมูล'; detail.textContent = `${entry.detail || '-'} · ${new Date(entry.at).toLocaleString('th-TH')}`; row.append(label, detail); list.append(row); });
+    section.append(list);
+  } else { const note = document.createElement('p'); note.className = 'scope-note'; note.textContent = 'ยังไม่มีประวัติการส่งออกจากอุปกรณ์นี้'; section.append(note); }
+  setupPanel.after(section);
+};
 
 const enhance506ReportFilters = () => {
   const disease = root.querySelector('[data-506-report-disease]');
@@ -293,6 +312,7 @@ new MutationObserver(() => {
   enhanceSettingsHealth();
   enhanceImportQualityActions();
   enhanceKnowledgeForms();
+  enhanceExportHistory();
 }).observe(root, { childList: true, subtree: true });
 enhanceAlertFilters();
 enhance506ReportFilters();
@@ -302,6 +322,7 @@ enhanceTrackingSummary();
 enhanceSettingsHealth();
 enhanceImportQualityActions();
 enhanceKnowledgeForms();
+enhanceExportHistory();
 
 document.addEventListener('click', event => {
   const filterButton = event.target.closest('[data-alert-filter]');
