@@ -236,15 +236,30 @@ document.addEventListener('click', event => {
 document.addEventListener('click', event => {
   const toggle=event.target.closest('[data-mobile-nav-toggle]');
   const sidebar=document.querySelector('.command-sidebar');
+  const closeMobileNav=({restoreFocus=false}={})=>{
+    if (!sidebar?.classList.contains('mobile-open')) return;
+    sidebar.classList.remove('mobile-open');
+    const trigger=document.querySelector('[data-mobile-nav-toggle]');
+    trigger?.setAttribute('aria-expanded','false');
+    if (restoreFocus) trigger?.focus();
+  };
   if (toggle && sidebar) {
     const open=sidebar.classList.toggle('mobile-open');
     toggle.setAttribute('aria-expanded',String(open));
     return;
   }
-  if (event.target.closest('.command-sidebar [data-view]') && sidebar?.classList.contains('mobile-open')) {
-    sidebar.classList.remove('mobile-open');
-    document.querySelector('[data-mobile-nav-toggle]')?.setAttribute('aria-expanded','false');
+  if (sidebar?.classList.contains('mobile-open') && (event.target.closest('.command-sidebar [data-view]') || !event.target.closest('.command-sidebar'))) {
+    closeMobileNav();
   }
+});
+document.addEventListener('keydown', event => {
+  if (event.key !== 'Escape') return;
+  const sidebar=document.querySelector('.command-sidebar');
+  if (!sidebar?.classList.contains('mobile-open')) return;
+  sidebar.classList.remove('mobile-open');
+  const trigger=document.querySelector('[data-mobile-nav-toggle]');
+  trigger?.setAttribute('aria-expanded','false');
+  trigger?.focus();
 });
 const renderCommandDashboard = () => {
   const page=root.querySelector('.overview-page');
