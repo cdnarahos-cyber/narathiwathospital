@@ -210,6 +210,7 @@ document.addEventListener('click', event => {
   localStorage.removeItem('ndss-506-report-area');
   localStorage.removeItem('ndss-506-report-page');
   localStorage.removeItem('ndss-506-report-search');
+  localStorage.removeItem('ndss-506-report-list-open');
   root.innerHTML = `<div class="module-page">${moduleView('report506')}</div>`;
   document.querySelectorAll('.nav-link').forEach(link => {
     link.classList.toggle('active', link.dataset.view === 'report506');
@@ -218,6 +219,14 @@ document.addEventListener('click', event => {
 });
 
 document.addEventListener('click', event => {
+  if (event.target.closest('[data-open-506-report-list]')) {
+    localStorage.setItem('ndss-506-report-list-open', 'true');
+    root.innerHTML = `<div class="module-page">${moduleView('report506')}</div>`;
+    document.querySelectorAll('.nav-link').forEach(link => {
+      link.classList.toggle('active', link.dataset.view === 'report506');
+    });
+    return;
+  }
   if (event.target.closest('[data-submit-506-report-search]')) {
     const search = root.querySelector('[data-506-report-search]');
     localStorage.setItem('ndss-506-report-search', search?.value.trim() || '');
