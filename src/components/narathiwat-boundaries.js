@@ -79,14 +79,15 @@ export const addNarathiwatBoundaries = async map => {
       'ขอบเขตอำเภอ': districtLayer,
       'ขอบเขตตำบล': tambonLayer
     }, { collapsed: false, position: 'topright' }).addTo(map);
+    const mapContainer = map.getContainer();
     const searchWrap = document.createElement('div');
     searchWrap.className = 'map-area-search no-print';
-    searchWrap.style.cssText = 'display:flex;gap:10px;align-items:center;margin:0 0 12px;padding:10px 12px;background:#f5f9fd;border:1px solid #d8e5f1;border-radius:10px';
-    searchWrap.innerHTML = '<span style="color:#0b3f76;font-weight:700;white-space:nowrap">ค้นหาอำเภอ / ตำบล</span><input type="search" list="ndss-area-options" placeholder="พิมพ์ชื่ออำเภอหรือตำบล แล้วกด Enter" style="flex:1;min-width:220px;border:1px solid #b9cfe4;border-radius:7px;padding:8px 10px;color:#071d38" /><button type="button" disabled style="border:0;border-radius:7px;padding:9px 12px;background:#0b63b6;color:#fff;font-weight:700;cursor:pointer;white-space:nowrap">สร้าง PDF รายพื้นที่</button><datalist id="ndss-area-options"></datalist>';
-    const mapContainer = map.getContainer();
+    const isCommandMap = Boolean(mapContainer.closest('.command-map-panel'));
+    searchWrap.innerHTML = `<span class="map-area-search__label">ค้นหาอำเภอ / ตำบล</span><input type="search" list="ndss-area-options" placeholder="พิมพ์ชื่ออำเภอหรือตำบล แล้วกด Enter" /><div class="map-area-search__actions">${isCommandMap ? '<button type="button" class="map-area-search__view" disabled>ดูรายการ รง.506</button>' : ''}<button type="button" class="map-area-search__pdf" disabled>สร้าง PDF รายพื้นที่</button></div><datalist id="ndss-area-options"></datalist>`;
     mapContainer.before(searchWrap);
     const input = searchWrap.querySelector('input');
-    const reportButton = searchWrap.querySelector('button');
+    const reportButton = searchWrap.querySelector('.map-area-search__pdf');
+    const viewButton = searchWrap.querySelector('.map-area-search__view');
     const optionList = searchWrap.querySelector('datalist');
     const places = [
       ...districts.features.map(feature => ({ label: `อำเภอ${feature.properties.district}`, key: `district:${feature.properties.district}`, district: true, level: 'district', name: feature.properties.district, code: feature.properties.districtCode, geometry: feature.geometry })),
@@ -116,7 +117,7 @@ export const addNarathiwatBoundaries = async map => {
         }
         selectedPlace = place;
         reportButton.disabled = false;
-        reportButton.style.opacity = '1';
+        if (viewButton) viewButton.disabled = false;
         map.fitBounds(bounds, { padding: [28, 28], maxZoom: place.district ? 12 : 14 });
       }
     };
@@ -129,6 +130,15 @@ export const addNarathiwatBoundaries = async map => {
       reportButton.textContent = 'กำลังสร้าง PDF…';
       try { await downloadAreaReportPdf(selectedPlace); }
       finally { reportButton.disabled = false; reportButton.textContent = label; }
+    });
+    viewButton?.addEventListener('click', () => {
+      if (!selectedPlace) return;
+      localStorage.setItem('ndss-506-report-area', selectedPlace.name);
+      localStorage.removeItem('ndss-506-report-disease');
+      localStorage.removeItem('ndss-506-report-search');
+      localStorage.setItem('ndss-506-report-page', '1');
+      localStorage.removeItem('ndss-506-report-list-open');
+      document.querySelector('.nav-link[data-view="report506"]')?.click();
     });
     const resetView = window.L.control({ position: 'topleft' });
     resetView.onAdd = () => {
