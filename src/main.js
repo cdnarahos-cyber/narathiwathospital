@@ -607,6 +607,10 @@ document.addEventListener('change', event => {
     root.innerHTML=`<div class="module-page">${moduleView('epidemiology')}</div>`;
     document.querySelectorAll('.nav-link').forEach(link=>link.classList.toggle('active',link.dataset.view==='epidemiology'));
   }
+  if(event.target.matches('[data-epi-disease-filter]')) {
+    localStorage.setItem('ndss-epi-disease',event.target.value);
+    refreshEpidemiology();
+  }
   if(event.target.matches('[data-506-report-disease],[data-506-report-area]')) {
     const disease=root.querySelector('[data-506-report-disease]')?.value || '';
     const area=root.querySelector('[data-506-report-area]')?.value || '';
