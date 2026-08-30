@@ -230,6 +230,11 @@ document.addEventListener('click', event => {
 });
 
 document.addEventListener('click', event => {
+  if (!event.target.closest('.nav-link[data-view="queue"]')) return;
+  requestAnimationFrame(() => root.querySelector('[data-queue-filter="pending"]')?.click());
+});
+
+document.addEventListener('click', event => {
   if (!event.target.closest('[data-reset-506-filter]')) return;
   localStorage.removeItem('ndss-506-report-disease');
   localStorage.removeItem('ndss-506-report-area');
