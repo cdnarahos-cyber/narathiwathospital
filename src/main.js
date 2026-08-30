@@ -210,6 +210,31 @@ const enhanceTrackingFilters = () => {
   tools.innerHTML = '<input class="table-search" data-tracking-search placeholder="ค้นหาเคสหรือผู้รับผิดชอบ" /><select class="table-search" data-tracking-status aria-label="คัดกรองสถานะงาน"><option value="">ทุกสถานะ</option><option value="รอรับทราบ">รอรับทราบ</option><option value="กำลังดำเนินการ">กำลังดำเนินการ</option><option value="ควบคุมแล้ว">ปิดเคสแล้ว</option></select>';
   panelTop.append(tools);
 };
+const enhanceSettingsHealth = () => {
+  const heading = root.querySelector('.command-head h1');
+  if (heading?.textContent !== 'ตั้งค่าและสถานะระบบ' || root.querySelector('[data-settings-health]')) return;
+  const rows = commandRecords(), cases = commandCases();
+  let tasks = [], labs = [];
+  try { tasks = JSON.parse(localStorage.getItem('ndss-response-tasks') || '[]'); labs = JSON.parse(localStorage.getItem('ndss-lab-results') || '[]'); } catch { /* show zero counts */ }
+  const incomplete = rows.filter(row => !row.disease || !row.onset || !(row.tambon || row.district)).length;
+  const items = [
+    ['ข้อมูล รง.506', `${rows.length} ราย`, incomplete ? `ควรตรวจสอบ ${incomplete} รายการ` : 'ข้อมูลสำคัญครบตามเกณฑ์', incomplete ? 'orange' : 'blue'],
+    ['แบบสอบสวน', `${cases.length} เคส`, 'เก็บในอุปกรณ์ปัจจุบัน', 'green'],
+    ['งานติดตาม', `${tasks.length} งาน`, `${tasks.filter(task => task.status !== 'ควบคุมแล้ว').length} งานยังไม่ปิด`, 'purple'],
+    ['ผล LAB', `${labs.length} รายการ`, `${labs.filter(item => item.result === 'Positive').length} ผล Positive`, 'red']
+  ];
+  const section = document.createElement('section');
+  section.className = 'command-stats';
+  section.setAttribute('data-settings-health', 'true');
+  items.forEach(([label, value, note, tone]) => {
+    const card = document.createElement('article'); card.className = tone;
+    const labelNode = document.createElement('span'); labelNode.textContent = label;
+    const valueNode = document.createElement('strong'); valueNode.textContent = value;
+    const noteNode = document.createElement('small'); noteNode.textContent = note;
+    card.append(labelNode, valueNode, noteNode); section.append(card);
+  });
+  heading.closest('.command-head')?.after(section);
+};
 
 const enhance506ReportFilters = () => {
   const disease = root.querySelector('[data-506-report-disease]');
@@ -237,11 +262,13 @@ new MutationObserver(() => {
   enhance506ReportFilters();
   enhanceLabFilters();
   enhanceTrackingFilters();
+  enhanceSettingsHealth();
 }).observe(root, { childList: true, subtree: true });
 enhanceAlertFilters();
 enhance506ReportFilters();
 enhanceLabFilters();
 enhanceTrackingFilters();
+enhanceSettingsHealth();
 
 document.addEventListener('click', event => {
   const filterButton = event.target.closest('[data-alert-filter]');
