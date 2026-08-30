@@ -233,6 +233,19 @@ document.addEventListener('click', event => {
   }
   window.setTimeout(updateNotificationBadge,0);
 });
+document.addEventListener('click', event => {
+  const toggle=event.target.closest('[data-mobile-nav-toggle]');
+  const sidebar=document.querySelector('.command-sidebar');
+  if (toggle && sidebar) {
+    const open=sidebar.classList.toggle('mobile-open');
+    toggle.setAttribute('aria-expanded',String(open));
+    return;
+  }
+  if (event.target.closest('.command-sidebar [data-view]') && sidebar?.classList.contains('mobile-open')) {
+    sidebar.classList.remove('mobile-open');
+    document.querySelector('[data-mobile-nav-toggle]')?.setAttribute('aria-expanded','false');
+  }
+});
 const renderCommandDashboard = () => {
   const page=root.querySelector('.overview-page');
   if(!page || page.querySelector('.reference-dashboard')) return;
