@@ -480,7 +480,7 @@ const showToast = (message, icon = 'success') => {
     return;
   }
   const toast = document.createElement('div');
-  toast.className = 'toast';
+  toast.className = 'toast ndss-toast-center';
   toast.textContent = message;
   document.body.append(toast);
   setTimeout(() => toast.remove(), 2600);
