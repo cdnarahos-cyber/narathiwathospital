@@ -230,7 +230,7 @@ document.addEventListener('click', event => {
   }
   const button = event.target.closest('[data-506-report-page]');
   if (!button || button.disabled) return;
-  const page = Number(button.dataset.506ReportPage);
+  const page = Number(button.getAttribute('data-506-report-page'));
   if (!Number.isInteger(page) || page < 1) return;
   localStorage.setItem('ndss-506-report-page', String(page));
   root.innerHTML = `<div class="module-page">${moduleView('report506')}</div>`;
