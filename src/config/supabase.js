@@ -73,6 +73,14 @@ export const signUpWithPassword = async ({ email, password, requestedRole }) => 
   },
 });
 
+export const resendSupabaseSignupConfirmation = async email => authRequest('/auth/v1/resend', {
+  body: {
+    type: 'signup',
+    email,
+    options: { emailRedirectTo: `${location.origin}${location.pathname}` },
+  },
+});
+
 export const refreshSupabaseSession = async () => {
   const refreshToken = getSupabaseConfig().refreshToken;
   if (!refreshToken) return null;
