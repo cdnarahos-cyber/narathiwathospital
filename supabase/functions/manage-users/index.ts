@@ -8,6 +8,7 @@ const corsHeaders = {
   "Content-Type": "application/json",
 };
 const validRoles = new Set(["admin", "officer", "viewer"]);
+const protectedAdminEmails = new Set(["cdnarahos@gmail.com"]);
 const json = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status, headers: corsHeaders });
 
 const requireAdmin = async (request: Request) => {
@@ -70,6 +71,9 @@ Deno.serve(async request => {
     return json({ ok: true });
   }
   if (action === "delete") {
+    const { data: target, error: targetError } = await admin.auth.admin.getUserById(userId);
+    if (targetError || !target.user) return json({ error: "user_not_found" }, 404);
+    if (protectedAdminEmails.has(String(target.user.email || "").toLowerCase())) return json({ error: "protected_admin_account" }, 400);
     const { error } = await admin.auth.admin.deleteUser(userId, false);
     if (error) return json({ error: "delete_failed" }, 500);
     return json({ ok: true });
