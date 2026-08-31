@@ -64,11 +64,11 @@ export const signInWithPassword = async ({ email, password }) => {
   return result;
 };
 
-export const signUpWithPassword = async ({ email, password, requestedRole }) => authRequest('/auth/v1/signup', {
+export const signUpWithPassword = async ({ email, password, requestedRole, fullName, phone }) => authRequest('/auth/v1/signup', {
   body: {
     email,
     password,
-    data: { requested_ndss_role: requestedRole },
+    data: { requested_ndss_role: requestedRole, full_name: fullName, phone },
     options: { emailRedirectTo: `${location.origin}${location.pathname}` },
   },
 });
