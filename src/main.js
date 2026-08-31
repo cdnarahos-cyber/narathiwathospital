@@ -1,9 +1,10 @@
 import { getDashboardData } from './services/dashboard-service.js';
-import { clearSupabaseSession, consumeSupabaseSessionFromUrl, getSupabaseRole, getSupabaseUser, hasSupabaseCredentials, hasSupabaseSession, invokeAdminUserManagement, signInWithPassword, signUpWithPassword } from './config/supabase.js';
+import { clearSupabaseSession, consumeSupabaseSessionFromUrl, getSupabaseRole, getSupabaseUser, hasSupabaseCredentials, hasSupabaseSession, invokeAdminUserManagement, requestSupabasePasswordRecovery, signInWithPassword, signUpWithPassword, updateSupabasePassword } from './config/supabase.js';
 import { downloadCleanPdf } from './services/clean-pdf-generator.js';
 import { enableHistoryAreaFilter } from './components/history-area-filter.js';
 import { addNarathiwatBoundaries } from './components/narathiwat-boundaries.js';
 import { shell } from './components/layout.js'; import { metricsGrid } from './components/metrics.js'; import { analytics } from './components/charts.js'; import { caseTracking } from './components/case-tracking.js'; import { rightRail } from './components/alerts.js'; import { moduleView, diseaseMeta, investigationForm } from './components/modules.js';
+const authCallbackType = new URLSearchParams(location.hash.replace(/^#/, '')).get('type') || '';
 consumeSupabaseSessionFromUrl();
 const data = await getDashboardData();
 const escapeOverview = value => String(value ?? '-').replace(/[&<>"']/g, char => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[char]));
@@ -68,7 +69,7 @@ const renderLoginGate = (mode = 'login') => {
     ? '<button type="button" class="secondary" data-supabase-signout>ออกจากระบบ</button>'
     : mode === 'register'
       ? `<form class="ndss-login-actions" data-auth-form="register"><label>อีเมล<input name="email" type="email" placeholder="name@hospital.go.th" autocomplete="email" required /></label><label>รหัสผ่าน<div class="password-field"><input name="password" type="password" autocomplete="new-password" minlength="8" required /><button type="button" data-toggle-password aria-label="แสดงรหัสผ่าน">◉</button></div></label><label>ยืนยันรหัสผ่าน<div class="password-field"><input name="confirmPassword" type="password" autocomplete="new-password" minlength="8" required /><button type="button" data-toggle-password aria-label="แสดงรหัสผ่าน">◉</button></div></label><label>บทบาทที่ขอใช้<select name="requestedRole"><option value="officer">OFFICER — จัดการรายการที่ได้รับมอบหมาย</option><option value="viewer">VIEWER — ดูข้อมูลตามสิทธิ์ที่อนุญาต</option><option value="admin">ADMIN — จัดการบัญชีและข้อมูลทั้งหมด</option></select></label><p class="ndss-auth-note">การเลือก ADMIN เป็นเพียงคำขอสิทธิ์ ผู้ดูแลระบบต้องอนุมัติก่อนเสมอ</p><button type="submit" class="primary" ${hasSupabaseCredentials() ? '' : 'disabled'}>ลงทะเบียนผู้ใช้งาน</button><button type="button" class="text-button" data-auth-mode="login">มีบัญชีแล้ว? เข้าสู่ระบบ</button></form>`
-      : `<form class="ndss-login-actions" data-auth-form="login"><label>อีเมล<input name="email" type="email" placeholder="name@hospital.go.th" autocomplete="email" required /></label><label>รหัสผ่าน<div class="password-field"><input name="password" type="password" autocomplete="current-password" required /><button type="button" data-toggle-password aria-label="แสดงรหัสผ่าน">◉</button></div></label><button type="submit" class="primary" ${hasSupabaseCredentials() ? '' : 'disabled'}>เข้าสู่ระบบ</button><p class="ndss-auth-note">บัญชีที่ลงทะเบียนใหม่จะใช้งานได้เมื่อ ADMIN จัดการสิทธิ์ในระบบแล้ว</p><button type="button" class="text-button" data-auth-mode="register">ลงทะเบียนผู้ใช้งาน</button></form>`;
+      : `<form class="ndss-login-actions" data-auth-form="login"><label>อีเมล<input name="email" type="email" placeholder="name@hospital.go.th" autocomplete="email" required /></label><label>รหัสผ่าน<div class="password-field"><input name="password" type="password" autocomplete="current-password" required /><button type="button" data-toggle-password aria-label="แสดงรหัสผ่าน">◉</button></div></label><button type="submit" class="primary" ${hasSupabaseCredentials() ? '' : 'disabled'}>เข้าสู่ระบบ</button><button type="button" class="text-button" data-password-recovery>ลืมรหัสผ่าน / ตั้งรหัสผ่านใหม่</button><p class="ndss-auth-note">บัญชีที่ลงทะเบียนใหม่จะใช้งานได้เมื่อ ADMIN จัดการสิทธิ์ในระบบแล้ว</p><button type="button" class="text-button" data-auth-mode="register">ลงทะเบียนผู้ใช้งาน</button></form>`;
   const gate = document.createElement('section');
   gate.className = 'ndss-login-gate';
   gate.setAttribute('aria-modal', 'true');
@@ -76,7 +77,14 @@ const renderLoginGate = (mode = 'login') => {
   gate.innerHTML = `<div class="ndss-login-card"><img src="./public/assets/naradhiwas-hospital-logo.jpg" alt="โลโก้โรงพยาบาลนราธิวาสราชนครินทร์" /><p class="ndss-login-kicker">NDSS · Secure Access</p><h1>${mode === 'register' ? 'ลงทะเบียนผู้ใช้งาน' : 'เข้าสู่ระบบเฝ้าระวังโรค'}</h1><p>${message}</p>${actions}<div class="ndss-role-guide"><strong>สิทธิ์การใช้งาน</strong><span><b>ADMIN</b> จัดการบัญชีและข้อมูลทั้งหมด</span><span><b>OFFICER</b> จัดการรายการที่ได้รับมอบหมาย</span><span><b>VIEWER</b> ดูข้อมูลตามสิทธิ์ที่อนุญาต</span></div><small>ข้อมูลผู้ป่วยจะไม่แสดงจนกว่าจะผ่านการยืนยันตัวตนและได้รับสิทธิ์ที่เหมาะสม</small></div>`;
   document.body.append(gate);
 };
-renderLoginGate();
+const renderPasswordRecoveryGate = () => {
+  document.querySelector('.ndss-login-gate')?.remove();
+  const gate = document.createElement('section');
+  gate.className = 'ndss-login-gate'; gate.setAttribute('aria-modal', 'true'); gate.setAttribute('role', 'dialog');
+  gate.innerHTML = `<div class="ndss-login-card"><img src="./public/assets/naradhiwas-hospital-logo.jpg" alt="โลโก้โรงพยาบาลนราธิวาสราชนครินทร์" /><p class="ndss-login-kicker">NDSS · Secure Access</p><h1>ตั้งรหัสผ่านใหม่</h1><p>กำหนดรหัสผ่านใหม่สำหรับบัญชีของคุณ</p><form class="ndss-login-actions" data-password-recovery-form><label>รหัสผ่านใหม่<div class="password-field"><input name="password" type="password" autocomplete="new-password" minlength="8" required /><button type="button" data-toggle-password aria-label="แสดงรหัสผ่าน">◉</button></div></label><label>ยืนยันรหัสผ่านใหม่<div class="password-field"><input name="confirmPassword" type="password" autocomplete="new-password" minlength="8" required /><button type="button" data-toggle-password aria-label="แสดงรหัสผ่าน">◉</button></div></label><button type="submit" class="primary">บันทึกรหัสผ่านใหม่</button></form></div>`;
+  document.body.append(gate);
+};
+if (authCallbackType === 'recovery' && hasSupabaseSession()) renderPasswordRecoveryGate(); else renderLoginGate();
 enableHistoryAreaFilter(root);
 const readLocalList = key => { try { return JSON.parse(localStorage.getItem(key) || '[]'); } catch { return []; } };
 const updateNotificationBadge = () => {
@@ -433,6 +441,17 @@ document.addEventListener('click', event => {
   if (event.target.closest('[data-open-login]')) { renderLoginGate('login'); return; }
   const switchMode = event.target.closest('[data-auth-mode]');
   if (switchMode) { renderLoginGate(switchMode.dataset.authMode); return; }
+  const passwordRecovery = event.target.closest('[data-password-recovery]');
+  if (passwordRecovery) {
+    const email = document.querySelector('.ndss-login-gate [name="email"]')?.value.trim() || '';
+    if (!email) { showToast('กรุณาระบุอีเมลก่อนขอตั้งรหัสผ่านใหม่', 'info'); return; }
+    passwordRecovery.disabled = true;
+    requestSupabasePasswordRecovery(email)
+      .then(() => showToast('หากบัญชีนี้มีอยู่ ระบบได้ส่งลิงก์ตั้งรหัสผ่านใหม่ไปยังอีเมลที่ระบุแล้ว', 'success'))
+      .catch(error => showToast(error.message, 'error'))
+      .finally(() => { passwordRecovery.disabled = false; });
+    return;
+  }
   const toggle = event.target.closest('[data-toggle-password]');
   if (toggle) { const input = toggle.closest('.password-field')?.querySelector('input'); if (input) { const isPassword = input.type === 'password'; input.type = isPassword ? 'text' : 'password'; toggle.textContent = isPassword ? '◉' : '◌'; toggle.setAttribute('aria-label', isPassword ? 'ซ่อนรหัสผ่าน' : 'แสดงรหัสผ่าน'); } return; }
   if (event.target.closest('[data-refresh-admin-users]')) { loadAdminUsers(); return; }
@@ -459,6 +478,20 @@ document.addEventListener('click', event => {
 });
 
 document.addEventListener('submit', event => {
+  const recoveryForm = event.target.closest('[data-password-recovery-form]');
+  if (recoveryForm) {
+    event.preventDefault();
+    const values = new FormData(recoveryForm);
+    const password = String(values.get('password') || '');
+    if (password !== String(values.get('confirmPassword') || '')) { showToast('ยืนยันรหัสผ่านไม่ตรงกัน', 'error'); return; }
+    const submit = recoveryForm.querySelector('[type="submit"]');
+    submit.disabled = true;
+    updateSupabasePassword(password).then(() => {
+      showToast('ตั้งรหัสผ่านใหม่เรียบร้อยแล้ว กรุณาเข้าสู่ระบบอีกครั้ง', 'success');
+      clearSupabaseSession().finally(() => setTimeout(() => location.reload(), 450));
+    }).catch(error => { showToast(error.message, 'error'); submit.disabled = false; });
+    return;
+  }
   const form = event.target.closest('[data-auth-form]');
   if (!form) return;
   event.preventDefault();
