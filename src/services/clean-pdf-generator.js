@@ -2,6 +2,9 @@ const pageWidth = 1240;
 const pageHeight = 1754;
 const margin = 72;
 const bodyWidth = pageWidth - margin * 2;
+// Render at a smaller internal raster, then scale to A4 in the PDF.  This keeps
+// the layout unchanged while making PDF creation practical on mobile devices.
+const rasterScale = 0.64;
 
 const lineWrap = (ctx, value, maxWidth) => {
   const lines = [];
@@ -56,7 +59,7 @@ const makePdf = (pages) => {
     typeof content === 'string' ? text(content) : content();
     text('\nendobj\n');
   };
-  const images = pages.map(page => Uint8Array.from(atob(page.toDataURL('image/jpeg', 0.92).split(',')[1]), char => char.charCodeAt(0)));
+  const images = pages.map(page => Uint8Array.from(atob(page.toDataURL('image/jpeg', 0.85).split(',')[1]), char => char.charCodeAt(0)));
   const pageIds = pages.map((_, index) => 3 + index * 3);
   text('%PDF-1.4\n%âãÏÓ\n');
   object(1, '<< /Type /Catalog /Pages 2 0 R >>');
@@ -69,7 +72,7 @@ const makePdf = (pages) => {
     const stream = `q\n595.28 0 0 841.89 0 0 cm\n/Im${index} Do\nQ\n`;
     object(pageId, `<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595.28 841.89] /Resources << /XObject << /Im${index} ${imageId} 0 R >> >> /Contents ${contentId} 0 R >>`);
     object(imageId, () => {
-      text(`<< /Type /XObject /Subtype /Image /Width ${pageWidth} /Height ${pageHeight} /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length ${image.length} >>\nstream\n`);
+      text(`<< /Type /XObject /Subtype /Image /Width ${page.width} /Height ${page.height} /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length ${image.length} >>\nstream\n`);
       add(image);
       text('\nendstream');
     });
@@ -98,9 +101,10 @@ export const downloadCleanPdf = async (source, disease) => {
 
   const startPage = () => {
     canvas = document.createElement('canvas');
-    canvas.width = pageWidth;
-    canvas.height = pageHeight;
+    canvas.width = Math.round(pageWidth * rasterScale);
+    canvas.height = Math.round(pageHeight * rasterScale);
     ctx = canvas.getContext('2d');
+    ctx.scale(rasterScale, rasterScale);
     pages.push(canvas);
     ctx.fillStyle = '#ffffff';
     ctx.fillRect(0, 0, pageWidth, pageHeight);
