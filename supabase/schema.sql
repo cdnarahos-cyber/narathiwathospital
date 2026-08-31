@@ -1,4 +1,7 @@
--- NDSS core schema. Run in the Supabase SQL Editor as a project administrator.
+-- NDSS secure core schema.
+-- Apply with the Supabase migration `ndss_secure_core`.
+-- Use only a publishable key in the browser; never expose a service-role/secret key.
+create extension if not exists pgcrypto;
 create table if not exists public.disease_cases (
   id uuid primary key default gen_random_uuid(),
   case_number text not null unique,
@@ -8,7 +11,7 @@ create table if not exists public.disease_cases (
   status text not null check (status in ('pending', 'acknowledged', 'in_progress', 'controlled', 'overdue')),
   reported_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
-  created_by uuid references auth.users(id) not null default auth.uid()
+  created_by uuid not null default auth.uid() references auth.users(id) on delete restrict
 );
 
 create index if not exists disease_cases_reported_at_idx on public.disease_cases (reported_at desc);
@@ -20,7 +23,7 @@ create table if not exists public.smart_alerts (
   detail text,
   severity text not null check (severity in ('info', 'warning', 'critical')),
   created_at timestamptz not null default now(),
-  created_by uuid references auth.users(id) not null default auth.uid()
+  created_by uuid not null default auth.uid() references auth.users(id) on delete restrict
 );
 
 create index if not exists smart_alerts_created_at_idx on public.smart_alerts (created_at desc);
@@ -28,9 +31,66 @@ create index if not exists smart_alerts_created_at_idx on public.smart_alerts (c
 alter table public.disease_cases enable row level security;
 alter table public.smart_alerts enable row level security;
 
--- Replace this broad staff policy with a role/department predicate before production rollout.
-create policy "authenticated staff can read disease cases" on public.disease_cases for select to authenticated using (true);
-create policy "authenticated staff can create disease cases" on public.disease_cases for insert to authenticated with check ((select auth.uid()) = created_by);
-create policy "authenticated staff can update disease cases" on public.disease_cases for update to authenticated using (true) with check ((select auth.uid()) = created_by);
-create policy "authenticated staff can read alerts" on public.smart_alerts for select to authenticated using (true);
-create policy "authenticated staff can create alerts" on public.smart_alerts for insert to authenticated with check ((select auth.uid()) = created_by);
+-- Do not expose clinical records to anonymous visitors.
+revoke all on public.disease_cases, public.smart_alerts from anon;
+revoke all on public.disease_cases, public.smart_alerts from authenticated;
+grant select on public.disease_cases, public.smart_alerts to authenticated;
+grant insert, update on public.disease_cases, public.smart_alerts to authenticated;
+
+drop policy if exists "authenticated staff can read disease cases" on public.disease_cases;
+drop policy if exists "authenticated staff can create disease cases" on public.disease_cases;
+drop policy if exists "authenticated staff can update disease cases" on public.disease_cases;
+drop policy if exists "authenticated staff can read alerts" on public.smart_alerts;
+drop policy if exists "authenticated staff can create alerts" on public.smart_alerts;
+drop policy if exists "ndss staff can read cases" on public.disease_cases;
+drop policy if exists "ndss staff can create cases" on public.disease_cases;
+drop policy if exists "ndss staff can update own cases" on public.disease_cases;
+drop policy if exists "ndss staff can read alerts" on public.smart_alerts;
+drop policy if exists "ndss staff can create alerts" on public.smart_alerts;
+drop policy if exists "ndss staff can update own alerts" on public.smart_alerts;
+
+-- Authorize from app_metadata only. Never use user_metadata for access decisions.
+create policy "ndss staff can read cases" on public.disease_cases
+  for select to authenticated
+  using ((auth.jwt() -> 'app_metadata' ->> 'ndss_role') in ('admin', 'epidemiologist', 'viewer'));
+
+create policy "ndss staff can create cases" on public.disease_cases
+  for insert to authenticated
+  with check (
+    (auth.jwt() -> 'app_metadata' ->> 'ndss_role') in ('admin', 'epidemiologist')
+    and created_by = (select auth.uid())
+  );
+
+create policy "ndss staff can update own cases" on public.disease_cases
+  for update to authenticated
+  using (
+    (auth.jwt() -> 'app_metadata' ->> 'ndss_role') in ('admin', 'epidemiologist')
+    and created_by = (select auth.uid())
+  )
+  with check (
+    (auth.jwt() -> 'app_metadata' ->> 'ndss_role') in ('admin', 'epidemiologist')
+    and created_by = (select auth.uid())
+  );
+
+create policy "ndss staff can read alerts" on public.smart_alerts
+  for select to authenticated
+  using ((auth.jwt() -> 'app_metadata' ->> 'ndss_role') in ('admin', 'epidemiologist', 'viewer'));
+
+create policy "ndss staff can create alerts" on public.smart_alerts
+  for insert to authenticated
+  with check (
+    (auth.jwt() -> 'app_metadata' ->> 'ndss_role') in ('admin', 'epidemiologist')
+    and created_by = (select auth.uid())
+  );
+
+create policy "ndss staff can update own alerts" on public.smart_alerts
+  for update to authenticated
+  using (
+    (auth.jwt() -> 'app_metadata' ->> 'ndss_role') in ('admin', 'epidemiologist')
+    and created_by = (select auth.uid())
+  )
+  with check (
+    (auth.jwt() -> 'app_metadata' ->> 'ndss_role') in ('admin', 'epidemiologist')
+    and created_by = (select auth.uid())
+  );
+
