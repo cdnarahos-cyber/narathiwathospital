@@ -536,7 +536,7 @@ document.addEventListener('submit', event => {
     ? signUpWithPassword({ email, password, fullName, phone })
     : signInWithPassword({ email, password });
   task.then(() => {
-    if (form.dataset.authForm === 'register') { showToast('รับคำขอลงทะเบียนแล้ว กรุณารอ ADMIN จัดการสิทธิ์ในระบบ', 'success'); renderLoginGate('login'); }
+    if (form.dataset.authForm === 'register') { showRegistrationSuccess(); renderLoginGate('login'); }
     else { showToast('เข้าสู่ระบบสำเร็จ', 'success'); setTimeout(() => location.reload(), 250); }
   }).catch(error => {
     const message = form.dataset.authForm === 'login' && !String(error.message).includes('จัดการสิทธิ์ในระบบ')
@@ -732,6 +732,26 @@ const showToast = (message, icon = 'success') => {
   toast.textContent = message;
   document.body.append(toast);
   setTimeout(() => toast.remove(), 2600);
+};
+const showRegistrationSuccess = () => {
+  const message = 'คำขอลงทะเบียนถูกบันทึกแล้ว กรุณารอ ADMIN กำหนดสิทธิ์ก่อนเข้าใช้งาน';
+  if (window.Swal) {
+    window.Swal.fire({
+      icon: 'success',
+      title: 'ลงทะเบียนสำเร็จ',
+      text: message,
+      position: 'center',
+      showConfirmButton: false,
+      timer: 3600,
+      timerProgressBar: true,
+      backdrop: false,
+      allowOutsideClick: true,
+      width: 390,
+      customClass: { popup: 'ndss-swal-popup' }
+    });
+    return;
+  }
+  showToast(message, 'success');
 };
 const confirmAction = async (title, text) => {
   if (window.Swal) {
