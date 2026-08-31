@@ -90,7 +90,10 @@ export const invokeAdminUserManagement = async (action, payload = {}) => {
     body: JSON.stringify({ action, ...payload }),
   });
   const result = await response.json().catch(() => ({}));
-  if (!response.ok) throw new Error(result?.error || 'ไม่สามารถจัดการบัญชีได้ในขณะนี้');
+  if (!response.ok) {
+    if (result?.error === 'protected_admin_account') throw new Error('ไม่สามารถลบบัญชีผู้ดูแลหลักของระบบได้');
+    throw new Error(result?.error || 'ไม่สามารถจัดการบัญชีได้ในขณะนี้');
+  }
   return result;
 };
 
