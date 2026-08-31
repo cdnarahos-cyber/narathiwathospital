@@ -51,7 +51,7 @@ const authRequest = async (path, { method = 'POST', body, accessToken } = {}) =>
   if (!response.ok) {
     const code = result?.error_code || result?.code || '';
     const message = String(result?.msg || result?.message || '');
-    if (code === 'email_not_confirmed' || /email not confirmed/i.test(message)) throw new Error('กรุณายืนยันอีเมลจากข้อความของ Supabase ก่อนเข้าสู่ระบบ');
+    if (code === 'email_not_confirmed' || /email not confirmed/i.test(message)) throw new Error('บัญชีอยู่ระหว่างรอ ADMIN จัดการสิทธิ์ในระบบ');
     if (code === 'over_email_send_rate_limit' || response.status === 429) throw new Error('ระบบส่งอีเมลถึงขีดจำกัดชั่วคราว กรุณารอประมาณ 1 ชั่วโมงแล้วลองใหม่');
     throw new Error(message || 'ไม่สามารถดำเนินการกับบัญชีได้ในขณะนี้');
   }
@@ -69,14 +69,6 @@ export const signUpWithPassword = async ({ email, password, requestedRole }) => 
     email,
     password,
     data: { requested_ndss_role: requestedRole },
-    options: { emailRedirectTo: `${location.origin}${location.pathname}` },
-  },
-});
-
-export const resendSupabaseSignupConfirmation = async email => authRequest('/auth/v1/resend', {
-  body: {
-    type: 'signup',
-    email,
     options: { emailRedirectTo: `${location.origin}${location.pathname}` },
   },
 });
