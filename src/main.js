@@ -709,6 +709,19 @@ window.addEventListener('storage', event => {
     refreshAlertView();
   }
 });
+const showLocalAlert = (title, message, icon = 'success', duration = 2600) => {
+  document.querySelector('.ndss-system-alert')?.remove();
+  const alert = document.createElement('div');
+  alert.className = 'ndss-system-alert';
+  alert.dataset.icon = icon;
+  alert.setAttribute('role', 'status');
+  alert.innerHTML = '<span aria-hidden="true"></span><div><strong></strong><p></p></div>';
+  alert.querySelector('span').textContent = icon === 'error' ? '!' : icon === 'warning' ? '!' : icon === 'info' ? 'i' : '✓';
+  alert.querySelector('strong').textContent = title;
+  alert.querySelector('p').textContent = message;
+  document.body.append(alert);
+  setTimeout(() => alert.remove(), duration);
+};
 const showToast = (message, icon = 'success') => {
   const resolvedIcon = icon === 'success' && /ไม่สามารถ|ไม่สำเร็จ/.test(message) ? 'error' : icon === 'success' && /ยังไม่มี/.test(message) ? 'info' : icon;
   if (window.Swal) {
@@ -727,11 +740,8 @@ const showToast = (message, icon = 'success') => {
     });
     return;
   }
-  const toast = document.createElement('div');
-  toast.className = 'toast ndss-toast-center';
-  toast.textContent = message;
-  document.body.append(toast);
-  setTimeout(() => toast.remove(), 2600);
+  const title = resolvedIcon === 'error' ? 'ไม่สามารถดำเนินการได้' : resolvedIcon === 'warning' ? 'โปรดตรวจสอบ' : resolvedIcon === 'info' ? 'แจ้งเตือน' : 'ดำเนินการสำเร็จ';
+  showLocalAlert(title, message, resolvedIcon);
 };
 const showRegistrationSuccess = () => {
   const message = 'คำขอลงทะเบียนถูกบันทึกแล้ว กรุณารอ ADMIN กำหนดสิทธิ์ก่อนเข้าใช้งาน';
@@ -751,13 +761,7 @@ const showRegistrationSuccess = () => {
     });
     return;
   }
-  document.querySelector('.ndss-registration-alert')?.remove();
-  const alert = document.createElement('div');
-  alert.className = 'ndss-registration-alert';
-  alert.setAttribute('role', 'status');
-  alert.innerHTML = `<span aria-hidden="true">✓</span><div><strong>ลงทะเบียนสำเร็จ</strong><p>${message}</p></div>`;
-  document.body.append(alert);
-  setTimeout(() => alert.remove(), 3600);
+  showLocalAlert('ลงทะเบียนสำเร็จ', message, 'success', 3600);
 };
 const confirmAction = async (title, text) => {
   if (window.Swal) {
