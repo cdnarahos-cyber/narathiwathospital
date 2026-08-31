@@ -3,7 +3,7 @@ import { clearSupabaseSession, consumeSupabaseSessionFromUrl, getSupabaseRole, g
 import { downloadCleanPdf } from './services/clean-pdf-generator.js';
 import { enableHistoryAreaFilter } from './components/history-area-filter.js';
 import { addNarathiwatBoundaries } from './components/narathiwat-boundaries.js';
-import { shell } from './components/layout.js?v=20260901-1'; import { metricsGrid } from './components/metrics.js'; import { analytics } from './components/charts.js'; import { caseTracking } from './components/case-tracking.js'; import { rightRail } from './components/alerts.js'; import { moduleView, diseaseMeta, investigationForm } from './components/modules.js';
+import { shell } from './components/layout.js?v=20260901-2'; import { metricsGrid } from './components/metrics.js'; import { analytics } from './components/charts.js'; import { caseTracking } from './components/case-tracking.js'; import { rightRail } from './components/alerts.js'; import { moduleView, diseaseMeta, investigationForm } from './components/modules.js';
 const authCallbackType = new URLSearchParams(location.hash.replace(/^#/, '')).get('type') || '';
 consumeSupabaseSessionFromUrl();
 const data = await getDashboardData();
@@ -56,6 +56,19 @@ mobileNavToggle?.addEventListener('click', event => {
   if (!sidebar) return;
   const open = sidebar.classList.toggle('mobile-open');
   setMobileNavToggleState(mobileNavToggle, open);
+});
+document.addEventListener('change', event => {
+  if (!event.target.matches('#mobile-sidebar-state')) return;
+  setMobileNavToggleState(document.querySelector('.mobile-nav-toggle'), event.target.checked);
+});
+document.addEventListener('keydown', event => {
+  if (!['Enter',' '].includes(event.key)) return;
+  if (!event.target.closest('.mobile-nav-toggle,.mobile-sidebar-close')) return;
+  event.preventDefault();
+  const state = document.querySelector('#mobile-sidebar-state');
+  if (!state) return;
+  state.checked = !state.checked;
+  state.dispatchEvent(new Event('change', { bubbles:true }));
 });
 const roleDefinitions = {
   admin: ['ADMIN', 'จัดการบัญชีและข้อมูลทั้งหมด'],
