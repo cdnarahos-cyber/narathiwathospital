@@ -1,7 +1,8 @@
-import { hasSupabaseCredentials, supabaseConfig } from '../config/supabase.js';
+import { getSupabaseConfig, hasSupabaseCredentials } from '../config/supabase.js';
 
 export async function getDashboardData() {
-  if (!hasSupabaseCredentials) return { metrics: [], cases: [], alerts: [], source: 'unconfigured' };
+  if (!hasSupabaseCredentials()) return { metrics: [], cases: [], alerts: [], source: 'unconfigured' };
+  const supabaseConfig = getSupabaseConfig();
 
   const headers = {
     apikey: supabaseConfig.publishableKey,
@@ -19,6 +20,12 @@ export async function getDashboardData() {
       request('smart_alerts', 'select=title,detail,severity,created_at&order=created_at.desc&limit=10'),
     ]);
     const labels = { pending: ['รอพื้นที่รับรายงาน', 'gold'], acknowledged: ['รับทราบแล้ว', 'blue'], in_progress: ['อยู่ระหว่างดำเนินการ', 'blue'], controlled: ['ควบคุมโรคแล้ว', 'green'], overdue: ['เกินกำหนด', 'red'] };
+    const metrics = [
+      ['เคสเฝ้าระวัง', String(liveCases.length), 'ราย', '', 'blue'],
+      ['รอดำเนินการ', String(liveCases.filter(row => ['pending', 'overdue'].includes(row.status)).length), 'ราย', '', 'orange'],
+      ['กำลังติดตาม', String(liveCases.filter(row => ['acknowledged', 'in_progress'].includes(row.status)).length), 'ราย', '', 'purple'],
+      ['แจ้งเตือนสำคัญ', String(liveAlerts.filter(row => row.severity === 'critical').length), 'รายการ', '', 'red'],
+    ];
     return {
       metrics,
       cases: liveCases.map(row => [row.case_number, row.disease_name, row.patient_summary, row.location_name, new Date(row.reported_at).toLocaleString('th-TH'), labels[row.status]?.[0] || row.status, labels[row.status]?.[1] || 'blue']),
@@ -30,3 +37,4 @@ export async function getDashboardData() {
     return { metrics: [], cases: [], alerts: [], source: 'unavailable' };
   }
 }
+
