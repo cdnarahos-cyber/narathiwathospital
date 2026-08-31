@@ -878,38 +878,72 @@ const commandRecords = () => { try { return JSON.parse(localStorage.getItem('nds
 const commandCases = () => { try { return JSON.parse(localStorage.getItem('ndss-investigations') || '[]'); } catch { return []; } };
 const recordAudit = (action, detail) => { let entries=[]; try { entries=JSON.parse(localStorage.getItem('ndss-audit-log') || '[]'); } catch { entries=[]; } entries.unshift({action,detail,at:new Date().toISOString()}); localStorage.setItem('ndss-audit-log',JSON.stringify(entries.slice(0,100))); };
 const commandText = value => String(value ?? '').trim();
-const fieldValue = (row, names) => {
-  const found = Object.keys(row).find(key => names.some(name => key.toLowerCase().replaceAll(/[ _.-]/g,'').includes(name)));
-  return found ? commandText(row[found]) : '';
+const normalizedHeader = value => commandText(value).toLocaleLowerCase('th-TH').replaceAll(/[\s_.\-/()]/g,'');
+const fieldRaw = (row, names) => {
+  const normalizedNames=names.map(normalizedHeader);
+  const found = Object.keys(row).find(key => normalizedNames.some(name => normalizedHeader(key).includes(name)));
+  return found ? row[found] : '';
+};
+const fieldValue = (row, names) => commandText(fieldRaw(row, names));
+const localIsoDate = date => `${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,'0')}-${String(date.getDate()).padStart(2,'0')}`;
+const normalize506Date = value => {
+  if (value instanceof Date && !Number.isNaN(value)) return localIsoDate(value);
+  const text=commandText(value);
+  if (!text) return '';
+  const thaiDate=text.match(/^(\d{1,2})[\/-](\d{1,2})[\/-](\d{2,4})(?:\s.*)?$/);
+  if (thaiDate) {
+    const [,day,month,rawYear]=thaiDate;
+    let year=Number(rawYear);
+    if(year>2400) year-=543;
+    if(year<100) year+=2000;
+    const date=new Date(year,Number(month)-1,Number(day));
+    if(date.getFullYear()===year && date.getMonth()===Number(month)-1 && date.getDate()===Number(day)) return localIsoDate(date);
+  }
+  const parsed=new Date(text);
+  return Number.isNaN(parsed) ? text : localIsoDate(parsed);
 };
 const normalize506 = rows => rows.map(row => ({
-  disease: fieldValue(row,['disease','โรค','diag','icd10']),
-  patient: fieldValue(row,['patient','name','ชื่อ','ผู้ป่วย']),
-  onset: fieldValue(row,['onset','วันที่เริ่มป่วย','dateonset','illdate']),
+  disease: fieldValue(row,['disease','โรค','diag','diagnosis','icd10','icd-10']),
+  patient: fieldValue(row,['patient','patientname','name','ชื่อผู้ป่วย','ชื่อสกุล','ชื่อ-สกุล','ผู้ป่วย']),
+  hn: fieldValue(row,['hn','hospitalnumber','เลขhn']),
+  cid: fieldValue(row,['cid','pid','เลขบัตรประชาชน','เลข13หลัก']),
+  onset: normalize506Date(fieldRaw(row,['onset','onsetdate','วันที่เริ่มป่วย','dateonset','illdate','วันเริ่มป่วย','วันป่วย'])),
   sex: fieldValue(row,['sex','เพศ']),
   age: fieldValue(row,['age','อายุ']),
   nationality: fieldValue(row,['nationality','สัญชาติ']),
-  tambon: fieldValue(row,['tambon','subdistrict','ตำบล','ตําบล']),
-  district: fieldValue(row,['district','amphoe','อำเภอ','อําเภอ']),
+  tambon: fieldValue(row,['tambon','subdistrict','ตำบล','ตําบล','ตำบลที่อยู่']),
+  district: fieldValue(row,['district','amphoe','อำเภอ','อําเภอ','อำเภอที่อยู่']),
   latitude: fieldValue(row,['latitude','lat','ละติจูด']),
   longitude: fieldValue(row,['longitude','lng','lon','ลองจิจูด']),
   raw: row,
   importedAt: new Date().toISOString()
-})).filter(row => Object.values(row).some(value => commandText(value)));
-const recordFingerprint = row => [row.disease,row.onset,row.tambon || row.subdistrict,row.district,row.patient].map(commandText).join('|').toLowerCase();
+})).filter(row => [row.disease,row.patient,row.hn,row.cid,row.onset,row.sex,row.age,row.tambon,row.district,row.latitude,row.longitude].some(value => commandText(value)));
+const recordFingerprint = row => [row.disease,row.onset,row.tambon || row.subdistrict,row.district,row.patient,row.hn,row.cid].map(commandText).join('|').toLowerCase();
 const csvRows = text => {
   const lines = text.replace(/^\uFEFF/,'').split(/\r?\n/).filter(Boolean);
   if (!lines.length) return [];
   const cells = line => { const result=[]; let value='', quoted=false; for(let i=0;i<line.length;i++){ const char=line[i]; if(char==='"') { if(quoted && line[i+1]==='"') { value+='"'; i++; } else quoted=!quoted; } else if(char===',' && !quoted) { result.push(value.trim()); value=''; } else value+=char; } result.push(value.trim()); return result; };
   const headers=cells(lines[0]); return lines.slice(1).map(line => Object.fromEntries(headers.map((header,index)=>[header,cells(line)[index] || ''])));
 };
+const has506Headers = rows => {
+  const supported=['disease','โรค','diag','diagnosis','icd10','icd-10','patient','name','ชื่อผู้ป่วย','hn','onset','วันที่เริ่มป่วย','dateonset','illdate','tambon','ตำบล','district','อำเภอ'];
+  return Object.keys(rows[0] || {}).some(header => supported.some(name => normalizedHeader(header).includes(normalizedHeader(name))));
+};
 const import506File = async file => {
   if (!file) return;
   try {
+    if (!/\.(xlsx|xls|csv)$/i.test(file.name)) throw new Error('รองรับเฉพาะไฟล์ .xlsx, .xls หรือ .csv');
     let rows=[];
     if (/\.csv$/i.test(file.name)) rows=csvRows(await file.text());
-    else if (window.XLSX) { const data=await file.arrayBuffer(); const book=window.XLSX.read(data,{type:'array',cellDates:true}); rows=window.XLSX.utils.sheet_to_json(book.Sheets[book.SheetNames[0]],{defval:''}); }
+    else if (window.XLSX) {
+      const data=await file.arrayBuffer();
+      const book=window.XLSX.read(data,{type:'array',cellDates:true});
+      const sheetName=book.SheetNames.find(name => Object.keys(book.Sheets[name] || {}).length > 1);
+      rows=sheetName ? window.XLSX.utils.sheet_to_json(book.Sheets[sheetName],{defval:''}) : [];
+    }
     else throw new Error('ไม่พบตัวอ่านไฟล์ Excel');
+    if (!rows.length) throw new Error('ไม่พบแถวข้อมูลในไฟล์');
+    if (!has506Headers(rows)) throw new Error('ไม่พบหัวคอลัมน์ รง.506 ที่ระบบรองรับ');
     const normalized=normalize506(rows);
     if(!normalized.length) throw new Error('ไม่พบแถวข้อมูลที่นำเข้าได้');
     const existing=commandRecords();
