@@ -1,8 +1,10 @@
 import { getDashboardData } from './services/dashboard-service.js';
+import { clearSupabaseSession, consumeSupabaseSessionFromUrl, hasSupabaseCredentials, hasSupabaseSession, requestSupabaseMagicLink } from './config/supabase.js';
 import { downloadCleanPdf } from './services/clean-pdf-generator.js';
 import { enableHistoryAreaFilter } from './components/history-area-filter.js';
 import { addNarathiwatBoundaries } from './components/narathiwat-boundaries.js';
 import { shell } from './components/layout.js'; import { metricsGrid } from './components/metrics.js'; import { analytics } from './components/charts.js'; import { caseTracking } from './components/case-tracking.js'; import { rightRail } from './components/alerts.js'; import { moduleView, diseaseMeta, investigationForm } from './components/modules.js';
+consumeSupabaseSessionFromUrl();
 const data = await getDashboardData();
 const escapeOverview = value => String(value ?? '-').replace(/[&<>"']/g, char => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[char]));
 const overviewCases = () => {
@@ -257,7 +259,9 @@ const enhanceSettingsPreflight = () => {
   if (heading?.textContent !== 'ตั้งค่าและสถานะระบบ' || !health || root.querySelector('[data-settings-preflight]')) return;
   const section = document.createElement('section');
   section.className = 'work-panel'; section.setAttribute('data-settings-preflight', 'true');
-  section.innerHTML = '<div class="panel-top"><div><h2>ตรวจสอบความพร้อมก่อนใช้งาน</h2><small>ตรวจเฉพาะความพร้อมของอุปกรณ์และการตั้งค่าหน้านี้ โดยไม่ส่งข้อมูลผู้ป่วยออกจากเครื่อง</small></div><button type="button" class="primary" data-run-preflight>ตรวจสอบตอนนี้</button></div><div class="command-list" data-preflight-results><div><b>ยังไม่ได้ตรวจสอบ</b><span>กดปุ่มเพื่อตรวจสอบองค์ประกอบสำคัญของระบบ</span></div></div>';
+  const authReady = hasSupabaseCredentials();
+  const signedIn = hasSupabaseSession();
+  section.innerHTML = `<div class="panel-top"><div><h2>ตรวจสอบความพร้อมก่อนใช้งาน</h2><small>ตรวจเฉพาะความพร้อมของอุปกรณ์และการตั้งค่าหน้านี้ โดยไม่ส่งข้อมูลผู้ป่วยออกจากเครื่อง</small></div><button type="button" class="primary" data-run-preflight>ตรวจสอบตอนนี้</button></div><div class="command-list" data-preflight-results><div><b>ยังไม่ได้ตรวจสอบ</b><span>กดปุ่มเพื่อตรวจสอบองค์ประกอบสำคัญของระบบ</span></div></div><div class="panel-top" data-supabase-auth><div><h2>เชื่อมบัญชี Supabase</h2><small>${authReady ? (signedIn ? 'ลงชื่อเข้าใช้แล้วในอุปกรณ์นี้' : 'ลงชื่อเข้าใช้ด้วยอีเมลเจ้าหน้าที่ เพื่อใช้งานข้อมูลส่วนกลาง') : 'ยังไม่ได้กำหนด publishable key'}</small></div>${signedIn ? '<button type="button" class="secondary" data-supabase-signout>ออกจากระบบ</button>' : '<div><input type="email" data-supabase-email placeholder="อีเมลเจ้าหน้าที่" aria-label="อีเมลเจ้าหน้าที่" /><button type="button" class="primary" data-supabase-magic-link ' + (authReady ? '' : 'disabled') + '">ส่งลิงก์เข้าสู่ระบบ</button></div>'}</div>`;
   health.after(section);
 };
 const runPreflight = () => {
@@ -365,6 +369,13 @@ enhanceExportHistory();
 
 document.addEventListener('click', event => {
   if (event.target.closest('[data-run-preflight]')) { runPreflight(); return; }
+  if (event.target.closest('[data-supabase-signout]')) { clearSupabaseSession(); showToast('ออกจากระบบ Supabase แล้ว', 'success'); setTimeout(() => location.reload(), 350); return; }
+  if (event.target.closest('[data-supabase-magic-link]')) {
+    const email = root.querySelector('[data-supabase-email]')?.value?.trim();
+    if (!email) { showToast('กรุณาระบุอีเมลเจ้าหน้าที่', 'info'); return; }
+    requestSupabaseMagicLink(email).then(() => showToast('ส่งลิงก์เข้าสู่ระบบไปยังอีเมลแล้ว', 'success')).catch(error => showToast(error.message, 'error'));
+    return;
+  }
   const filterButton = event.target.closest('[data-alert-filter]');
   if (!filterButton) return;
   root.querySelectorAll('[data-alert-filter]').forEach(button => {
