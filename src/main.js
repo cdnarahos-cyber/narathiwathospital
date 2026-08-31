@@ -472,7 +472,12 @@ document.addEventListener('submit', event => {
   task.then(() => {
     if (form.dataset.authForm === 'register') { showToast('รับคำขอลงทะเบียนแล้ว กรุณายืนยันอีเมลและรอ ADMIN อนุมัติสิทธิ์', 'success'); renderLoginGate('login'); }
     else { showToast('เข้าสู่ระบบสำเร็จ', 'success'); setTimeout(() => location.reload(), 250); }
-  }).catch(error => showToast(form.dataset.authForm === 'login' ? 'อีเมลหรือรหัสผ่านไม่ถูกต้อง หรือบัญชียังไม่พร้อมใช้งาน' : error.message, 'error')).finally(() => { submit.disabled = false; });
+  }).catch(error => {
+    const message = form.dataset.authForm === 'login' && !String(error.message).includes('ยืนยันอีเมล')
+      ? 'อีเมลหรือรหัสผ่านไม่ถูกต้อง หรือบัญชียังไม่พร้อมใช้งาน'
+      : error.message;
+    showToast(message, 'error');
+  }).finally(() => { submit.disabled = false; });
 });
 
 document.addEventListener('input', event => {
