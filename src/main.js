@@ -1,5 +1,5 @@
 import { getDashboardData } from './services/dashboard-service.js';
-import { clearSupabaseSession, consumeSupabaseSessionFromUrl, getSupabaseRole, hasSupabaseCredentials, hasSupabaseSession, requestSupabaseMagicLink } from './config/supabase.js';
+import { clearSupabaseSession, consumeSupabaseSessionFromUrl, getSupabaseRole, hasSupabaseCredentials, hasSupabaseSession, invokeAdminUserManagement, signInWithPassword, signUpWithPassword } from './config/supabase.js';
 import { downloadCleanPdf } from './services/clean-pdf-generator.js';
 import { enableHistoryAreaFilter } from './components/history-area-filter.js';
 import { addNarathiwatBoundaries } from './components/narathiwat-boundaries.js';
@@ -48,22 +48,32 @@ const overviewDashboard = () => {
 };
 document.querySelector('#app').innerHTML = shell(overviewDashboard());
 const root = document.querySelector('#module-root');
-const renderLoginGate = () => {
+const roleDefinitions = {
+  admin: ['ADMIN', 'จัดการบัญชีและข้อมูลทั้งหมด'],
+  officer: ['OFFICER', 'จัดการรายการที่ได้รับมอบหมาย'],
+  viewer: ['VIEWER', 'ดูข้อมูลตามสิทธิ์ที่อนุญาต'],
+};
+const renderLoginGate = (mode = 'login') => {
+  document.querySelector('.ndss-login-gate')?.remove();
   const role = getSupabaseRole();
   const signedIn = hasSupabaseSession();
-  const allowed = ['admin', 'epidemiologist', 'viewer'].includes(role);
+  const allowed = Object.hasOwn(roleDefinitions, role);
   if (allowed) return;
   const message = signedIn
-    ? 'บัญชีนี้ยังไม่ได้รับบทบาทใน NDSS กรุณาให้ผู้ดูแลกำหนด app_metadata.ndss_role ก่อนใช้งาน'
-    : 'ลงชื่อเข้าใช้ด้วยอีเมลเจ้าหน้าที่ ระบบจะส่ง Magic Link ไปยังอีเมลที่ระบุ';
+    ? 'บัญชีนี้กำลังรอการอนุมัติสิทธิ์จากผู้ดูแลระบบ กรุณาติดต่อผู้ดูแล NDSS'
+    : mode === 'register'
+      ? 'ลงทะเบียนด้วยอีเมลและรหัสผ่าน แล้วเลือกบทบาทที่ต้องการขอใช้บริการ'
+      : 'เข้าสู่ระบบด้วยอีเมลและรหัสผ่านของเจ้าหน้าที่';
   const actions = signedIn
     ? '<button type="button" class="secondary" data-supabase-signout>ออกจากระบบ</button>'
-    : `<label>อีเมลเจ้าหน้าที่<input type="email" data-supabase-email placeholder="name@hospital.go.th" autocomplete="email" /></label><button type="button" class="primary" data-supabase-magic-link ${hasSupabaseCredentials() ? '' : 'disabled'}>ส่งลิงก์เข้าสู่ระบบ</button>`;
+    : mode === 'register'
+      ? `<form class="ndss-login-actions" data-auth-form="register"><label>อีเมล<input name="email" type="email" placeholder="name@hospital.go.th" autocomplete="email" required /></label><label>รหัสผ่าน<div class="password-field"><input name="password" type="password" autocomplete="new-password" minlength="8" required /><button type="button" data-toggle-password aria-label="แสดงรหัสผ่าน">◉</button></div></label><label>ยืนยันรหัสผ่าน<div class="password-field"><input name="confirmPassword" type="password" autocomplete="new-password" minlength="8" required /><button type="button" data-toggle-password aria-label="แสดงรหัสผ่าน">◉</button></div></label><label>บทบาทที่ขอใช้<select name="requestedRole"><option value="officer">OFFICER — จัดการรายการที่ได้รับมอบหมาย</option><option value="viewer">VIEWER — ดูข้อมูลตามสิทธิ์ที่อนุญาต</option><option value="admin">ADMIN — จัดการบัญชีและข้อมูลทั้งหมด</option></select></label><p class="ndss-auth-note">การเลือก ADMIN เป็นเพียงคำขอสิทธิ์ ผู้ดูแลระบบต้องอนุมัติก่อนเสมอ</p><button type="submit" class="primary" ${hasSupabaseCredentials() ? '' : 'disabled'}>ลงทะเบียนผู้ใช้งาน</button><button type="button" class="text-button" data-auth-mode="login">มีบัญชีแล้ว? เข้าสู่ระบบ</button></form>`
+      : `<form class="ndss-login-actions" data-auth-form="login"><label>อีเมล<input name="email" type="email" placeholder="name@hospital.go.th" autocomplete="email" required /></label><label>รหัสผ่าน<div class="password-field"><input name="password" type="password" autocomplete="current-password" required /><button type="button" data-toggle-password aria-label="แสดงรหัสผ่าน">◉</button></div></label><button type="submit" class="primary" ${hasSupabaseCredentials() ? '' : 'disabled'}>เข้าสู่ระบบ</button><button type="button" class="text-button" data-auth-mode="register">ลงทะเบียนผู้ใช้งาน</button></form>`;
   const gate = document.createElement('section');
   gate.className = 'ndss-login-gate';
   gate.setAttribute('aria-modal', 'true');
   gate.setAttribute('role', 'dialog');
-  gate.innerHTML = `<div class="ndss-login-card"><img src="./public/assets/naradhiwas-hospital-logo.jpg" alt="โลโก้โรงพยาบาลนราธิวาสราชนครินทร์" /><p class="ndss-login-kicker">NDSS · Secure Access</p><h1>เข้าสู่ระบบเฝ้าระวังโรค</h1><p>${message}</p><div class="ndss-login-actions">${actions}</div><div class="ndss-role-guide"><strong>สิทธิ์การใช้งาน</strong><span><b>Admin</b> จัดการผู้ใช้ สิทธิ์ และข้อมูลระบบ</span><span><b>Epidemiologist</b> บันทึก แก้ไข และติดตามเคส</span><span><b>Viewer</b> ดูแดชบอร์ด รายงาน และแผนที่</span></div><small>ข้อมูลผู้ป่วยจะไม่แสดงจนกว่าจะผ่านการยืนยันตัวตนและได้รับสิทธิ์ที่เหมาะสม</small></div>`;
+  gate.innerHTML = `<div class="ndss-login-card"><img src="./public/assets/naradhiwas-hospital-logo.jpg" alt="โลโก้โรงพยาบาลนราธิวาสราชนครินทร์" /><p class="ndss-login-kicker">NDSS · Secure Access</p><h1>${mode === 'register' ? 'ลงทะเบียนผู้ใช้งาน' : 'เข้าสู่ระบบเฝ้าระวังโรค'}</h1><p>${message}</p>${actions}<div class="ndss-role-guide"><strong>สิทธิ์การใช้งาน</strong><span><b>ADMIN</b> จัดการบัญชีและข้อมูลทั้งหมด</span><span><b>OFFICER</b> จัดการรายการที่ได้รับมอบหมาย</span><span><b>VIEWER</b> ดูข้อมูลตามสิทธิ์ที่อนุญาต</span></div><small>ข้อมูลผู้ป่วยจะไม่แสดงจนกว่าจะผ่านการยืนยันตัวตนและได้รับสิทธิ์ที่เหมาะสม</small></div>`;
   document.body.append(gate);
 };
 renderLoginGate();
@@ -280,8 +290,35 @@ const enhanceSettingsPreflight = () => {
   section.className = 'work-panel'; section.setAttribute('data-settings-preflight', 'true');
   const authReady = hasSupabaseCredentials();
   const signedIn = hasSupabaseSession();
-  section.innerHTML = `<div class="panel-top"><div><h2>ตรวจสอบความพร้อมก่อนใช้งาน</h2><small>ตรวจเฉพาะความพร้อมของอุปกรณ์และการตั้งค่าหน้านี้ โดยไม่ส่งข้อมูลผู้ป่วยออกจากเครื่อง</small></div><button type="button" class="primary" data-run-preflight>ตรวจสอบตอนนี้</button></div><div class="command-list" data-preflight-results><div><b>ยังไม่ได้ตรวจสอบ</b><span>กดปุ่มเพื่อตรวจสอบองค์ประกอบสำคัญของระบบ</span></div></div><div class="panel-top" data-supabase-auth><div><h2>เชื่อมบัญชี Supabase</h2><small>${authReady ? (signedIn ? 'ลงชื่อเข้าใช้แล้วในอุปกรณ์นี้' : 'ลงชื่อเข้าใช้ด้วยอีเมลเจ้าหน้าที่ เพื่อใช้งานข้อมูลส่วนกลาง') : 'ยังไม่ได้กำหนด publishable key'}</small></div>${signedIn ? '<button type="button" class="secondary" data-supabase-signout>ออกจากระบบ</button>' : '<div><input type="email" data-supabase-email placeholder="อีเมลเจ้าหน้าที่" aria-label="อีเมลเจ้าหน้าที่" /><button type="button" class="primary" data-supabase-magic-link ' + (authReady ? '' : 'disabled') + '">ส่งลิงก์เข้าสู่ระบบ</button></div>'}</div>`;
+  section.innerHTML = `<div class="panel-top"><div><h2>ตรวจสอบความพร้อมก่อนใช้งาน</h2><small>ตรวจเฉพาะความพร้อมของอุปกรณ์และการตั้งค่าหน้านี้ โดยไม่ส่งข้อมูลผู้ป่วยออกจากเครื่อง</small></div><button type="button" class="primary" data-run-preflight>ตรวจสอบตอนนี้</button></div><div class="command-list" data-preflight-results><div><b>ยังไม่ได้ตรวจสอบ</b><span>กดปุ่มเพื่อตรวจสอบองค์ประกอบสำคัญของระบบ</span></div></div><div class="panel-top" data-supabase-auth><div><h2>บัญชี Supabase</h2><small>${authReady ? (signedIn ? `เข้าสู่ระบบแล้ว · สิทธิ์ ${roleDefinitions[getSupabaseRole()]?.[0] || 'รออนุมัติ'}` : 'เข้าสู่ระบบด้วยอีเมลและรหัสผ่านเพื่อใช้งานข้อมูลส่วนกลาง') : 'ยังไม่ได้กำหนด publishable key'}</small></div>${signedIn ? '<button type="button" class="secondary" data-supabase-signout>ออกจากระบบ</button>' : '<button type="button" class="primary" data-open-login>เข้าสู่ระบบ / ลงทะเบียน</button>'}</div>`;
   health.after(section);
+};
+const renderAdminUserManagement = users => {
+  const section = root.querySelector('[data-admin-user-management]');
+  const body = section?.querySelector('[data-admin-users]');
+  if (!body) return;
+  body.innerHTML = users.length ? users.map(user => {
+    const role = String(user.role || 'pending').toLowerCase();
+    const requested = String(user.requestedRole || '').toUpperCase() || '-';
+    const status = user.bannedUntil ? 'ระงับแล้ว' : roleDefinitions[role] ? 'ใช้งานได้' : 'รออนุมัติ';
+    return `<tr><td><b>${escapeOverview(user.email || '-')}</b><small>${escapeOverview(user.id)}</small></td><td><span class="role-pill ${role}">${roleDefinitions[role]?.[0] || 'PENDING'}</span><small>ขอ: ${escapeOverview(requested)}</small></td><td>${status}</td><td>${user.lastSignInAt ? new Date(user.lastSignInAt).toLocaleString('th-TH') : '-'}</td><td><div class="admin-user-actions"><select data-user-role="${escapeOverview(user.id)}"><option value="officer" ${role === 'officer' ? 'selected' : ''}>OFFICER</option><option value="viewer" ${role === 'viewer' ? 'selected' : ''}>VIEWER</option><option value="admin" ${role === 'admin' ? 'selected' : ''}>ADMIN</option></select><button type="button" class="table-action" data-admin-user-action="approve" data-user-id="${escapeOverview(user.id)}">อนุมัติ/แก้ไข</button><button type="button" class="table-action secondary" data-admin-user-action="${user.bannedUntil ? 'resume' : 'suspend'}" data-user-id="${escapeOverview(user.id)}">${user.bannedUntil ? 'ปลดระงับ' : 'ระงับ'}</button><button type="button" class="table-action danger" data-admin-user-action="delete" data-user-id="${escapeOverview(user.id)}">ลบ</button></div></td></tr>`;
+  }).join('') : '<tr><td colspan="5">ยังไม่มีบัญชีผู้ใช้</td></tr>';
+};
+const loadAdminUsers = async () => {
+  if (getSupabaseRole() !== 'admin') return;
+  const section = root.querySelector('[data-admin-user-management]');
+  if (!section) return;
+  try { renderAdminUserManagement((await invokeAdminUserManagement('list')).users || []); }
+  catch (error) { section.querySelector('[data-admin-users]').innerHTML = `<tr><td colspan="5">${escapeOverview(error.message)}</td></tr>`; }
+};
+const enhanceAdminUserManagement = () => {
+  const heading = root.querySelector('.command-head h1');
+  if (heading?.textContent !== 'ตั้งค่าและสถานะระบบ' || getSupabaseRole() !== 'admin' || root.querySelector('[data-admin-user-management]')) return;
+  const section = document.createElement('section');
+  section.className = 'work-panel admin-user-management'; section.dataset.adminUserManagement = 'true';
+  section.innerHTML = `<div class="panel-top"><div><h2>จัดการบัญชีผู้ใช้งาน</h2><small>เฉพาะ ADMIN: อนุมัติ แก้ไขสิทธิ์ ระงับ หรือ ลบบัญชีผู้ใช้</small></div><button type="button" class="secondary" data-refresh-admin-users>รีเฟรช</button></div><div class="responsive-table"><table><thead><tr><th>บัญชี</th><th>สิทธิ์</th><th>สถานะ</th><th>เข้าสู่ระบบล่าสุด</th><th>จัดการ</th></tr></thead><tbody data-admin-users><tr><td colspan="5">กำลังโหลดบัญชี...</td></tr></tbody></table></div><p class="scope-note">การเปลี่ยนสิทธิ์มีผลเมื่อผู้ใช้เข้าสู่ระบบใหม่หรือรีเฟรช session ครั้งถัดไป</p>`;
+  root.querySelector('[data-settings-preflight]')?.after(section);
+  loadAdminUsers();
 };
 const runPreflight = () => {
   const result = root.querySelector('[data-preflight-results]');
@@ -371,6 +408,7 @@ new MutationObserver(() => {
   enhanceTrackingSummary();
   enhanceSettingsHealth();
   enhanceSettingsPreflight();
+  enhanceAdminUserManagement();
   enhanceImportQualityActions();
   enhanceKnowledgeForms();
   enhanceExportHistory();
@@ -382,17 +420,31 @@ enhanceTrackingFilters();
 enhanceTrackingSummary();
 enhanceSettingsHealth();
 enhanceSettingsPreflight();
+enhanceAdminUserManagement();
 enhanceImportQualityActions();
 enhanceKnowledgeForms();
 enhanceExportHistory();
 
 document.addEventListener('click', event => {
   if (event.target.closest('[data-run-preflight]')) { runPreflight(); return; }
-  if (event.target.closest('[data-supabase-signout]')) { clearSupabaseSession(); showToast('ออกจากระบบ Supabase แล้ว', 'success'); setTimeout(() => location.reload(), 350); return; }
-  if (event.target.closest('[data-supabase-magic-link]')) {
-    const email = root.querySelector('[data-supabase-email]')?.value?.trim() || document.querySelector('.ndss-login-gate [data-supabase-email]')?.value?.trim();
-    if (!email) { showToast('กรุณาระบุอีเมลเจ้าหน้าที่', 'info'); return; }
-    requestSupabaseMagicLink(email).then(() => showToast('ส่งลิงก์เข้าสู่ระบบไปยังอีเมลแล้ว', 'success')).catch(error => showToast(error.message, 'error'));
+  if (event.target.closest('[data-supabase-signout]')) { clearSupabaseSession().finally(() => { showToast('ออกจากระบบแล้ว', 'success'); setTimeout(() => location.reload(), 350); }); return; }
+  if (event.target.closest('[data-open-login]')) { renderLoginGate('login'); return; }
+  const switchMode = event.target.closest('[data-auth-mode]');
+  if (switchMode) { renderLoginGate(switchMode.dataset.authMode); return; }
+  const toggle = event.target.closest('[data-toggle-password]');
+  if (toggle) { const input = toggle.closest('.password-field')?.querySelector('input'); if (input) { const isPassword = input.type === 'password'; input.type = isPassword ? 'text' : 'password'; toggle.textContent = isPassword ? '◉' : '◌'; toggle.setAttribute('aria-label', isPassword ? 'ซ่อนรหัสผ่าน' : 'แสดงรหัสผ่าน'); } return; }
+  if (event.target.closest('[data-refresh-admin-users]')) { loadAdminUsers(); return; }
+  const adminAction = event.target.closest('[data-admin-user-action]');
+  if (adminAction) {
+    const id = adminAction.dataset.userId;
+    const action = adminAction.dataset.adminUserAction;
+    const select = root.querySelector(`[data-user-role="${CSS.escape(id)}"]`);
+    if (action === 'delete' && !confirm('ต้องการลบบัญชีนี้อย่างถาวรใช่หรือไม่?')) return;
+    adminAction.disabled = true;
+    invokeAdminUserManagement(action, { userId: id, role: select?.value }).then(() => {
+      showToast(action === 'delete' ? 'ลบบัญชีแล้ว' : action === 'suspend' ? 'ระงับบัญชีแล้ว' : action === 'resume' ? 'ปลดระงับบัญชีแล้ว' : 'บันทึกสิทธิ์บัญชีแล้ว', 'success');
+      loadAdminUsers();
+    }).catch(error => showToast(error.message, 'error')).finally(() => { adminAction.disabled = false; });
     return;
   }
   const filterButton = event.target.closest('[data-alert-filter]');
@@ -401,6 +453,26 @@ document.addEventListener('click', event => {
     button.classList.toggle('active', button === filterButton);
   });
   applyAlertFilter(filterButton.dataset.alertFilter);
+});
+
+document.addEventListener('submit', event => {
+  const form = event.target.closest('[data-auth-form]');
+  if (!form) return;
+  event.preventDefault();
+  const values = new FormData(form);
+  const email = String(values.get('email') || '').trim();
+  const password = String(values.get('password') || '');
+  const submit = form.querySelector('[type="submit"]');
+  if (!email || !password) { showToast('กรุณาระบุอีเมลและรหัสผ่าน', 'info'); return; }
+  if (form.dataset.authForm === 'register' && password !== String(values.get('confirmPassword') || '')) { showToast('ยืนยันรหัสผ่านไม่ตรงกัน', 'error'); return; }
+  submit.disabled = true;
+  const task = form.dataset.authForm === 'register'
+    ? signUpWithPassword({ email, password, requestedRole: String(values.get('requestedRole') || 'officer') })
+    : signInWithPassword({ email, password });
+  task.then(() => {
+    if (form.dataset.authForm === 'register') { showToast('รับคำขอลงทะเบียนแล้ว กรุณายืนยันอีเมลและรอ ADMIN อนุมัติสิทธิ์', 'success'); renderLoginGate('login'); }
+    else { showToast('เข้าสู่ระบบสำเร็จ', 'success'); setTimeout(() => location.reload(), 250); }
+  }).catch(error => showToast(form.dataset.authForm === 'login' ? 'อีเมลหรือรหัสผ่านไม่ถูกต้อง หรือบัญชียังไม่พร้อมใช้งาน' : error.message, 'error')).finally(() => { submit.disabled = false; });
 });
 
 document.addEventListener('input', event => {
@@ -1117,3 +1189,4 @@ document.addEventListener('submit', event => {
   const disease=event.target.querySelector('[data-disease]')?.value || 'ไม่ระบุโรค';
   setTimeout(()=>recordAudit('บันทึกแบบสอบสวนโรค',`บันทึกแบบสอบสวน ${disease}`),0);
 });
+
