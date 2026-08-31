@@ -14,6 +14,15 @@ export const getSupabaseConfig = () => ({
 export const hasSupabaseCredentials = () => Boolean(getSupabaseConfig().publishableKey);
 export const hasSupabaseSession = () => Boolean(getSupabaseConfig().accessToken);
 
+export const getSupabaseRole = () => {
+  const token = getSupabaseConfig().accessToken;
+  try {
+    const payload = token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/');
+    const claims = JSON.parse(decodeURIComponent(atob(payload).split('').map(char => `%${char.charCodeAt(0).toString(16).padStart(2, '0')}`).join('')));
+    return claims.app_metadata?.ndss_role || '';
+  } catch { return ''; }
+};
+
 export const consumeSupabaseSessionFromUrl = () => {
   const hash = new URLSearchParams(location.hash.replace(/^#/, ''));
   const token = hash.get('access_token');
