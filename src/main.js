@@ -1,4 +1,4 @@
-import { getDashboardData } from './services/dashboard-service.js';
+import { getDashboardData } from './services/dashboard-service.js?v=20260901-1';
 import { clearSupabaseSession, consumeSupabaseSessionFromUrl, getSupabaseRole, getSupabaseUser, hasSupabaseCredentials, hasSupabaseSession, invokeAdminUserManagement, requestSupabasePasswordRecovery, signInWithPassword, signUpWithPassword, updateSupabasePassword } from './config/supabase.js';
 import { downloadCleanPdf } from './services/clean-pdf-generator.js';
 import { enableHistoryAreaFilter } from './components/history-area-filter.js';

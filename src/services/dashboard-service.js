@@ -1,7 +1,8 @@
-import { getSupabaseConfig, hasSupabaseCredentials } from '../config/supabase.js';
+import { getSupabaseConfig, hasSupabaseCredentials, hasSupabaseSession } from '../config/supabase.js';
 
 export async function getDashboardData() {
   if (!hasSupabaseCredentials()) return { metrics: [], cases: [], alerts: [], source: 'unconfigured' };
+  if (!hasSupabaseSession()) return { metrics: [], cases: [], alerts: [], source: 'signed-out' };
   const supabaseConfig = getSupabaseConfig();
 
   const headers = {
