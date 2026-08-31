@@ -751,7 +751,13 @@ const showRegistrationSuccess = () => {
     });
     return;
   }
-  showToast(message, 'success');
+  document.querySelector('.ndss-registration-alert')?.remove();
+  const alert = document.createElement('div');
+  alert.className = 'ndss-registration-alert';
+  alert.setAttribute('role', 'status');
+  alert.innerHTML = `<span aria-hidden="true">✓</span><div><strong>ลงทะเบียนสำเร็จ</strong><p>${message}</p></div>`;
+  document.body.append(alert);
+  setTimeout(() => alert.remove(), 3600);
 };
 const confirmAction = async (title, text) => {
   if (window.Swal) {
