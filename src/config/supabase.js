@@ -73,6 +73,16 @@ export const signUpWithPassword = async ({ email, password, requestedRole }) => 
   },
 });
 
+export const requestSupabasePasswordRecovery = email => authRequest('/auth/v1/recover', {
+  body: { email, options: { redirectTo: `${location.origin}${location.pathname}` } },
+});
+
+export const updateSupabasePassword = async password => {
+  const config = getSupabaseConfig();
+  if (!config.accessToken) throw new Error('ลิงก์ตั้งรหัสผ่านไม่ถูกต้องหรือหมดอายุ');
+  return authRequest('/auth/v1/user', { method: 'PUT', accessToken: config.accessToken, body: { password } });
+};
+
 export const refreshSupabaseSession = async () => {
   const refreshToken = getSupabaseConfig().refreshToken;
   if (!refreshToken) return null;
