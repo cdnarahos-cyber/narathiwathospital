@@ -1,5 +1,5 @@
 import { getDashboardData } from './services/dashboard-service.js';
-import { clearSupabaseSession, consumeSupabaseSessionFromUrl, getSupabaseRole, getSupabaseUser, hasSupabaseCredentials, hasSupabaseSession, invokeAdminUserManagement, resendSupabaseSignupConfirmation, signInWithPassword, signUpWithPassword } from './config/supabase.js';
+import { clearSupabaseSession, consumeSupabaseSessionFromUrl, getSupabaseRole, getSupabaseUser, hasSupabaseCredentials, hasSupabaseSession, invokeAdminUserManagement, signInWithPassword, signUpWithPassword } from './config/supabase.js';
 import { downloadCleanPdf } from './services/clean-pdf-generator.js';
 import { enableHistoryAreaFilter } from './components/history-area-filter.js';
 import { addNarathiwatBoundaries } from './components/narathiwat-boundaries.js';
@@ -68,7 +68,7 @@ const renderLoginGate = (mode = 'login') => {
     ? '<button type="button" class="secondary" data-supabase-signout>ออกจากระบบ</button>'
     : mode === 'register'
       ? `<form class="ndss-login-actions" data-auth-form="register"><label>อีเมล<input name="email" type="email" placeholder="name@hospital.go.th" autocomplete="email" required /></label><label>รหัสผ่าน<div class="password-field"><input name="password" type="password" autocomplete="new-password" minlength="8" required /><button type="button" data-toggle-password aria-label="แสดงรหัสผ่าน">◉</button></div></label><label>ยืนยันรหัสผ่าน<div class="password-field"><input name="confirmPassword" type="password" autocomplete="new-password" minlength="8" required /><button type="button" data-toggle-password aria-label="แสดงรหัสผ่าน">◉</button></div></label><label>บทบาทที่ขอใช้<select name="requestedRole"><option value="officer">OFFICER — จัดการรายการที่ได้รับมอบหมาย</option><option value="viewer">VIEWER — ดูข้อมูลตามสิทธิ์ที่อนุญาต</option><option value="admin">ADMIN — จัดการบัญชีและข้อมูลทั้งหมด</option></select></label><p class="ndss-auth-note">การเลือก ADMIN เป็นเพียงคำขอสิทธิ์ ผู้ดูแลระบบต้องอนุมัติก่อนเสมอ</p><button type="submit" class="primary" ${hasSupabaseCredentials() ? '' : 'disabled'}>ลงทะเบียนผู้ใช้งาน</button><button type="button" class="text-button" data-auth-mode="login">มีบัญชีแล้ว? เข้าสู่ระบบ</button></form>`
-      : `<form class="ndss-login-actions" data-auth-form="login"><label>อีเมล<input name="email" type="email" placeholder="name@hospital.go.th" autocomplete="email" required /></label><label>รหัสผ่าน<div class="password-field"><input name="password" type="password" autocomplete="current-password" required /><button type="button" data-toggle-password aria-label="แสดงรหัสผ่าน">◉</button></div></label><button type="submit" class="primary" ${hasSupabaseCredentials() ? '' : 'disabled'}>เข้าสู่ระบบ</button><button type="button" class="text-button" data-resend-confirmation>ส่งอีเมลยืนยันอีกครั้ง</button><button type="button" class="text-button" data-auth-mode="register">ลงทะเบียนผู้ใช้งาน</button></form>`;
+      : `<form class="ndss-login-actions" data-auth-form="login"><label>อีเมล<input name="email" type="email" placeholder="name@hospital.go.th" autocomplete="email" required /></label><label>รหัสผ่าน<div class="password-field"><input name="password" type="password" autocomplete="current-password" required /><button type="button" data-toggle-password aria-label="แสดงรหัสผ่าน">◉</button></div></label><button type="submit" class="primary" ${hasSupabaseCredentials() ? '' : 'disabled'}>เข้าสู่ระบบ</button><p class="ndss-auth-note">บัญชีที่ลงทะเบียนใหม่จะใช้งานได้เมื่อ ADMIN จัดการสิทธิ์ในระบบแล้ว</p><button type="button" class="text-button" data-auth-mode="register">ลงทะเบียนผู้ใช้งาน</button></form>`;
   const gate = document.createElement('section');
   gate.className = 'ndss-login-gate';
   gate.setAttribute('aria-modal', 'true');
@@ -433,17 +433,6 @@ document.addEventListener('click', event => {
   if (event.target.closest('[data-open-login]')) { renderLoginGate('login'); return; }
   const switchMode = event.target.closest('[data-auth-mode]');
   if (switchMode) { renderLoginGate(switchMode.dataset.authMode); return; }
-  const resendConfirmation = event.target.closest('[data-resend-confirmation]');
-  if (resendConfirmation) {
-    const email = document.querySelector('.ndss-login-gate [name="email"]')?.value.trim() || '';
-    if (!email) { showToast('กรุณาระบุอีเมลก่อนส่งลิงก์ยืนยัน', 'info'); return; }
-    resendConfirmation.disabled = true;
-    resendSupabaseSignupConfirmation(email)
-      .then(() => showToast('หากบัญชีนี้รอการยืนยัน ระบบได้ส่งข้อความไปยังอีเมลที่ระบุแล้ว', 'success'))
-      .catch(error => showToast(error.message, 'error'))
-      .finally(() => { resendConfirmation.disabled = false; });
-    return;
-  }
   const toggle = event.target.closest('[data-toggle-password]');
   if (toggle) { const input = toggle.closest('.password-field')?.querySelector('input'); if (input) { const isPassword = input.type === 'password'; input.type = isPassword ? 'text' : 'password'; toggle.textContent = isPassword ? '◉' : '◌'; toggle.setAttribute('aria-label', isPassword ? 'ซ่อนรหัสผ่าน' : 'แสดงรหัสผ่าน'); } return; }
   if (event.target.closest('[data-refresh-admin-users]')) { loadAdminUsers(); return; }
@@ -484,10 +473,10 @@ document.addEventListener('submit', event => {
     ? signUpWithPassword({ email, password, requestedRole: String(values.get('requestedRole') || 'officer') })
     : signInWithPassword({ email, password });
   task.then(() => {
-    if (form.dataset.authForm === 'register') { showToast('รับคำขอลงทะเบียนแล้ว กรุณายืนยันอีเมลและรอ ADMIN อนุมัติสิทธิ์', 'success'); renderLoginGate('login'); }
+    if (form.dataset.authForm === 'register') { showToast('รับคำขอลงทะเบียนแล้ว กรุณารอ ADMIN จัดการสิทธิ์ในระบบ', 'success'); renderLoginGate('login'); }
     else { showToast('เข้าสู่ระบบสำเร็จ', 'success'); setTimeout(() => location.reload(), 250); }
   }).catch(error => {
-    const message = form.dataset.authForm === 'login' && !String(error.message).includes('ยืนยันอีเมล')
+    const message = form.dataset.authForm === 'login' && !String(error.message).includes('จัดการสิทธิ์ในระบบ')
       ? 'อีเมลหรือรหัสผ่านไม่ถูกต้อง หรือบัญชียังไม่พร้อมใช้งาน'
       : error.message;
     showToast(message, 'error');
