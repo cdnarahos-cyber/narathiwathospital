@@ -48,7 +48,13 @@ const authRequest = async (path, { method = 'POST', body, accessToken } = {}) =>
     ...(body === undefined ? {} : { body: JSON.stringify(body) }),
   });
   const result = await response.json().catch(() => ({}));
-  if (!response.ok) throw new Error(result?.msg || result?.message || 'ไม่สามารถดำเนินการกับบัญชีได้ในขณะนี้');
+  if (!response.ok) {
+    const code = result?.error_code || result?.code || '';
+    const message = String(result?.msg || result?.message || '');
+    if (code === 'email_not_confirmed' || /email not confirmed/i.test(message)) throw new Error('กรุณายืนยันอีเมลจากข้อความของ Supabase ก่อนเข้าสู่ระบบ');
+    if (code === 'over_email_send_rate_limit' || response.status === 429) throw new Error('ระบบส่งอีเมลถึงขีดจำกัดชั่วคราว กรุณารอประมาณ 1 ชั่วโมงแล้วลองใหม่');
+    throw new Error(message || 'ไม่สามารถดำเนินการกับบัญชีได้ในขณะนี้');
+  }
   return result;
 };
 
