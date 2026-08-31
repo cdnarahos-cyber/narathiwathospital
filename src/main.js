@@ -630,9 +630,11 @@ document.addEventListener('click', event => {
 document.addEventListener('click', event => {
   const toggle=event.target.closest('[data-mobile-nav-toggle]');
   const sidebar=document.querySelector('.command-sidebar');
+  const mobileSidebarState=document.querySelector('#mobile-sidebar-state');
   const closeMobileNav=({restoreFocus=false}={})=>{
-    if (!sidebar?.classList.contains('mobile-open')) return;
+    if (!sidebar?.classList.contains('mobile-open') && !mobileSidebarState?.checked) return;
     sidebar.classList.remove('mobile-open');
+    if (mobileSidebarState) mobileSidebarState.checked=false;
     const trigger=document.querySelector('[data-mobile-nav-toggle]');
     setMobileNavToggleState(trigger,false);
     if (restoreFocus) trigger?.focus();
@@ -642,15 +644,18 @@ document.addEventListener('click', event => {
     setMobileNavToggleState(toggle,open);
     return;
   }
-  if (sidebar?.classList.contains('mobile-open') && (event.target.closest('.command-sidebar [data-view]') || !event.target.closest('.command-sidebar'))) {
+  if (event.target.closest('.mobile-nav-toggle')) return;
+  if ((sidebar?.classList.contains('mobile-open') || mobileSidebarState?.checked) && (event.target.closest('.command-sidebar [data-view]') || !event.target.closest('.command-sidebar'))) {
     closeMobileNav();
   }
 });
 document.addEventListener('keydown', event => {
   if (event.key !== 'Escape') return;
   const sidebar=document.querySelector('.command-sidebar');
-  if (!sidebar?.classList.contains('mobile-open')) return;
+  const mobileSidebarState=document.querySelector('#mobile-sidebar-state');
+  if (!sidebar?.classList.contains('mobile-open') && !mobileSidebarState?.checked) return;
   sidebar.classList.remove('mobile-open');
+  if (mobileSidebarState) mobileSidebarState.checked=false;
   const trigger=document.querySelector('[data-mobile-nav-toggle]');
   setMobileNavToggleState(trigger,false);
   trigger?.focus();
