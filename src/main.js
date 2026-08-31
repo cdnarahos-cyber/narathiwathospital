@@ -435,6 +435,12 @@ enhanceImportQualityActions();
 enhanceKnowledgeForms();
 enhanceExportHistory();
 
+const setMobileNavToggleState=(trigger,open)=>{
+  if(!trigger) return;
+  trigger.setAttribute('aria-expanded',String(open));
+  trigger.setAttribute('aria-label',open ? 'ปิดเมนูหลัก' : 'เปิดเมนูหลัก');
+  trigger.innerHTML=open ? '✕ <span>ปิดเมนู</span>' : '☰ <span>เมนู</span>';
+};
 document.addEventListener('click', event => {
   if (event.target.closest('[data-run-preflight]')) { runPreflight(); return; }
   if (event.target.closest('[data-supabase-signout]')) { clearSupabaseSession().finally(() => { showToast('ออกจากระบบแล้ว', 'success'); setTimeout(() => location.reload(), 350); }); return; }
@@ -620,12 +626,12 @@ document.addEventListener('click', event => {
     if (!sidebar?.classList.contains('mobile-open')) return;
     sidebar.classList.remove('mobile-open');
     const trigger=document.querySelector('[data-mobile-nav-toggle]');
-    trigger?.setAttribute('aria-expanded','false');
+    setMobileNavToggleState(trigger,false);
     if (restoreFocus) trigger?.focus();
   };
   if (toggle && sidebar) {
     const open=sidebar.classList.toggle('mobile-open');
-    toggle.setAttribute('aria-expanded',String(open));
+    setMobileNavToggleState(toggle,open);
     return;
   }
   if (sidebar?.classList.contains('mobile-open') && (event.target.closest('.command-sidebar [data-view]') || !event.target.closest('.command-sidebar'))) {
@@ -638,7 +644,7 @@ document.addEventListener('keydown', event => {
   if (!sidebar?.classList.contains('mobile-open')) return;
   sidebar.classList.remove('mobile-open');
   const trigger=document.querySelector('[data-mobile-nav-toggle]');
-  trigger?.setAttribute('aria-expanded','false');
+  setMobileNavToggleState(trigger,false);
   trigger?.focus();
 });
 const renderCommandDashboard = () => {
