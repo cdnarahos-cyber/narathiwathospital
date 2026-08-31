@@ -74,7 +74,7 @@ export const signUpWithPassword = async ({ email, password, requestedRole }) => 
 });
 
 export const requestSupabasePasswordRecovery = email => authRequest('/auth/v1/recover', {
-  body: { email, options: { redirectTo: `${location.origin}${location.pathname}` } },
+  body: { email, redirect_to: `${location.origin}${location.pathname}` },
 });
 
 export const updateSupabasePassword = async password => {
