@@ -49,6 +49,14 @@ const overviewDashboard = () => {
 };
 document.querySelector('#app').innerHTML = shell(overviewDashboard());
 const root = document.querySelector('#module-root');
+const mobileNavToggle = document.querySelector('[data-mobile-nav-toggle]');
+mobileNavToggle?.addEventListener('click', event => {
+  event.stopPropagation();
+  const sidebar = document.querySelector('.command-sidebar');
+  if (!sidebar) return;
+  const open = sidebar.classList.toggle('mobile-open');
+  setMobileNavToggleState(mobileNavToggle, open);
+});
 const roleDefinitions = {
   admin: ['ADMIN', 'จัดการบัญชีและข้อมูลทั้งหมด'],
   officer: ['OFFICER', 'จัดการรายการที่ได้รับมอบหมาย'],
