@@ -1,5 +1,5 @@
 import { getDashboardData } from './services/dashboard-service.js';
-import { clearSupabaseSession, consumeSupabaseSessionFromUrl, hasSupabaseCredentials, hasSupabaseSession, requestSupabaseMagicLink } from './config/supabase.js';
+import { clearSupabaseSession, consumeSupabaseSessionFromUrl, getSupabaseRole, hasSupabaseCredentials, hasSupabaseSession, requestSupabaseMagicLink } from './config/supabase.js';
 import { downloadCleanPdf } from './services/clean-pdf-generator.js';
 import { enableHistoryAreaFilter } from './components/history-area-filter.js';
 import { addNarathiwatBoundaries } from './components/narathiwat-boundaries.js';
@@ -48,6 +48,25 @@ const overviewDashboard = () => {
 };
 document.querySelector('#app').innerHTML = shell(overviewDashboard());
 const root = document.querySelector('#module-root');
+const renderLoginGate = () => {
+  const role = getSupabaseRole();
+  const signedIn = hasSupabaseSession();
+  const allowed = ['admin', 'epidemiologist', 'viewer'].includes(role);
+  if (allowed) return;
+  const message = signedIn
+    ? 'บัญชีนี้ยังไม่ได้รับบทบาทใน NDSS กรุณาให้ผู้ดูแลกำหนด app_metadata.ndss_role ก่อนใช้งาน'
+    : 'ลงชื่อเข้าใช้ด้วยอีเมลเจ้าหน้าที่ ระบบจะส่ง Magic Link ไปยังอีเมลที่ระบุ';
+  const actions = signedIn
+    ? '<button type="button" class="secondary" data-supabase-signout>ออกจากระบบ</button>'
+    : `<label>อีเมลเจ้าหน้าที่<input type="email" data-supabase-email placeholder="name@hospital.go.th" autocomplete="email" /></label><button type="button" class="primary" data-supabase-magic-link ${hasSupabaseCredentials() ? '' : 'disabled'}>ส่งลิงก์เข้าสู่ระบบ</button>`;
+  const gate = document.createElement('section');
+  gate.className = 'ndss-login-gate';
+  gate.setAttribute('aria-modal', 'true');
+  gate.setAttribute('role', 'dialog');
+  gate.innerHTML = `<div class="ndss-login-card"><img src="./public/assets/naradhiwas-hospital-logo.jpg" alt="โลโก้โรงพยาบาลนราธิวาสราชนครินทร์" /><p class="ndss-login-kicker">NDSS · Secure Access</p><h1>เข้าสู่ระบบเฝ้าระวังโรค</h1><p>${message}</p><div class="ndss-login-actions">${actions}</div><div class="ndss-role-guide"><strong>สิทธิ์การใช้งาน</strong><span><b>Admin</b> จัดการผู้ใช้ สิทธิ์ และข้อมูลระบบ</span><span><b>Epidemiologist</b> บันทึก แก้ไข และติดตามเคส</span><span><b>Viewer</b> ดูแดชบอร์ด รายงาน และแผนที่</span></div><small>ข้อมูลผู้ป่วยจะไม่แสดงจนกว่าจะผ่านการยืนยันตัวตนและได้รับสิทธิ์ที่เหมาะสม</small></div>`;
+  document.body.append(gate);
+};
+renderLoginGate();
 enableHistoryAreaFilter(root);
 const readLocalList = key => { try { return JSON.parse(localStorage.getItem(key) || '[]'); } catch { return []; } };
 const updateNotificationBadge = () => {
@@ -371,7 +390,7 @@ document.addEventListener('click', event => {
   if (event.target.closest('[data-run-preflight]')) { runPreflight(); return; }
   if (event.target.closest('[data-supabase-signout]')) { clearSupabaseSession(); showToast('ออกจากระบบ Supabase แล้ว', 'success'); setTimeout(() => location.reload(), 350); return; }
   if (event.target.closest('[data-supabase-magic-link]')) {
-    const email = root.querySelector('[data-supabase-email]')?.value?.trim();
+    const email = root.querySelector('[data-supabase-email]')?.value?.trim() || document.querySelector('.ndss-login-gate [data-supabase-email]')?.value?.trim();
     if (!email) { showToast('กรุณาระบุอีเมลเจ้าหน้าที่', 'info'); return; }
     requestSupabaseMagicLink(email).then(() => showToast('ส่งลิงก์เข้าสู่ระบบไปยังอีเมลแล้ว', 'success')).catch(error => showToast(error.message, 'error'));
     return;
