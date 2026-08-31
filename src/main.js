@@ -1,6 +1,3 @@
-Warning: truncated output (original token count: 28658)
-Total output lines: 1090
-
 import { getDashboardData } from './services/dashboard-service.js';
 import { downloadCleanPdf } from './services/clean-pdf-generator.js';
 import { enableHistoryAreaFilter } from './components/history-area-filter.js';
@@ -510,7 +507,143 @@ const renderCommandDashboard = () => {
   const max=Math.max(...months.map(item=>item.count),1);
   const colors=['#287bd5','#f5a613','#16ab93','#875ad7','#e45263'];
   let position=0;
-  const segments=byDisease.slice(0,5)…8658 tokens truncated…ase} ใช่หรือไม่?`)) { records.splice(index,1); localStorage.setItem('ndss-investigations',JSON.stringify(records)); renderPins(); renderHistory(); showToast('ลบเคสแล้ว'); } } });
+  const segments=byDisease.slice(0,5).map(([name,count],index)=>{ const size=records.length ? count/records.length*100 : 0; const segment=`${colors[index]} ${position}% ${position+size}%`; position+=size; return segment; });
+  if(position<100) segments.push(`#dfe8f1 ${position}% 100%`);
+  const topDisease=byDisease[0] || ['ยังไม่มีข้อมูล',0];
+  const waiting=tasks.filter(item=>item.status!=='ควบคุมแล้ว').length;
+  const panel = records.length ? `<section class="reference-dashboard"><section class="reference-stats"><article class="blue"><span>ผู้ป่วยสะสม (ทุกตัวกรอง)</span><strong>${records.length.toLocaleString('th-TH')}</strong><small>จาก รง.506 และแบบสอบสวน</small></article><article class="purple"><span>โรคที่รายงานมากที่สุด</span><strong>${escapeOverview(topDisease[0])}</strong><small>${topDisease[1]} ราย · ตามข้อมูลปัจจุบัน</small></article><article class="red"><span>คิวที่ต้องติดตาม</span><strong>${waiting} งาน</strong><small>งานที่ยังไม่ปิดการดำเนินการ</small></article><article class="orange"><span>โรคที่ต้องเฝ้าระวัง</span><strong>${byDisease.length} โรค</strong><small>จำแนกตามชื่อโรคในข้อมูล</small></article><article class="green"><span>ผู้ป่วยใน (IPD)</span><strong>ยังไม่มีข้อมูล</strong><small>ต้องมีคอลัมน์ประเภทผู้ป่วย</small></article></section><section class="reference-grid"><article class="work-panel reference-curve"><div class="panel-top"><h2>▥ เส้นโค้งการระบาด (Epidemic Curve) รายเดือน</h2><small>12 เดือนล่าสุด · หน่วย: ราย</small></div><div class="reference-bars">${months.map(item=>`<div><b style="height:${Math.max(5,item.count/max*100)}%" title="${item.count} ราย"></b><small>${item.label}</small></div>`).join('')}</div><p class="reference-legend">ข้อมูลแสดงตามวันเริ่มป่วยหรือวันบันทึกที่มีในระบบ</p></article><article class="work-panel reference-share"><div class="panel-top"><h2>◉ สัดส่วนตามหมวดโรค</h2><small>หน่วย: ราย</small></div><div class="reference-donut" style="background:conic-gradient(${segments.join(',')})"><i>${records.length}<small>ราย</small></i></div><div class="reference-donut-legend">${byDisease.slice(0,5).map(([name,count],index)=>`<span><i style="background:${colors[index]}"></i>${escapeOverview(name)} <b>${count}</b></span>`).join('')}</div></article></section><section class="reference-grid bottom"><article class="work-panel"><div class="panel-top"><h2>☘ 10 อันดับโรคที่พบมากที่สุด</h2><small>เรียงตามจำนวนรายงาน</small></div><div class="ranked-list">${byDisease.slice(0,10).map(([name,count],index)=>`<div><b>${index+1}</b><span>${escapeOverview(name)}</span><i><em style="width:${count/(topDisease[1]||1)*100}%"></em></i><strong>${count} ราย</strong></div>`).join('')}</div></article><article class="work-panel"><div class="panel-top"><h2>▤ การกระจายตามพื้นที่</h2><small>ตำบล/อำเภอตามขอบเขตข้อมูล</small></div><div class="reference-area-table"><table><thead><tr><th>#</th><th>พื้นที่</th><th>ผู้ป่วย</th><th>โรคที่พบ</th><th>คิวติดตาม</th></tr></thead><tbody>${byArea.slice(0,8).map(([area,count],index)=>{ const diseases=new Set(records.filter(item=>(item.tambon || item.subdistrict || item.district || item.location || 'ไม่ระบุ')===area).map(item=>item.disease).filter(Boolean)); return `<tr><td>${index+1}</td><td><b>${escapeOverview(area)}</b></td><td>${count}</td><td>${diseases.size} โรค</td><td>${tasks.filter(task=>String(task.note || '').includes(area)).length}</td></tr>`; }).join('')}</tbody></table></div><p class="scope-note">จัดอันดับภายในระดับพื้นที่ที่มีในข้อมูลเท่านั้น และไม่เปรียบเทียบข้ามขอบเขต</p></article></section></section>` : `<section class="reference-dashboard reference-empty"><div><h2>แดชบอร์ดสถานการณ์โรค</h2><p>ยังไม่มีข้อมูล รง.506 หรือแบบสอบสวนในอุปกรณ์นี้ เริ่มต้นด้วยการนำเข้า Excel หรือบันทึกแบบสอบสวนโรคออนไลน์</p><button class="primary" type="button" data-open-506-import>＋ นำเข้า Excel</button></div></section>`;
+  page.querySelector('.epi-dashboard')?.insertAdjacentHTML('beforebegin',panel);
+};
+renderCommandDashboard();
+const refreshOverview = () => { if (root.querySelector('.overview-page')) { root.innerHTML = overviewDashboard(); renderCommandDashboard(); } };
+const refreshEpidemiology = () => {
+  if (document.querySelector('.nav-link.active')?.dataset.view !== 'epidemiology') return;
+  const activeTab=root.querySelector('.epi-dashboard [data-epi-tab].active')?.dataset.epiTab || 'situation';
+  root.innerHTML=`<div class="module-page">${moduleView('epidemiology')}</div>`;
+  root.querySelector(`[data-epi-tab="${activeTab}"]`)?.click();
+};
+const refreshDataViews = () => { refreshOverview(); refreshEpidemiology(); };
+window.addEventListener('ndss-cases-updated', refreshDataViews);
+window.addEventListener('storage', event => {
+  if (['ndss-investigations','ndss-506-records'].includes(event.key)) refreshDataViews();
+  if (['ndss-investigations','ndss-case-contacts','ndss-response-tasks','ndss-lab-results','ndss-506-records','ndss-alert-state'].includes(event.key)) {
+    updateNotificationBadge();
+    refreshAlertView();
+  }
+});
+const showToast = (message, icon = 'success') => {
+  const resolvedIcon = icon === 'success' && /ไม่สามารถ|ไม่สำเร็จ/.test(message) ? 'error' : icon === 'success' && /ยังไม่มี/.test(message) ? 'info' : icon;
+  if (window.Swal) {
+    window.Swal.fire({
+      toast: false,
+      position: 'center',
+      icon: resolvedIcon,
+      title: message,
+      showConfirmButton: false,
+      timer: 2600,
+      timerProgressBar: true,
+      backdrop: false,
+      allowOutsideClick: true,
+      width: 360,
+      customClass: { popup: 'ndss-swal-popup' }
+    });
+    return;
+  }
+  const toast = document.createElement('div');
+  toast.className = 'toast ndss-toast-center';
+  toast.textContent = message;
+  document.body.append(toast);
+  setTimeout(() => toast.remove(), 2600);
+};
+const confirmAction = async (title, text) => {
+  if (window.Swal) {
+    const result = await window.Swal.fire({
+      title,
+      text,
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonText: 'ยืนยัน',
+      cancelButtonText: 'ยกเลิก',
+      confirmButtonColor: '#d33',
+      reverseButtons: true,
+      customClass: { popup: 'ndss-swal-popup' }
+    });
+    return result.isConfirmed;
+  }
+  return window.confirm(text);
+};
+document.addEventListener('click', async event => {
+  const action=event.target.closest('[data-delete-case],[data-delete-contact],[data-delete-lab],[data-delete-ai-report],[data-clear-pins],[data-clear-506],[data-clear-audit]');
+  if(!action) return;
+  event.preventDefault();
+  event.stopImmediatePropagation();
+  if(action.matches('[data-clear-pins]')) {
+    if(!await confirmAction('ยืนยันการล้างหมุดเคส','ข้อมูลเคสสอบสวนทั้งหมดในอุปกรณ์นี้จะถูกลบ ต้องการดำเนินการหรือไม่?')) return;
+    localStorage.removeItem('ndss-investigations'); activeDiseaseFilter='all'; recordAudit('ล้างเคสสอบสวน','ล้างข้อมูลเคสและหมุดทั้งหมดในอุปกรณ์นี้'); window.dispatchEvent(new Event('ndss-cases-updated')); renderPins(); renderHistory(); showToast('ล้างหมุดเคสและข้อมูลเคสแล้ว');
+    return;
+  }
+  if(action.matches('[data-clear-506]')) {
+    if(!await confirmAction('ยืนยันการล้างข้อมูล รง.506','ข้อมูล รง.506 ที่นำเข้าในอุปกรณ์นี้จะถูกลบ ต้องการดำเนินการหรือไม่?')) return;
+    localStorage.removeItem('ndss-506-records'); localStorage.removeItem('ndss-506-import-meta');
+    recordAudit('ล้างข้อมูล รง.506','ล้างข้อมูลที่นำเข้าในอุปกรณ์นี้'); root.querySelector('[data-import-status]')?.replaceChildren(document.createTextNode('ล้างข้อมูลนำเข้าแล้ว')); window.dispatchEvent(new Event('ndss-cases-updated')); showToast('ล้างข้อมูล รง.506 แล้ว');
+    return;
+  }
+  if(action.matches('[data-clear-audit]')) {
+    if(!await confirmAction('ยืนยันการล้างประวัติกิจกรรม','ประวัติการทำงานทั้งหมดในอุปกรณ์นี้จะถูกลบ ต้องการดำเนินการหรือไม่?')) return;
+    localStorage.removeItem('ndss-audit-log'); root.innerHTML=`<div class="module-page">${moduleView('audit')}</div>`;
+    document.querySelectorAll('.nav-link').forEach(link=>link.classList.toggle('active',link.dataset.view==='audit')); showToast('ล้างบันทึกกิจกรรมแล้ว');
+    return;
+  }
+  if(action.dataset.deleteCase !== undefined) {
+    const index=Number(action.dataset.deleteCase), records=readLocalList('ndss-investigations'), item=records[index];
+    if(!item || !await confirmAction('ยืนยันการลบเคส',`ต้องการลบเคส ${item.patient || item.disease} ใช่หรือไม่?`)) return;
+    records.splice(index,1); localStorage.setItem('ndss-investigations',JSON.stringify(records)); recordAudit('ลบเคสสอบสวน',item.patient || item.disease || 'ไม่ระบุเคส');
+    window.dispatchEvent(new Event('ndss-cases-updated')); renderPins(); renderHistory(); showToast('ลบเคสแล้ว');
+    return;
+  }
+  if(action.dataset.deleteContact !== undefined) {
+    const index=Number(action.dataset.deleteContact), contacts=readLocalList('ndss-case-contacts'), item=contacts[index];
+    if(!item || !await confirmAction('ยืนยันการลบผู้สัมผัส',`ต้องการลบข้อมูลผู้สัมผัส ${item.contactName} ใช่หรือไม่?`)) return;
+    contacts.splice(index,1); localStorage.setItem('ndss-case-contacts',JSON.stringify(contacts));
+    recordAudit('ลบข้อมูลผู้สัมผัส',item.contactName); root.innerHTML=`<div class="module-page">${moduleView('tracking')}</div>`;
+    document.querySelectorAll('.nav-link').forEach(link=>link.classList.toggle('active',link.dataset.view==='tracking')); showToast('ลบข้อมูลผู้สัมผัสแล้ว');
+    return;
+  }
+  if(action.dataset.deleteLab !== undefined) {
+    const index=Number(action.dataset.deleteLab), results=readLocalList('ndss-lab-results'), item=results[index];
+    if(!item || !await confirmAction('ยืนยันการลบผลตรวจ',`ต้องการลบผลตรวจ ${item.specimenNo} ใช่หรือไม่?`)) return;
+    results.splice(index,1); localStorage.setItem('ndss-lab-results',JSON.stringify(results));
+    recordAudit('ลบผลตรวจห้องปฏิบัติการ',`เลขสิ่งส่งตรวจ ${item.specimenNo}`); root.innerHTML=`<div class="module-page">${moduleView('lab')}</div>`;
+    document.querySelectorAll('.nav-link').forEach(link=>link.classList.toggle('active',link.dataset.view==='lab')); showToast('ลบผลตรวจแล้ว');
+    return;
+  }
+  const index=Number(action.dataset.deleteAiReport), reports=readLocalList('ndss-ai-reports');
+  if(!reports[index] || !await confirmAction('ยืนยันการลบร่างรายงาน','ต้องการลบร่างรายงานฉบับนี้ใช่หรือไม่?')) return;
+  reports.splice(index,1); localStorage.setItem('ndss-ai-reports',JSON.stringify(reports));
+  recordAudit('ลบร่างรายงานสถานการณ์','ลบรายงานที่บันทึกไว้'); root.innerHTML=`<div class="module-page">${moduleView('ai-brief')}</div>`;
+  document.querySelectorAll('.nav-link').forEach(link=>link.classList.toggle('active',link.dataset.view==='ai-brief')); showToast('ลบร่างรายงานแล้ว');
+}, true);
+const canvasLines = (ctx,text,width) => { const lines=[]; let line=''; for(const char of String(text || '-')) { if(ctx.measureText(line+char).width>width && line) { lines.push(line); line=char; } else line+=char; } if(line) lines.push(line); return lines; };
+const downloadCanvasPdf = async (source,disease) => { await document.fonts?.ready; const width=1240,height=1754,margin=72,bodyWidth=width-margin*2; const logo=new Image(); const logoReady=new Promise(resolve=>{logo.onload=logo.onerror=resolve;logo.src='./public/assets/naradhiwas-hospital-logo.svg';}); await logoReady; const pages=[]; let canvas,ctx,y; const header=pageNo=>{ ctx.fillStyle='#fff';ctx.fillRect(0,0,width,height); if(logo.naturalWidth) ctx.drawImage(logo,margin,45,95,95); ctx.fillStyle='#071d38';ctx.font='700 31px "IBM Plex Sans Thai",sans-serif';ctx.fillText('โรงพยาบาลนราธิวาสราชนครินทร์',margin+112,76);ctx.fillStyle='#31567f';ctx.font='600 18px "IBM Plex Sans Thai",sans-serif';ctx.fillText('Naradhiwas Rajanagarindra Hospital',margin+112,104);ctx.strokeStyle='#0b294d';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(margin,154);ctx.lineTo(width-margin,154);ctx.stroke();ctx.fillStyle='#071d38';ctx.font='700 28px "IBM Plex Sans Thai",sans-serif';ctx.fillText(source.querySelector('.report-title span')?.textContent || 'แบบสอบสวนโรค',margin,198);ctx.fillStyle='#416582';ctx.font='500 16px "IBM Plex Sans Thai",sans-serif';ctx.fillText(`เอกสารแบบสอบสวนโรค · หน้า ${pageNo}`,margin,226);y=258;}; const nextPage=()=>{canvas=document.createElement('canvas');canvas.width=width;canvas.height=height;ctx=canvas.getContext('2d');pages.push(canvas);header(pages.length);}; const entry=(label,value)=>{ctx.font='700 18px "IBM Plex Sans Thai",sans-serif';const heading=canvasLines(ctx,label,bodyWidth-36);ctx.font='600 18px "IBM Plex Sans Thai",sans-serif';const answer=canvasLines(ctx,value,bodyWidth-36);const needed=heading.length*24+answer.length*25+32;if(y+needed>height-margin) nextPage();ctx.fillStyle='#fff';ctx.fillRect(margin,y-4,bodyWidth,needed-8);ctx.strokeStyle='#d5e0ea';ctx.lineWidth=1;ctx.strokeRect(margin,y-4,bodyWidth,needed-8);ctx.fillStyle='#123b6d';ctx.font='700 18px "IBM Plex Sans Thai",sans-serif';heading.forEach(line=>{ctx.fillText(line,margin+18,y+18);y+=24;});ctx.fillStyle='#071d38';ctx.font='600 18px "IBM Plex Sans Thai",sans-serif';answer.forEach(line=>{ctx.fillText(line,margin+18,y+18);y+=25;});y+=18;}; nextPage(); source.querySelectorAll('label').forEach(label=>{const field=label.querySelector('input,select,textarea');if(!field)return;const labelCopy=label.cloneNode(true);labelCopy.querySelectorAll('input,select,textarea').forEach(node=>node.remove());const labelText=labelCopy.textContent.trim();let value='-';if(field.type==='checkbox'||field.type==='radio')value=field.checked?'เลือก':'ไม่เลือก';else if(field.tagName==='SELECT')value=field.options[field.selectedIndex]?.text || '-';else value=field.value || '-';entry(labelText,value);}); const encoder=new TextEncoder(),parts=[],offsets=[];let size=0;const rawAdd=chunk=>{parts.push(chunk);size+=chunk.length;};const rawText=text=>rawAdd(encoder.encode(text));const object=(id,content)=>{offsets[id]=size;rawText(`${id} 0 obj\n`);if(typeof content==='string')rawText(content);else content();rawText('\nendobj\n');};const jpegBytes=pages.map(page=>Uint8Array.from(atob(page.toDataURL('image/jpeg',.92).split(',')[1]),char=>char.charCodeAt(0)));const pageIds=pages.map((_,i)=>3+i*3);rawText('%PDF-1.4\n%âãÏÓ\n');object(1,'<< /Type /Catalog /Pages 2 0 R >>');object(2,`<< /Type /Pages /Kids [${pageIds.map(id=>`${id} 0 R`).join(' ')}] /Count ${pages.length} >>`);pages.forEach((page,i)=>{const pageId=3+i*3,imageId=pageId+1,contentId=pageId+2,image=jpegBytes[i],stream=`q\n595.28 0 0 841.89 0 0 cm\n/Im${i} Do\nQ\n`;object(pageId,`<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595.28 841.89] /Resources << /XObject << /Im${i} ${imageId} 0 R >> >> /Contents ${contentId} 0 R >>`);object(imageId,()=>{rawText(`<< /Type /XObject /Subtype /Image /Width ${width} /Height ${height} /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length ${image.length} >>\nstream\n`);rawAdd(image);rawText('\nendstream');});object(contentId,`<< /Length ${encoder.encode(stream).length} >>\nstream\n${stream}endstream`);});const start=size;rawText(`xref\n0 ${offsets.length}\n0000000000 65535 f \n`);for(let i=1;i<offsets.length;i++)rawText(`${String(offsets[i]).padStart(10,'0')} 00000 n \n`);rawText(`trailer\n<< /Size ${offsets.length} /Root 1 0 R >>\nstartxref\n${start}\n%%EOF`);const blob=new Blob(parts,{type:'application/pdf'}),url=URL.createObjectURL(blob),link=document.createElement('a');link.href=url;link.download=`${disease}-แบบสอบสวนโรค.pdf`;link.click();setTimeout(()=>URL.revokeObjectURL(url),1000); };
+const printReport = async () => { const source=root.querySelector('[data-investigation-form]'); if(!source) return; const disease=source.querySelector('[data-disease]')?.value || 'แบบสอบสวนโรค'; const button=source.querySelector('[data-print-report]'); const originalLabel=button?.textContent; if(button) { button.disabled=true; button.textContent='กำลังสร้าง PDF…'; } try { await downloadCleanPdf(source,disease); showToast('สร้างไฟล์ PDF แล้ว'); } catch(error) { console.error(error); showToast('ไม่สามารถสร้าง PDF ได้ในขณะนี้'); } finally { if(button) { button.disabled=false; button.textContent=originalLabel; } } };
+const renderModuleSaved = () => root.querySelectorAll('[data-module-saved]').forEach(node => { const records=JSON.parse(localStorage.getItem('ndss-module-records') || '[]').filter(item=>item.module===node.dataset.moduleSaved); const latest=records.at(-1); node.textContent=latest ? `บันทึกล่าสุด ${new Date(latest.createdAt).toLocaleString('th-TH')}` : 'ยังไม่มีรายการที่บันทึก'; });
+const exportCsv = () => { const rows = [['เลขที่เคส','โรค','ผู้ป่วย','พื้นที่','สถานะ'], ...data.cases.map(x => [x[0],x[1],x[2],x[3],x[5]])]; const file = new Blob([rows.map(x => x.map(v => `"${String(v).replaceAll('"','""')}"`).join(',')).join('\n')], { type: 'text/csv;charset=utf-8' }); const link = document.createElement('a'); link.href = URL.createObjectURL(file); link.download = 'ndss-report.csv'; link.click(); URL.revokeObjectURL(link.href); showToast('ดาวน์โหลดรายงาน CSV แล้ว'); };
+document.addEventListener('click', event => { const nav = event.target.closest('[data-view]'); if (nav) { const view = nav.dataset.view; root.innerHTML = view === 'dashboard' ? overviewDashboard() : `<div class="module-page">${moduleView(view)}</div>`; document.querySelectorAll('.nav-link').forEach(x => x.classList.toggle('active', x === nav)); renderModuleSaved(); if(view === 'investigation') { mountHistory(); setTimeout(()=>{renderPins();renderHistory();},0); } if(nav.dataset.epiTarget) { const tab=root.querySelector(`[data-epi-tab="${nav.dataset.epiTarget}"]`); if(tab) tab.click(); } } const epiTab=event.target.closest('[data-epi-tab]'); if(epiTab) { const scope=epiTab.closest('.epi-dashboard'); scope.querySelectorAll('[data-epi-tab]').forEach(tab=>tab.classList.toggle('active',tab===epiTab)); scope.querySelectorAll('[data-epi-pane]').forEach(pane=>{ const active=pane.dataset.epiPane===epiTab.dataset.epiTab; pane.hidden=!active; pane.classList.toggle('active',active); }); if(document.querySelector('.nav-link.active')?.dataset.view==='epidemiology') localStorage.setItem('ndss-epi-tab',epiTab.dataset.epiTab); } const progressButton=event.target.closest('[data-response-toggle]'); if(progressButton) { const card=progressButton.closest('article'); const expanded=card.classList.toggle('expanded'); progressButton.setAttribute('aria-expanded',String(expanded)); progressButton.textContent=expanded?'⌃':'⌄'; } if (event.target.closest('[data-export]')) exportCsv(); if (event.target.matches('[data-demo-action]')) showToast('เปิดรายละเอียดรายการแล้ว'); });
+let investigationMap;
+let activeDiseaseFilter = 'all';
+let editingCaseIndex = null;
+const escapeHtml = value => String(value || '-').replace(/[&<>"']/g, char => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));
+const historyPanel = `<section class="case-history no-print" data-case-history><div class="panel-top"><div><h2>ทะเบียนเคสย้อนหลัง</h2><small>ค้นหา ดูรายละเอียด และแก้ไขข้อมูลที่บันทึกไว้</small></div></div><div class="history-actions"><input data-history-search placeholder="ค้นหาชื่อ, HN, โรค, พื้นที่" /><select data-history-disease><option value="">ทุกโรค</option>${Object.keys(diseaseMeta).map(name=>`<option value="${name}">${name}</option>`).join('')}</select><input data-history-from type="date" aria-label="ตั้งแต่วันที่" /><input data-history-to type="date" aria-label="ถึงวันที่" /><button class="secondary history-search-button" type="button" data-run-history-search>⌕ ค้นหา</button></div><div class="history-table-wrap"><table><thead><tr><th>วันที่บันทึก</th><th>โรค</th><th>ผู้ป่วย</th><th>HN</th><th>พื้นที่</th><th>จัดการ</th></tr></thead><tbody data-history-rows></tbody></table></div><div class="history-detail" data-history-detail>เลือก “รายละเอียด” เพื่อดูข้อมูลของเคส</div></section>`;
+const mountHistory = () => { const modal=root.querySelector('[data-form-modal]'); if(modal && !root.querySelector('[data-case-history]')) modal.insertAdjacentHTML('beforebegin',historyPanel); };
+const renderHistory = keyword => { const rows=root.querySelector('[data-history-rows]'); if(!rows) return; const cases=JSON.parse(localStorage.getItem('ndss-investigations') || '[]'); const search=(keyword ?? root.querySelector('[data-history-search]')?.value ?? '').toLowerCase(); const disease=root.querySelector('[data-history-disease]')?.value || ''; const from=root.querySelector('[data-history-from]')?.value || ''; const to=root.querySelector('[data-history-to]')?.value || ''; const filtered=cases.map((item,index)=>({...item,index})).filter(item=>{ const day=(item.createdAt || '').slice(0,10); return [item.patient,item.hn,item.disease,item.location].join(' ').toLowerCase().includes(search) && (!disease || item.disease===disease) && (!from || day>=from) && (!to || day<=to); }); rows.innerHTML=filtered.length ? filtered.map(item=>`<tr><td>${item.createdAt?new Date(item.createdAt).toLocaleDateString('th-TH'):'-'}</td><td><span class="disease-dot" style="background:${diseaseMeta[item.disease]?.color || '#176fca'}"></span>${escapeHtml(item.disease)}</td><td>${escapeHtml(item.patient)}</td><td>${escapeHtml(item.hn)}</td><td>${escapeHtml(item.location)}</td><td class="case-actions"><button class="table-action" data-view-case="${item.index}">ดู</button><button class="table-action" data-edit-case="${item.index}">แก้ไข</button><button class="table-action" data-print-case="${item.index}">PDF</button><button class="table-action danger" data-delete-case="${item.index}">ลบ</button></td></tr>`).join('') : '<tr><td colspan="6" class="empty-history">ไม่พบข้อมูลที่ค้นหา</td></tr>'; };
+const openCaseForm = (item = {}, index = null) => { const modal=root.querySelector('[data-form-modal]'); const dialog=modal.querySelector('.form-modal__dialog'); const oldForm=dialog.querySelector('[data-investigation-form]'); oldForm.outerHTML=investigationForm(item.disease || 'ไข้เลือดออก'); const form=dialog.querySelector('[data-investigation-form]'); Object.entries(item).forEach(([name,value])=>{ const field=form.elements[name]; if(!field) return; if(field.type==='checkbox') field.checked=Boolean(value); else field.value=value ?? ''; }); editingCaseIndex=index; modal.hidden=false; document.body.classList.add('modal-open'); const firstField=form.querySelector('input:not([type="hidden"]):not([disabled]),select:not([disabled]),textarea:not([disabled])'); requestAnimationFrame(()=>firstField?.focus()); };
+const renderPins = () => { const mapNode = root.querySelector('[data-case-map]'); if (!mapNode) return; const cases = JSON.parse(localStorage.getItem('ndss-investigations') || '[]'); const visibleCases=activeDiseaseFilter === 'all' ? cases : cases.filter(item => item.disease === activeDiseaseFilter); root.querySelector('[data-total-cases]').textContent = cases.length; Object.keys(diseaseMeta).forEach(disease => { root.querySelector(`[data-disease-total="${disease}"]`).textContent = cases.filter(item => item.disease === disease).length; }); root.querySelectorAll('[data-map-filter]').forEach(card=>card.classList.toggle('active',card.dataset.mapFilter===activeDiseaseFilter)); root.querySelector('[data-map-filter-label]').textContent=activeDiseaseFilter==='all'?'Leaflet.js · แสดงทุกโรค':`Leaflet.js · แสดงเฉพาะ ${activeDiseaseFilter}`; if (!window.L) { mapNode.textContent = 'กำลังโหลดแผนที่ Leaflet...'; return; } if (investigationMap) investigationMap.remove(); investigationMap = window.L.map(mapNode,{scrollWheelZoom:false}).setView([6.426,101.825],12); window.L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'© OpenStreetMap contributors'}).addTo(investigationMap); const bounds=[]; visibleCases.forEach((item,index) => { const lat=Number(item.lat) || 6.426 + (index % 4) * .008; const lng=Number(item.lng) || 101.825 + (index % 4) * .01; const color=diseaseMeta[item.disease]?.color || '#176fca'; const marker=window.L.circleMarker([lat,lng],{radius:10,color:'#fff',weight:3,fillColor:color,fillOpacity:1}).addTo(investigationMap); const detail=`<b>${escapeHtml(item.patient)}</b><br>${escapeHtml(item.disease)}<br>${escapeHtml(item.location)}<br><small>เริ่มป่วย ${escapeHtml(item.onset)} · ${lat.toFixed(5)}, ${lng.toFixed(5)}</small>`; marker.bindPopup(detail).on('click',()=>root.querySelector('[data-map-details]').innerHTML=detail); bounds.push([lat,lng]); }); if(bounds.length) investigationMap.fitBounds(bounds,{padding:[36,36],maxZoom:14}); investigationMap.on('click',event=>{ const lat=event.latlng.lat.toFixed(6), lng=event.latlng.lng.toFixed(6); const form=root.querySelector('[data-investigation-form]'); if(form?.elements.lat) form.elements.lat.value=lat; if(form?.elements.lng) form.elements.lng.value=lng; root.querySelector('[data-map-details]').textContent=`เลือกพิกัด ${lat}, ${lng} แล้ว — บันทึกแบบฟอร์มเพื่อปักหมุด`; }); root.querySelector('[data-map-details]').textContent = visibleCases.length ? `${visibleCases.length} เคสบนแผนที่ — คลิกหมุดหรือพื้นที่บนแผนที่เพื่อเลือกพิกัด` : 'ไม่พบเคสตามตัวกรองที่เลือก'; setTimeout(()=>investigationMap.invalidateSize(),100); };
+document.addEventListener('submit', event => { if (event.target.matches('[data-module-save]')) { event.preventDefault(); const records=JSON.parse(localStorage.getItem('ndss-module-records') || '[]'); records.push({module:event.target.dataset.moduleName,values:Object.fromEntries(new FormData(event.target)),createdAt:new Date().toISOString()}); localStorage.setItem('ndss-module-records',JSON.stringify(records)); event.target.reset(); renderModuleSaved(); showToast('บันทึกข้อมูลในเครื่องแล้ว'); } if (event.target.matches('[data-investigation-form]')) { event.preventDefault(); const value=Object.fromEntries(new FormData(event.target)); const records=JSON.parse(localStorage.getItem('ndss-investigations') || '[]'); const saved={...value,location:value.location || [value.subdistrict,value.district,value.province].filter(Boolean).join(' '),disease:event.target.querySelector('[data-disease]').value,createdAt:editingCaseIndex === null ? new Date().toISOString() : records[editingCaseIndex].createdAt,updatedAt:new Date().toISOString()}; if(editingCaseIndex === null) records.push(saved); else records[editingCaseIndex]=saved; localStorage.setItem('ndss-investigations',JSON.stringify(records)); window.dispatchEvent(new Event('ndss-cases-updated')); editingCaseIndex=null; root.querySelector('[data-form-modal]').hidden=true; document.body.classList.remove('modal-open'); renderPins(); renderHistory(); showToast('บันทึกข้อมูลและอัปเดตแผนที่แล้ว'); } });
+document.addEventListener('change', event => { if(event.target.matches('[data-disease]')) { const disease=event.target.value; const meta=diseaseMeta[disease]; const template=root.querySelector('[data-template-download]'); if(template) { template.href=`./public/forms/${encodeURIComponent(meta.template)}`; template.textContent=`เปิด PDF ต้นฉบับ: ${disease}`; } const pages=root.querySelector('[data-template-pages]'); if(pages) pages.innerHTML=Array.from({length:meta.pages},(_,i)=>`<img src="./public/form-pages/${encodeURIComponent(meta.template.replace('.pdf',''))}-${i+1}.png" alt="แบบฟอร์ม ${disease} หน้า ${i+1}" loading="lazy" />`).join(''); event.target.closest('[data-investigation-form]').outerHTML=investigationForm(disease); showToast(`เปลี่ยนเป็นแบบฟอร์ม ${disease} ตามต้นฉบับแล้ว`); } });
+document.addEventListener('input', event => { if (event.target.matches('[data-filter]')) { const keyword = event.target.value.toLowerCase(); event.target.closest('.work-panel').querySelectorAll('tbody tr').forEach(row => row.hidden = !row.textContent.toLowerCase().includes(keyword)); } if(event.target.matches('[data-history-search],[data-history-from],[data-history-to]')) renderHistory(); });
+document.addEventListener('keydown', event => { if(event.key === 'Enter' && event.target.matches('[data-history-search]')) { event.preventDefault(); renderHistory(); } });
+document.addEventListener('change', event => { if(event.target.matches('[data-history-disease]')) renderHistory(); });
+document.addEventListener('click', event => { const filter=event.target.closest('[data-map-filter]'); if(filter) { activeDiseaseFilter=filter.dataset.mapFilter; renderPins(); } if(event.target.matches('[data-clear-pins]')) { localStorage.removeItem('ndss-investigations'); activeDiseaseFilter='all'; renderPins(); renderHistory(); } if(event.target.closest('[data-run-history-search]')) renderHistory(); const newCase=event.target.closest('[data-new-case]'); if(newCase) openCaseForm({disease:'ไข้เลือดออก'},null); const viewCase=event.target.closest('[data-view-case]'); if(viewCase) { const item=JSON.parse(localStorage.getItem('ndss-investigations') || '[]')[Number(viewCase.dataset.viewCase)]; const detail=root.querySelector('[data-history-detail]'); if(item && detail) detail.innerHTML=`<div><b>${escapeHtml(item.patient)}</b><span>${escapeHtml(item.disease)}</span></div><dl><dt>HN</dt><dd>${escapeHtml(item.hn)}</dd><dt>วันเริ่มป่วย</dt><dd>${escapeHtml(item.onset)}</dd><dt>พื้นที่</dt><dd>${escapeHtml(item.location)}</dd><dt>พิกัด</dt><dd>${escapeHtml(item.lat)}, ${escapeHtml(item.lng)}</dd><dt>บันทึกล่าสุด</dt><dd>${item.updatedAt ? new Date(item.updatedAt).toLocaleString('th-TH') : '-'}</dd></dl>`; } const editCase=event.target.closest('[data-edit-case]'); if(editCase) { const index=Number(editCase.dataset.editCase); openCaseForm(JSON.parse(localStorage.getItem('ndss-investigations') || '[]')[index],index); } const printCase=event.target.closest('[data-print-case]'); if(printCase) { const index=Number(printCase.dataset.printCase); const item=JSON.parse(localStorage.getItem('ndss-investigations') || '[]')[index]; if(item) { openCaseForm(item,index); setTimeout(printReport,120); } } const deleteCase=event.target.closest('[data-delete-case]'); if(deleteCase) { const index=Number(deleteCase.dataset.deleteCase); const records=JSON.parse(localStorage.getItem('ndss-investigations') || '[]'); if(records[index] && window.confirm(`ลบเคส ${records[index].patient || records[index].disease} ใช่หรือไม่?`)) { records.splice(index,1); localStorage.setItem('ndss-investigations',JSON.stringify(records)); renderPins(); renderHistory(); showToast('ลบเคสแล้ว'); } } });
 const closeOnlineForm = async () => {
   const modal=root.querySelector('[data-form-modal]');
   if (!modal || modal.hidden) return;
@@ -954,4 +1087,3 @@ document.addEventListener('submit', event => {
   const disease=event.target.querySelector('[data-disease]')?.value || 'ไม่ระบุโรค';
   setTimeout(()=>recordAudit('บันทึกแบบสอบสวนโรค',`บันทึกแบบสอบสวน ${disease}`),0);
 });
-
