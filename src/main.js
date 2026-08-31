@@ -1,5 +1,5 @@
 import { getDashboardData } from './services/dashboard-service.js';
-import { clearSupabaseSession, consumeSupabaseSessionFromUrl, getSupabaseRole, hasSupabaseCredentials, hasSupabaseSession, invokeAdminUserManagement, resendSupabaseSignupConfirmation, signInWithPassword, signUpWithPassword } from './config/supabase.js';
+import { clearSupabaseSession, consumeSupabaseSessionFromUrl, getSupabaseRole, getSupabaseUser, hasSupabaseCredentials, hasSupabaseSession, invokeAdminUserManagement, resendSupabaseSignupConfirmation, signInWithPassword, signUpWithPassword } from './config/supabase.js';
 import { downloadCleanPdf } from './services/clean-pdf-generator.js';
 import { enableHistoryAreaFilter } from './components/history-area-filter.js';
 import { addNarathiwatBoundaries } from './components/narathiwat-boundaries.js';
@@ -300,8 +300,10 @@ const renderAdminUserManagement = users => {
   body.innerHTML = users.length ? users.map(user => {
     const role = String(user.role || 'pending').toLowerCase();
     const requested = String(user.requestedRole || '').toUpperCase() || '-';
-    const status = user.bannedUntil ? 'ระงับแล้ว' : roleDefinitions[role] ? 'ใช้งานได้' : 'รออนุมัติ';
-    return `<tr><td><b>${escapeOverview(user.email || '-')}</b><small>${escapeOverview(user.id)}</small></td><td><span class="role-pill ${role}">${roleDefinitions[role]?.[0] || 'PENDING'}</span><small>ขอ: ${escapeOverview(requested)}</small></td><td>${status}</td><td>${user.lastSignInAt ? new Date(user.lastSignInAt).toLocaleString('th-TH') : '-'}</td><td><div class="admin-user-actions"><select data-user-role="${escapeOverview(user.id)}"><option value="officer" ${role === 'officer' ? 'selected' : ''}>OFFICER</option><option value="viewer" ${role === 'viewer' ? 'selected' : ''}>VIEWER</option><option value="admin" ${role === 'admin' ? 'selected' : ''}>ADMIN</option></select><button type="button" class="table-action" data-admin-user-action="approve" data-user-id="${escapeOverview(user.id)}">อนุมัติ/แก้ไข</button><button type="button" class="table-action secondary" data-admin-user-action="${user.bannedUntil ? 'resume' : 'suspend'}" data-user-id="${escapeOverview(user.id)}">${user.bannedUntil ? 'ปลดระงับ' : 'ระงับ'}</button><button type="button" class="table-action danger" data-admin-user-action="delete" data-user-id="${escapeOverview(user.id)}">ลบ</button></div></td></tr>`;
+    const accountStatus = user.bannedUntil ? 'suspended' : roleDefinitions[role] ? 'active' : 'pending';
+    const status = accountStatus === 'suspended' ? 'ระงับแล้ว' : accountStatus === 'active' ? 'ใช้งานได้' : 'รออนุมัติ';
+    const isSelf = user.id === getSupabaseUser().sub;
+    return `<tr><td><b>${escapeOverview(user.email || '-')}</b><small>${escapeOverview(user.id)}</small><small>${user.confirmedAt ? 'ยืนยันอีเมลแล้ว' : 'รอยืนยันอีเมล'}</small></td><td><span class="role-pill ${role}">${roleDefinitions[role]?.[0] || 'PENDING'}</span><small>ขอ: ${escapeOverview(requested)}</small></td><td><b>${status}</b></td><td>${user.lastSignInAt ? new Date(user.lastSignInAt).toLocaleString('th-TH') : '-'}</td><td><div class="admin-user-actions"><label>สิทธิ์<select data-user-role="${escapeOverview(user.id)}" ${isSelf ? 'disabled' : ''}><option value="officer" ${role === 'officer' ? 'selected' : ''}>OFFICER</option><option value="viewer" ${role === 'viewer' ? 'selected' : ''}>VIEWER</option><option value="admin" ${role === 'admin' ? 'selected' : ''}>ADMIN</option></select></label><label>สถานะ<select data-user-status="${escapeOverview(user.id)}" ${isSelf ? 'disabled' : ''}><option value="pending" ${accountStatus === 'pending' ? 'selected' : ''}>รออนุมัติ</option><option value="active" ${accountStatus === 'active' ? 'selected' : ''}>เปิดใช้งาน</option><option value="suspended" ${accountStatus === 'suspended' ? 'selected' : ''}>ระงับบัญชี</option></select></label>${isSelf ? '<small>ไม่สามารถลดสิทธิ์หรือระงับบัญชีตนเอง</small>' : `<button type="button" class="table-action" data-admin-user-action="update" data-user-id="${escapeOverview(user.id)}">บันทึกสิทธิ์</button><button type="button" class="table-action danger" data-admin-user-action="delete" data-user-id="${escapeOverview(user.id)}">ลบ</button>`}</div></td></tr>`;
   }).join('') : '<tr><td colspan="5">ยังไม่มีบัญชีผู้ใช้</td></tr>';
 };
 const loadAdminUsers = async () => {
@@ -316,7 +318,7 @@ const enhanceAdminUserManagement = () => {
   if (heading?.textContent !== 'ตั้งค่าและสถานะระบบ' || getSupabaseRole() !== 'admin' || root.querySelector('[data-admin-user-management]')) return;
   const section = document.createElement('section');
   section.className = 'work-panel admin-user-management'; section.dataset.adminUserManagement = 'true';
-  section.innerHTML = `<div class="panel-top"><div><h2>จัดการบัญชีผู้ใช้งาน</h2><small>เฉพาะ ADMIN: อนุมัติ แก้ไขสิทธิ์ ระงับ หรือ ลบบัญชีผู้ใช้</small></div><button type="button" class="secondary" data-refresh-admin-users>รีเฟรช</button></div><div class="responsive-table"><table><thead><tr><th>บัญชี</th><th>สิทธิ์</th><th>สถานะ</th><th>เข้าสู่ระบบล่าสุด</th><th>จัดการ</th></tr></thead><tbody data-admin-users><tr><td colspan="5">กำลังโหลดบัญชี...</td></tr></tbody></table></div><p class="scope-note">การเปลี่ยนสิทธิ์มีผลเมื่อผู้ใช้เข้าสู่ระบบใหม่หรือรีเฟรช session ครั้งถัดไป</p>`;
+  section.innerHTML = `<div class="panel-top"><div><h2>จัดการบัญชีและสิทธิ์ผู้ใช้งาน</h2><small>เฉพาะ ADMIN: เลือกสิทธิ์และสถานะ รออนุมัติ / เปิดใช้งาน / ระงับบัญชี / ลบบัญชี ได้จากตารางเดียว</small></div><button type="button" class="secondary" data-refresh-admin-users>รีเฟรช</button></div><div class="responsive-table"><table><thead><tr><th>บัญชี</th><th>สิทธิ์ปัจจุบัน</th><th>สถานะ</th><th>เข้าสู่ระบบล่าสุด</th><th>จัดการ</th></tr></thead><tbody data-admin-users><tr><td colspan="5">กำลังโหลดบัญชี...</td></tr></tbody></table></div><p class="scope-note">การเปลี่ยนสิทธิ์มีผลเมื่อผู้ใช้เข้าสู่ระบบใหม่หรือรีเฟรช session ครั้งถัดไป เพื่อให้ JWT รับ app metadata ชุดใหม่</p>`;
   root.querySelector('[data-settings-preflight]')?.after(section);
   loadAdminUsers();
 };
@@ -450,10 +452,11 @@ document.addEventListener('click', event => {
     const id = adminAction.dataset.userId;
     const action = adminAction.dataset.adminUserAction;
     const select = root.querySelector(`[data-user-role="${CSS.escape(id)}"]`);
+    const status = root.querySelector(`[data-user-status="${CSS.escape(id)}"]`);
     if (action === 'delete' && !confirm('ต้องการลบบัญชีนี้อย่างถาวรใช่หรือไม่?')) return;
     adminAction.disabled = true;
-    invokeAdminUserManagement(action, { userId: id, role: select?.value }).then(() => {
-      showToast(action === 'delete' ? 'ลบบัญชีแล้ว' : action === 'suspend' ? 'ระงับบัญชีแล้ว' : action === 'resume' ? 'ปลดระงับบัญชีแล้ว' : 'บันทึกสิทธิ์บัญชีแล้ว', 'success');
+    invokeAdminUserManagement(action, { userId: id, role: select?.value, status: status?.value }).then(() => {
+      showToast(action === 'delete' ? 'ลบบัญชีแล้ว' : action === 'update' ? 'บันทึกสิทธิ์และสถานะบัญชีแล้ว' : action === 'suspend' ? 'ระงับบัญชีแล้ว' : action === 'resume' ? 'ปลดระงับบัญชีแล้ว' : 'บันทึกสิทธิ์บัญชีแล้ว', 'success');
       loadAdminUsers();
     }).catch(error => showToast(error.message, 'error')).finally(() => { adminAction.disabled = false; });
     return;
