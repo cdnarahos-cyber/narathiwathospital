@@ -925,6 +925,17 @@ const csvRows = text => {
   const cells = line => { const result=[]; let value='', quoted=false; for(let i=0;i<line.length;i++){ const char=line[i]; if(char==='"') { if(quoted && line[i+1]==='"') { value+='"'; i++; } else quoted=!quoted; } else if(char===',' && !quoted) { result.push(value.trim()); value=''; } else value+=char; } result.push(value.trim()); return result; };
   const headers=cells(lines[0]); return lines.slice(1).map(line => Object.fromEntries(headers.map((header,index)=>[header,cells(line)[index] || ''])));
 };
+const download506Template = () => {
+  const headers=['โรค','ชื่อ-สกุล','HN','เลขบัตรประชาชน','วันที่เริ่มป่วย','เพศ','อายุ','สัญชาติ','ตำบล','อำเภอ','ละติจูด','ลองจิจูด'];
+  const csv=`\ufeff${headers.map(value => `"${value}"`).join(',')}\n`;
+  const blob=new Blob([csv],{type:'text/csv;charset=utf-8'});
+  const link=document.createElement('a');
+  link.href=URL.createObjectURL(blob);
+  link.download='ndss-506-template.csv';
+  link.click();
+  setTimeout(()=>URL.revokeObjectURL(link.href),500);
+  showToast('ดาวน์โหลดแม่แบบ รง.506 แล้ว');
+};
 const has506Headers = rows => {
   const supported=['disease','โรค','diag','diagnosis','icd10','icd-10','patient','name','ชื่อผู้ป่วย','hn','onset','วันที่เริ่มป่วย','dateonset','illdate','tambon','ตำบล','district','อำเภอ'];
   return Object.keys(rows[0] || {}).some(header => supported.some(name => normalizedHeader(header).includes(normalizedHeader(name))));
@@ -1138,6 +1149,7 @@ document.addEventListener('click', event => {
   const commandView=event.target.closest('[data-view]')?.dataset.view;
   if(commandView==='area-map') setTimeout(renderCommandMap,0);
   if(event.target.closest('[data-open-506-import]')) document.querySelector('.nav-link[data-view="import506"]')?.click();
+  if(event.target.closest('[data-download-506-template]')) download506Template();
   if(event.target.closest('[data-clear-506]')) { localStorage.removeItem('ndss-506-records'); localStorage.removeItem('ndss-506-import-meta'); recordAudit('ล้างข้อมูล รง.506','ล้างข้อมูลที่นำเข้าในอุปกรณ์นี้'); root.querySelector('[data-import-status]')?.replaceChildren(document.createTextNode('ล้างข้อมูลนำเข้าแล้ว')); window.dispatchEvent(new Event('ndss-cases-updated')); showToast('ล้างข้อมูล รง.506 แล้ว'); }
   if(event.target.closest('[data-clear-audit]')) { localStorage.removeItem('ndss-audit-log'); root.innerHTML=`<div class="module-page">${moduleView('audit')}</div>`; document.querySelectorAll('.nav-link').forEach(link=>link.classList.toggle('active',link.dataset.view==='audit')); showToast('ล้างบันทึกกิจกรรมแล้ว'); }
   if(event.target.closest('[data-backup-local]')) backupLocalData();
