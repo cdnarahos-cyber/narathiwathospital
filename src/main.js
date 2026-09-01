@@ -29,7 +29,8 @@ const overviewCases = () => {
   return [...investigations.map(row=>({...row,source:'investigation'})),...imported];
 };
 const countBy = (items, key, fallback = 'ไม่ระบุ') => items.reduce((all, item) => { const value = String(item[key] || fallback).trim() || fallback; all[value] = (all[value] || 0) + 1; return all; }, {});
-const rankedRows = (records, key, unit = 'ราย') => Object.entries(countBy(records, key)).sort((a,b) => b[1] - a[1]).map(([label,value]) => `<div><b>${escapeOverview(label)}</b><span><i style="width:${Math.max(8, value / Math.max(...Object.values(countBy(records,key)), 1) * 100)}%"></i></span><strong>${value} ${unit}</strong></div>`).join('');
+const rankedCountRows = (rows, unit = 'ราย', maximum = Math.max(1,...rows.map(([,value])=>value))) => rows.map(([label,value]) => `<div><b>${escapeOverview(label)}</b><span><i style="width:${Math.max(8, value / Math.max(1,maximum) * 100)}%"></i></span><strong>${value} ${unit}</strong></div>`).join('');
+const rankedRows = (records, key, unit = 'ราย') => rankedCountRows(Object.entries(countBy(records, key)).sort((a,b) => b[1] - a[1]),unit);
 const overviewDashboard = (mode = 'dashboard') => {
   const epidemiologyMode = mode === 'epidemiology';
   const allCases = overviewCases();
@@ -44,7 +45,15 @@ const overviewDashboard = (mode = 'dashboard') => {
   const cfr = cases.length ? `${(deaths / cases.length * 100).toFixed(2)} ร้อยละ` : 'ยังไม่มีข้อมูล';
   const empty = message => `<section class="work-panel epi-empty"><strong>ยังไม่มีข้อมูล</strong><p>${message}</p></section>`;
   const tabs = [['situation','สถานการณ์โรค'],['trend','Trend'],['curve','Epidemic Curve'],['person','Person'],['place','Place'],['time','Time']];
-  const disease = cases.length ? `<section class="work-panel"><div class="panel-top"><h2>จำนวนผู้ป่วยจำแนกตามโรค</h2><small>รง.506 ${importedCount} ราย · แบบสอบสวน ${investigationCount} ราย</small></div><div class="epi-disease-list">${rankedRows(cases,'disease')}</div></section>` : empty('ยังไม่มีข้อมูล รง.506 หรือเคสที่บันทึกจากระบบแบบสอบสวนโรคออนไลน์');
+  const diseaseCounts=Object.entries(countBy(cases,'disease')).sort((a,b)=>b[1]-a[1]);
+  const storedDiseasePageSize=Number(localStorage.getItem('ndss-dashboard-disease-page-size') || 25);
+  const diseasePageSize=[25,50,100].includes(storedDiseasePageSize) ? storedDiseasePageSize : 25;
+  const diseasePageCount=Math.max(1,Math.ceil(diseaseCounts.length/diseasePageSize));
+  const storedDiseasePage=Number(localStorage.getItem('ndss-dashboard-disease-page') || 1);
+  const diseasePage=Math.min(Math.max(1,storedDiseasePage),diseasePageCount);
+  const diseaseStart=(diseasePage-1)*diseasePageSize;
+  const diseasePager=diseaseCounts.length > diseasePageSize ? `<div class="report-pagination dashboard-disease-pagination"><span>แสดง ${diseaseStart+1}–${Math.min(diseaseStart+diseasePageSize,diseaseCounts.length)} จาก ${diseaseCounts.length} โรค</span><label>แสดงต่อหน้า <select data-dashboard-disease-page-size aria-label="จำนวนโรคต่อหน้า"><option value="25" ${diseasePageSize===25?'selected':''}>25</option><option value="50" ${diseasePageSize===50?'selected':''}>50</option><option value="100" ${diseasePageSize===100?'selected':''}>100</option></select></label><button type="button" class="secondary" data-dashboard-disease-page="${diseasePage-1}" ${diseasePage<=1?'disabled':''}>ก่อนหน้า</button><span>หน้า ${diseasePage}/${diseasePageCount}</span><button type="button" class="secondary" data-dashboard-disease-page="${diseasePage+1}" ${diseasePage>=diseasePageCount?'disabled':''}>ถัดไป</button></div>` : '';
+  const disease = cases.length ? `<section class="work-panel"><div class="panel-top"><h2>จำนวนผู้ป่วยจำแนกตามโรค</h2><small>รง.506 ${importedCount} ราย · แบบสอบสวน ${investigationCount} ราย</small></div><div class="epi-disease-list">${rankedCountRows(diseaseCounts.slice(diseaseStart,diseaseStart+diseasePageSize),'ราย',Math.max(1,...diseaseCounts.map(([,value])=>value)))}</div>${diseasePager}</section>` : empty('ยังไม่มีข้อมูล รง.506 หรือเคสที่บันทึกจากระบบแบบสอบสวนโรคออนไลน์');
   const year = new Date().getFullYear();
   const monthlyValues=Array.from({length:12},(_,month)=>[year-2,year-1,year].map(y=>cases.filter(item=>{ const d=new Date(item.onset || item.createdAt); return !Number.isNaN(d) && d.getFullYear()===y && d.getMonth()===month; }).length));
   const monthlyMax=Math.max(1,...monthlyValues.flat());
@@ -1215,6 +1224,12 @@ document.addEventListener('change', event => {
     localStorage.setItem('ndss-epi-disease',event.target.value);
     refreshEpidemiology();
   }
+  if(event.target.matches('[data-dashboard-disease-page-size]')) {
+    const pageSize=Number(event.target.value);
+    localStorage.setItem('ndss-dashboard-disease-page-size',String([25,50,100].includes(pageSize) ? pageSize : 25));
+    localStorage.setItem('ndss-dashboard-disease-page','1');
+    refreshOverview();
+  }
   if(event.target.matches('[data-506-report-page-size]')) {
     const pageSize=Number(event.target.value);
     localStorage.setItem('ndss-506-report-page-size', String([25,50,100].includes(pageSize) ? pageSize : 25));
@@ -1241,6 +1256,12 @@ document.addEventListener('input', event => {
 });
 document.addEventListener('click', event => {
   const commandView=event.target.closest('[data-view]')?.dataset.view;
+  const diseasePageButton=event.target.closest('[data-dashboard-disease-page]');
+  if(diseasePageButton && !diseasePageButton.disabled) {
+    localStorage.setItem('ndss-dashboard-disease-page',String(Math.max(1,Number(diseasePageButton.dataset.dashboardDiseasePage) || 1)));
+    refreshOverview();
+    return;
+  }
   if(commandView==='area-map') setTimeout(renderCommandMap,0);
   if(event.target.closest('[data-open-506-import]')) open506Import();
   if(event.target.closest('[data-download-506-template]')) download506Template();
