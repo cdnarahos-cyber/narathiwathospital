@@ -86,6 +86,19 @@ const renderCurrentUserName = () => {
 renderCurrentUserName();
 const root = document.querySelector('#module-root');
 let temporaryPrintHeaders=[];
+const hospitalLogoUrl='./public/assets/naradhiwas-hospital-logo.svg';
+const repairHospitalLogoSources = (scope=document) => {
+  scope.querySelectorAll?.('img[src$="naradhiwas-hospital-logo.jpg"]').forEach(image => {
+    image.src=hospitalLogoUrl;
+    image.removeAttribute('srcset');
+  });
+};
+repairHospitalLogoSources();
+new MutationObserver(records => records.forEach(record => record.addedNodes.forEach(node => {
+  if (node.nodeType !== Node.ELEMENT_NODE) return;
+  if (node.matches?.('img[src$="naradhiwas-hospital-logo.jpg"]')) { node.src=hospitalLogoUrl; node.removeAttribute('srcset'); }
+  repairHospitalLogoSources(node);
+}))).observe(document.documentElement,{childList:true,subtree:true});
 const preparePrintHospitalHeader = () => {
   const aiTarget=document.body.classList.contains('printing-ai-report') ? root.querySelector('.ai-panel') : null;
   const target=aiTarget || root.querySelector('.printable-command-report') || root.querySelector('.module-page') || root;
@@ -93,14 +106,25 @@ const preparePrintHospitalHeader = () => {
   const title=target.querySelector('h1,h2')?.textContent?.trim() || root.querySelector('.module-head h1')?.textContent?.trim() || 'รายงานระบบเฝ้าระวังโรค';
   const header=document.createElement('header');
   header.className='ndss-universal-print-header';
-  header.innerHTML='<img src="./public/assets/naradhiwas-hospital-logo.jpg" alt="โลโก้โรงพยาบาลนราธิวาสราชนครินทร์" /><div><b>โรงพยาบาลนราธิวาสราชนครินทร์</b><small>Naradhiwas Rajanagarindra Hospital</small><strong></strong></div>';
+  header.innerHTML='<img src="./public/assets/naradhiwas-hospital-logo.svg" alt="โลโก้โรงพยาบาลนราธิวาสราชนครินทร์" /><div><b>โรงพยาบาลนราธิวาสราชนครินทร์</b><small>Naradhiwas Rajanagarindra Hospital</small><strong></strong></div>';
   header.querySelector('strong').textContent=title;
   target.prepend(header);
   temporaryPrintHeaders.push(header);
 };
 const clearPrintHospitalHeaders = () => { temporaryPrintHeaders.forEach(header=>header.remove()); temporaryPrintHeaders=[]; };
-const printWithHospitalHeader = () => {
+const waitForHospitalLogos = async () => {
+  repairHospitalLogoSources();
+  const logos=[...document.querySelectorAll('.print-hospital-header img,.command-report-header img,.ndss-universal-print-header img')];
+  await Promise.all(logos.map(image => image.complete && image.naturalWidth > 0 ? Promise.resolve() : new Promise(resolve => {
+    const done=()=>{ image.removeEventListener('load',done); image.removeEventListener('error',done); resolve(); };
+    image.addEventListener('load',done,{once:true});
+    image.addEventListener('error',done,{once:true});
+    window.setTimeout(done,2200);
+  }))));
+};
+const printWithHospitalHeader = async () => {
   preparePrintHospitalHeader();
+  await waitForHospitalLogos();
   window.requestAnimationFrame(() => window.requestAnimationFrame(() => window.print()));
 };
 window.addEventListener('beforeprint',preparePrintHospitalHeader);
