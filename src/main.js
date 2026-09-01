@@ -3,7 +3,7 @@ import { downloadCleanPdf } from './services/clean-pdf-generator.js';
 import { enableHistoryAreaFilter } from './components/history-area-filter.js';
 import { addNarathiwatBoundaries } from './components/narathiwat-boundaries.js';
 import { shell } from './components/layout.js?v=20260901-4';
-import { moduleView, diseaseMeta, investigationForm } from './components/modules.js?v=20260901-6';
+import { moduleView, diseaseMeta, investigationForm } from './components/modules.js?v=20260901-7';
 const authCallbackType = new URLSearchParams(location.hash.replace(/^#/, '')).get('type') || '';
 consumeSupabaseSessionFromUrl();
 const escapeOverview = value => String(value ?? '-').replace(/[&<>"']/g, char => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[char]));
@@ -99,7 +99,10 @@ const preparePrintHospitalHeader = () => {
   temporaryPrintHeaders.push(header);
 };
 const clearPrintHospitalHeaders = () => { temporaryPrintHeaders.forEach(header=>header.remove()); temporaryPrintHeaders=[]; };
-const printWithHospitalHeader = () => { preparePrintHospitalHeader(); window.print(); };
+const printWithHospitalHeader = () => {
+  preparePrintHospitalHeader();
+  window.requestAnimationFrame(() => window.requestAnimationFrame(() => window.print()));
+};
 window.addEventListener('beforeprint',preparePrintHospitalHeader);
 window.addEventListener('afterprint',clearPrintHospitalHeaders);
 const ensureRefreshButton = () => {
