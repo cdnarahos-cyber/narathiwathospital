@@ -8,12 +8,20 @@ const authCallbackType = new URLSearchParams(location.hash.replace(/^#/, '')).ge
 consumeSupabaseSessionFromUrl();
 const data = await getDashboardData();
 const escapeOverview = value => String(value ?? '-').replace(/[&<>"']/g, char => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[char]));
+function cleanDiseaseLabel(value) {
+  const raw=String(value ?? '').trim();
+  if (!raw || /^(?:["']\s*){1,2}$/.test(raw)) return '';
+  const parts=raw.replace(/[\[\]]/g,'').split(/[;,|]/).map(part=>part.trim().replace(/^["']+|["']+$/g,'').trim()).filter(part=>part && part !== '""');
+  const tidy=part=>/^[A-Za-z]\d{3}$/.test(part) ? `${part.slice(0,3)}.${part.slice(3)}` : part;
+  return (parts.length ? parts : [raw.replace(/^["']+|["']+$/g,'').trim()]).map(tidy).filter(Boolean).join(' · ');
+}
 const overviewCases = () => {
   let investigations=[], reports=[];
   try { investigations=JSON.parse(localStorage.getItem('ndss-investigations') || '[]'); } catch { investigations=[]; }
   try { reports=JSON.parse(localStorage.getItem('ndss-506-records') || '[]'); } catch { reports=[]; }
   const imported=reports.map(row => ({
     ...row,
+    disease:cleanDiseaseLabel(row.disease),
     location:row.location || [row.tambon,row.district].filter(Boolean).join(' '),
     subdistrict:row.subdistrict || row.tambon,
     createdAt:row.importedAt || row.onset || '',
@@ -923,7 +931,7 @@ const normalize506Date = value => {
 const isNormalized506Date = value => /^\d{4}-\d{2}-\d{2}$/.test(commandText(value)) && !Number.isNaN(new Date(`${value}T00:00:00`).getTime());
 const hasMapCoordinates = (latitude, longitude) => Number.isFinite(Number(latitude)) && Number.isFinite(Number(longitude)) && Math.abs(Number(latitude)) <= 90 && Math.abs(Number(longitude)) <= 180 && !(Number(latitude) === 0 && Number(longitude) === 0);
 const normalize506 = rows => rows.map(row => ({
-  disease: fieldValue(row,['diagnosis_icd10_list','diagnosis icd10','icd10','icd-10','disease','diagnosis','diag','ชื่อโรค','โรค']),
+  disease: cleanDiseaseLabel(fieldValue(row,['diagnosis_icd10_list','diagnosis icd10','icd10','icd-10','disease','diagnosis','diag','ชื่อโรค','โรค'])),
   patient: patientName(row),
   hn: fieldValue(row,['hn','hospitalnumber','เลขhn']),
   cid: fieldValue(row,['cid','pid','เลขบัตรประชาชน','เลข13หลัก']),
