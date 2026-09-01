@@ -87,6 +87,16 @@ renderCurrentUserName();
 const root = document.querySelector('#module-root');
 let temporaryPrintHeaders=[];
 const hospitalLogoUrl='./public/assets/naradhiwas-hospital-logo.svg';
+let embeddedHospitalLogoPromise;
+const getEmbeddedHospitalLogo = () => {
+  if (!embeddedHospitalLogoPromise) {
+    embeddedHospitalLogoPromise=fetch(hospitalLogoUrl)
+      .then(response => response.ok ? response.text() : Promise.reject(new Error('ไม่พบไฟล์โลโก้')))
+      .then(svg => `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`)
+      .catch(() => hospitalLogoUrl);
+  }
+  return embeddedHospitalLogoPromise;
+};
 const repairHospitalLogoSources = (scope=document) => {
   scope.querySelectorAll?.('img[src$="naradhiwas-hospital-logo.jpg"]').forEach(image => {
     image.src=hospitalLogoUrl;
@@ -109,7 +119,9 @@ const preparePrintHospitalHeader = () => {
 const clearPrintHospitalHeaders = () => { temporaryPrintHeaders.forEach(header=>header.remove()); temporaryPrintHeaders=[]; };
 const waitForHospitalLogos = async () => {
   repairHospitalLogoSources();
+  const embeddedLogo=await getEmbeddedHospitalLogo();
   const logos=[...document.querySelectorAll('.print-hospital-header img,.command-report-header img,.ndss-universal-print-header img')];
+  logos.forEach(image => { image.src=embeddedLogo; image.removeAttribute('srcset'); });
   await Promise.all(logos.map(image => image.complete && image.naturalWidth > 0 ? Promise.resolve() : new Promise(resolve => {
     const done=()=>{ image.removeEventListener('load',done); image.removeEventListener('error',done); resolve(); };
     image.addEventListener('load',done,{once:true});
