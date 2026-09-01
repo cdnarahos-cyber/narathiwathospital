@@ -881,14 +881,15 @@ const commandText = value => String(value ?? '').trim();
 const normalizedHeader = value => commandText(value).toLocaleLowerCase('th-TH').replaceAll(/[\s_.\-/()]/g,'');
 const fieldRaw = (row, names) => {
   const keys=Object.keys(row);
+  let fallback='';
   for (const name of names) {
     const normalizedName=normalizedHeader(name);
-    const exact=keys.find(key => normalizedHeader(key)===normalizedName);
-    if (exact) return row[exact];
-    const partial=keys.find(key => normalizedHeader(key).includes(normalizedName));
-    if (partial) return row[partial];
+    const matches=[...keys.filter(key => normalizedHeader(key)===normalizedName),...keys.filter(key => normalizedHeader(key).includes(normalizedName) && normalizedHeader(key)!==normalizedName)];
+    if (!fallback && matches[0]) fallback=matches[0];
+    const populated=matches.find(key => commandText(row[key]));
+    if (populated) return row[populated];
   }
-  return '';
+  return fallback ? row[fallback] : '';
 };
 const fieldValue = (row, names) => commandText(fieldRaw(row, names));
 const patientName = row => {
@@ -984,11 +985,19 @@ const import506File = async file => {
     const existing=commandRecords();
     const seen=new Set(existing.map(recordFingerprint));
     const unique=normalized.filter(row => { const fingerprint=recordFingerprint(row); if(seen.has(fingerprint)) return false; seen.add(fingerprint); return true; });
+    const quality={
+      missingDisease:normalized.filter(row => !row.disease).length,
+      missingOnset:normalized.filter(row => !row.onset).length,
+      missingTambon:normalized.filter(row => !row.tambon).length,
+      missingDistrict:normalized.filter(row => !row.district).length,
+      invalidAge:normalized.filter(row => row.age && (!Number.isFinite(Number(row.age)) || Number(row.age)<0 || Number(row.age)>130)).length,
+      withCoordinates:normalized.filter(row => Number.isFinite(Number(row.latitude)) && Number.isFinite(Number(row.longitude))).length
+    };
     const incomplete=normalized.filter(row => !row.disease || !row.onset || !(row.tambon || row.district)).length;
     const combined=[...existing,...unique];
     localStorage.setItem('ndss-506-records',JSON.stringify(combined));
     const sourceSheets=[...new Set(rows.map(row => commandText(row.__ndssSourceSheet)).filter(Boolean))];
-    const meta={fileName:file.name,imported:unique.length,duplicates:normalized.length-unique.length,incomplete,sheetCount:sourceSheets.length,sourceSheets,mappingVersion:2,at:new Date().toLocaleString('th-TH')};
+    const meta={fileName:file.name,imported:unique.length,duplicates:normalized.length-unique.length,incomplete,quality,sheetCount:sourceSheets.length,sourceSheets,mappingVersion:3,at:new Date().toLocaleString('th-TH')};
     localStorage.setItem('ndss-506-import-meta',JSON.stringify(meta));
     recordAudit('นำเข้าข้อมูล รง.506',`ไฟล์ ${file.name} · ${sourceSheets.length || 1} ชีต · เพิ่ม ${unique.length} ราย · ซ้ำ ${meta.duplicates} ราย`);
     root.querySelector('[data-import-status]')?.replaceChildren(document.createTextNode(`อ่าน ${sourceSheets.length || 1} ชีต · นำเข้าข้อมูลใหม่ ${unique.length} ราย · รวมข้อมูล รง.506 ${combined.length} ราย`));
