@@ -94,11 +94,6 @@ const repairHospitalLogoSources = (scope=document) => {
   });
 };
 repairHospitalLogoSources();
-new MutationObserver(records => records.forEach(record => record.addedNodes.forEach(node => {
-  if (node.nodeType !== Node.ELEMENT_NODE) return;
-  if (node.matches?.('img[src$="naradhiwas-hospital-logo.jpg"]')) { node.src=hospitalLogoUrl; node.removeAttribute('srcset'); }
-  repairHospitalLogoSources(node);
-}))).observe(document.documentElement,{childList:true,subtree:true});
 const preparePrintHospitalHeader = () => {
   const aiTarget=document.body.classList.contains('printing-ai-report') ? root.querySelector('.ai-panel') : null;
   const target=aiTarget || root.querySelector('.printable-command-report') || root.querySelector('.module-page') || root;
