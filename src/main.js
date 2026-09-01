@@ -73,6 +73,17 @@ const overviewDashboard = (mode = 'dashboard') => {
   return `<div class="module-page overview-page"><section class="module-head"><div><h1>${epidemiologyMode ? 'Dashboard ระบาดวิทยา' : 'Dashboard'}</h1><p>${epidemiologyMode ? 'วิเคราะห์สถานการณ์โรคตามกรอบ Person – Place – Time' : 'ภาพรวมสถานการณ์'} จากข้อมูล ณ วันที่: ${asOfText}</p></div></section>${filter}<section class="epi-dashboard"><div class="epi-tabs" role="tablist">${tabs.map(([id,label],index)=>`<button type="button" class="${index===0?'active':''}" data-epi-tab="${id}" role="tab">${label}</button>`).join('')}</div><div class="epi-pane active" data-epi-pane="situation"><p class="epi-standard">ข้อมูลจากการเฝ้าระวังโรค จากระบบเฝ้าระวังโรคดิจิทัล (Digital Disease Surveillance; DDS)</p><div class="module-cards"><article class="blue"><span>จำนวนผู้ป่วยสะสม</span><strong>${cases.length} ราย</strong><small>หน่วย: ราย</small></article><article><span>อัตราป่วย</span><strong>ยังไม่มีข้อมูล</strong><small>ต่อประชากรแสนคน · ต้องมีฐานประชากร</small></article><article class="red"><span>ผู้เสียชีวิต / อัตราตาย</span><strong>${deaths} ราย</strong><small>ต่อประชากรแสนคน: ยังไม่มีข้อมูล</small></article><article class="orange"><span>อัตราป่วยตาย (CFR)</span><strong>${cfr}</strong><small>หน่วย: ร้อยละ</small></article></div>${disease}</div><div class="epi-pane" data-epi-pane="trend" hidden>${trend}</div><div class="epi-pane" data-epi-pane="curve" hidden>${curve}</div><div class="epi-pane" data-epi-pane="person" hidden>${person}</div><div class="epi-pane" data-epi-pane="place" hidden>${place}</div><div class="epi-pane" data-epi-pane="time" hidden>${time}</div></section></div>`;
 };
 document.querySelector('#app').innerHTML = shell(overviewDashboard());
+const renderCurrentUserName = () => {
+  const user=getSupabaseUser() || {};
+  const metadata=user.user_metadata || user.metadata || {};
+  const name=String(metadata.full_name || metadata.name || user.full_name || user.name || user.email?.split('@')[0] || 'ผู้ใช้').trim() || 'ผู้ใช้';
+  const role=String(getSupabaseRole() || '').toUpperCase();
+  const nameNode=document.querySelector('[data-current-user-name]');
+  const detailNode=document.querySelector('[data-current-user-detail]');
+  if(nameNode) nameNode.textContent=name;
+  if(detailNode) detailNode.textContent=role || 'NDSS Narathiwat';
+};
+renderCurrentUserName();
 const root = document.querySelector('#module-root');
 let temporaryPrintHeaders=[];
 const preparePrintHospitalHeader = () => {
