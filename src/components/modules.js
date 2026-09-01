@@ -30,6 +30,7 @@ const epidemiologyDashboard = () => `${title('Dashboard ระบาดวิท
 export function moduleView(id) {
   const commandView = commandCenterView(id);
   if (commandView) return commandView;
+  if (id === 'epidemiology') return epidemiologyDashboard();
   if (id === 'investigation') return investigation();
   return '';
 }
