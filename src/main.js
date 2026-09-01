@@ -2,7 +2,7 @@ import { clearSupabaseSession, consumeSupabaseSessionFromUrl, getSupabaseRole, g
 import { downloadCleanPdf } from './services/clean-pdf-generator.js';
 import { enableHistoryAreaFilter } from './components/history-area-filter.js';
 import { addNarathiwatBoundaries } from './components/narathiwat-boundaries.js';
-import { shell } from './components/layout.js?v=20260901-3'; import { metricsGrid } from './components/metrics.js'; import { analytics } from './components/charts.js'; import { caseTracking } from './components/case-tracking.js'; import { rightRail } from './components/alerts.js'; import { moduleView, diseaseMeta, investigationForm } from './components/modules.js?v=20260901-6';
+import { shell } from './components/layout.js?v=20260901-4'; import { metricsGrid } from './components/metrics.js'; import { analytics } from './components/charts.js'; import { caseTracking } from './components/case-tracking.js'; import { rightRail } from './components/alerts.js'; import { moduleView, diseaseMeta, investigationForm } from './components/modules.js?v=20260901-6';
 const authCallbackType = new URLSearchParams(location.hash.replace(/^#/, '')).get('type') || '';
 consumeSupabaseSessionFromUrl();
 const escapeOverview = value => String(value ?? '-').replace(/[&<>"']/g, char => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[char]));
@@ -81,25 +81,35 @@ document.addEventListener('click', event => {
   window.location.reload();
 });
 const mobileNavToggle = document.querySelector('[data-mobile-nav-toggle]');
+const setMobileMenuOpen = open => {
+  const sidebar = document.querySelector('.command-sidebar');
+  const state = document.querySelector('#mobile-sidebar-state');
+  sidebar?.classList.toggle('mobile-open', open);
+  if (state) state.checked = open;
+  setMobileNavToggleState(document.querySelector('[data-mobile-nav-toggle]'), open);
+};
 mobileNavToggle?.addEventListener('click', event => {
+  event.preventDefault();
   event.stopPropagation();
   const sidebar = document.querySelector('.command-sidebar');
   if (!sidebar) return;
-  const open = sidebar.classList.toggle('mobile-open');
-  setMobileNavToggleState(mobileNavToggle, open);
+  setMobileMenuOpen(!sidebar.classList.contains('mobile-open'));
+});
+document.querySelector('[data-mobile-nav-close]')?.addEventListener('click', event => {
+  event.preventDefault();
+  event.stopPropagation();
+  setMobileMenuOpen(false);
 });
 document.addEventListener('change', event => {
   if (!event.target.matches('#mobile-sidebar-state')) return;
-  setMobileNavToggleState(document.querySelector('.mobile-nav-toggle'), event.target.checked);
+  setMobileMenuOpen(event.target.checked);
 });
 document.addEventListener('keydown', event => {
   if (!['Enter',' '].includes(event.key)) return;
   if (!event.target.closest('.mobile-nav-toggle,.mobile-sidebar-close')) return;
   event.preventDefault();
-  const state = document.querySelector('#mobile-sidebar-state');
-  if (!state) return;
-  state.checked = !state.checked;
-  state.dispatchEvent(new Event('change', { bubbles:true }));
+  const sidebar = document.querySelector('.command-sidebar');
+  setMobileMenuOpen(!sidebar?.classList.contains('mobile-open'));
 });
 const roleDefinitions = {
   admin: ['ADMIN', 'จัดการบัญชีและข้อมูลทั้งหมด'],
