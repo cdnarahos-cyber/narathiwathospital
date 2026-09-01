@@ -2,7 +2,8 @@ import { clearSupabaseSession, consumeSupabaseSessionFromUrl, getSupabaseRole, g
 import { downloadCleanPdf } from './services/clean-pdf-generator.js';
 import { enableHistoryAreaFilter } from './components/history-area-filter.js';
 import { addNarathiwatBoundaries } from './components/narathiwat-boundaries.js';
-import { shell } from './components/layout.js?v=20260901-4'; import { metricsGrid } from './components/metrics.js'; import { analytics } from './components/charts.js'; import { caseTracking } from './components/case-tracking.js'; import { rightRail } from './components/alerts.js'; import { moduleView, diseaseMeta, investigationForm } from './components/modules.js?v=20260901-6';
+import { shell } from './components/layout.js?v=20260901-4';
+import { moduleView, diseaseMeta, investigationForm } from './components/modules.js?v=20260901-6';
 const authCallbackType = new URLSearchParams(location.hash.replace(/^#/, '')).get('type') || '';
 consumeSupabaseSessionFromUrl();
 const escapeOverview = value => String(value ?? '-').replace(/[&<>"']/g, char => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[char]));
