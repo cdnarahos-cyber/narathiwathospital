@@ -1,4 +1,4 @@
-import { commandCenterView } from './command-center.js?v=20260901-2';
+import { commandCenterView } from './command-center.js?v=20260901-3';
 
 const title = (name, detail = 'จัดการข้อมูลและติดตามผลการดำเนินงาน') => `<section class="module-head"><div><h1>${name}</h1><p>${detail}</p></div><button class="primary" data-export>⇩ ดาวน์โหลด CSV</button></section>`;
 const cards = (items) => `<div class="module-cards">${items.map(([label,value,tone]) => `<article class="${tone || ''}"><span>${label}</span><strong>${value}</strong><small>อัปเดตล่าสุดวันนี้</small></article>`).join('')}</div>`;

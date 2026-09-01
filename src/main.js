@@ -880,11 +880,22 @@ const recordAudit = (action, detail) => { let entries=[]; try { entries=JSON.par
 const commandText = value => String(value ?? '').trim();
 const normalizedHeader = value => commandText(value).toLocaleLowerCase('th-TH').replaceAll(/[\s_.\-/()]/g,'');
 const fieldRaw = (row, names) => {
-  const normalizedNames=names.map(normalizedHeader);
-  const found = Object.keys(row).find(key => normalizedNames.some(name => normalizedHeader(key).includes(name)));
-  return found ? row[found] : '';
+  const keys=Object.keys(row);
+  for (const name of names) {
+    const normalizedName=normalizedHeader(name);
+    const exact=keys.find(key => normalizedHeader(key)===normalizedName);
+    if (exact) return row[exact];
+    const partial=keys.find(key => normalizedHeader(key).includes(normalizedName));
+    if (partial) return row[partial];
+  }
+  return '';
 };
 const fieldValue = (row, names) => commandText(fieldRaw(row, names));
+const patientName = row => {
+  const full=fieldValue(row,['ชื่อ-สกุล','ชื่อสกุล','patientname','patient','ผู้ป่วย']);
+  if(full) return full;
+  return [fieldValue(row,['ชื่อ','firstname']),fieldValue(row,['นามสกุล','lastname','surname'])].filter(Boolean).join(' ');
+};
 const localIsoDate = date => `${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,'0')}-${String(date.getDate()).padStart(2,'0')}`;
 const normalize506Date = value => {
   if (value instanceof Date && !Number.isNaN(value)) return localIsoDate(value);
@@ -903,18 +914,19 @@ const normalize506Date = value => {
   return Number.isNaN(parsed) ? text : localIsoDate(parsed);
 };
 const normalize506 = rows => rows.map(row => ({
-  disease: fieldValue(row,['disease','โรค','diag','diagnosis','icd10','icd-10']),
-  patient: fieldValue(row,['patient','patientname','name','ชื่อผู้ป่วย','ชื่อสกุล','ชื่อ-สกุล','ผู้ป่วย']),
+  disease: fieldValue(row,['diagnosis_icd10_list','diagnosis icd10','icd10','icd-10','disease','diagnosis','diag','ชื่อโรค','โรค']),
+  patient: patientName(row),
   hn: fieldValue(row,['hn','hospitalnumber','เลขhn']),
   cid: fieldValue(row,['cid','pid','เลขบัตรประชาชน','เลข13หลัก']),
-  onset: normalize506Date(fieldRaw(row,['onset','onsetdate','วันที่เริ่มป่วย','dateonset','illdate','วันเริ่มป่วย','วันป่วย'])),
+  onset: normalize506Date(fieldRaw(row,['วันที่เริ่มมีอาการ','onset','onsetdate','วันที่เริ่มป่วย','dateonset','illdate','วันเริ่มป่วย','วันป่วย'])),
   sex: fieldValue(row,['sex','เพศ']),
   age: fieldValue(row,['age','อายุ']),
   nationality: fieldValue(row,['nationality','สัญชาติ']),
-  tambon: fieldValue(row,['tambon','subdistrict','ตำบล','ตําบล','ตำบลที่อยู่']),
-  district: fieldValue(row,['district','amphoe','อำเภอ','อําเภอ','อำเภอที่อยู่']),
+  tambon: fieldValue(row,['ตำบลขณะป่วย','ตำบลที่อยู่','tambon','subdistrict','ตำบล','ตําบล']),
+  district: fieldValue(row,['อำเภอขณะป่วย','อำเภอที่อยู่','district','amphoe','อำเภอ','อําเภอ']),
   latitude: fieldValue(row,['latitude','lat','ละติจูด']),
   longitude: fieldValue(row,['longitude','lng','lon','ลองจิจูด']),
+  sourceSheet: commandText(row.__ndssSourceSheet),
   raw: row,
   importedAt: new Date().toISOString()
 })).filter(row => [row.disease,row.patient,row.hn,row.cid,row.onset,row.sex,row.age,row.tambon,row.district,row.latitude,row.longitude].some(value => commandText(value)));
@@ -949,7 +961,7 @@ const download506Template = () => {
   showToast('ดาวน์โหลดแม่แบบ CSV รง.506 แล้ว');
 };
 const has506Headers = rows => {
-  const supported=['disease','โรค','diag','diagnosis','icd10','icd-10','patient','name','ชื่อผู้ป่วย','hn','onset','วันที่เริ่มป่วย','dateonset','illdate','tambon','ตำบล','district','อำเภอ'];
+  const supported=['disease','โรค','diag','diagnosis','icd10','icd-10','diagnosis_icd10_list','patient','name','ชื่อผู้ป่วย','ชื่อ','hn','cid','onset','วันที่เริ่มป่วย','วันที่เริ่มมีอาการ','dateonset','illdate','tambon','ตำบล','district','อำเภอ'];
   return Object.keys(rows[0] || {}).some(header => supported.some(name => normalizedHeader(header).includes(normalizedHeader(name))));
 };
 const import506File = async file => {
@@ -961,8 +973,8 @@ const import506File = async file => {
     else if (window.XLSX) {
       const data=await file.arrayBuffer();
       const book=window.XLSX.read(data,{type:'array',cellDates:true});
-      const sheetName=book.SheetNames.find(name => Object.keys(book.Sheets[name] || {}).length > 1);
-      rows=sheetName ? window.XLSX.utils.sheet_to_json(book.Sheets[sheetName],{defval:''}) : [];
+      rows=book.SheetNames.flatMap(sheetName => window.XLSX.utils.sheet_to_json(book.Sheets[sheetName],{defval:''})
+        .map(row => ({...row,__ndssSourceSheet:sheetName})));
     }
     else throw new Error('ไม่พบตัวอ่านไฟล์ Excel');
     if (!rows.length) throw new Error('ไม่พบแถวข้อมูลในไฟล์');
@@ -975,10 +987,11 @@ const import506File = async file => {
     const incomplete=normalized.filter(row => !row.disease || !row.onset || !(row.tambon || row.district)).length;
     const combined=[...existing,...unique];
     localStorage.setItem('ndss-506-records',JSON.stringify(combined));
-    const meta={fileName:file.name,imported:unique.length,duplicates:normalized.length-unique.length,incomplete,at:new Date().toLocaleString('th-TH')};
+    const sourceSheets=[...new Set(rows.map(row => commandText(row.__ndssSourceSheet)).filter(Boolean))];
+    const meta={fileName:file.name,imported:unique.length,duplicates:normalized.length-unique.length,incomplete,sheetCount:sourceSheets.length,sourceSheets,mappingVersion:2,at:new Date().toLocaleString('th-TH')};
     localStorage.setItem('ndss-506-import-meta',JSON.stringify(meta));
-    recordAudit('นำเข้าข้อมูล รง.506',`ไฟล์ ${file.name} · เพิ่ม ${unique.length} ราย · ซ้ำ ${meta.duplicates} ราย`);
-    root.querySelector('[data-import-status]')?.replaceChildren(document.createTextNode(`นำเข้าข้อมูลใหม่ ${unique.length} ราย · รวมข้อมูล รง.506 ${combined.length} ราย`));
+    recordAudit('นำเข้าข้อมูล รง.506',`ไฟล์ ${file.name} · ${sourceSheets.length || 1} ชีต · เพิ่ม ${unique.length} ราย · ซ้ำ ${meta.duplicates} ราย`);
+    root.querySelector('[data-import-status]')?.replaceChildren(document.createTextNode(`อ่าน ${sourceSheets.length || 1} ชีต · นำเข้าข้อมูลใหม่ ${unique.length} ราย · รวมข้อมูล รง.506 ${combined.length} ราย`));
     window.dispatchEvent(new Event('ndss-cases-updated'));
     showToast(`นำเข้าข้อมูล รง.506 ใหม่ ${unique.length} รายแล้ว`);
   } catch(error) { console.error(error); showToast(`นำเข้าข้อมูลไม่สำเร็จ: ${error.message}`); }
