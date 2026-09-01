@@ -927,14 +927,26 @@ const csvRows = text => {
 };
 const download506Template = () => {
   const headers=['โรค','ชื่อ-สกุล','HN','เลขบัตรประชาชน','วันที่เริ่มป่วย','เพศ','อายุ','สัญชาติ','ตำบล','อำเภอ','ละติจูด','ลองจิจูด'];
-  const csv=`\ufeff${headers.map(value => `"${value}"`).join(',')}\n`;
-  const blob=new Blob([csv],{type:'text/csv;charset=utf-8'});
+  const book=window.XLSX?.utils.book_new();
+  const sheet=window.XLSX?.utils.aoa_to_sheet([headers]);
+  if(book && sheet) {
+    window.XLSX.utils.book_append_sheet(book,sheet,'รง506');
+    const blob=new Blob([window.XLSX.write(book,{bookType:'xlsx',type:'array'})],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
+    const link=document.createElement('a');
+    link.href=URL.createObjectURL(blob);
+    link.download='ndss-506-template.xlsx';
+    link.click();
+    setTimeout(()=>URL.revokeObjectURL(link.href),500);
+    showToast('ดาวน์โหลดแม่แบบ Excel รง.506 แล้ว');
+    return;
+  }
+  const blob=new Blob([`\ufeff${headers.map(value => `"${value}"`).join(',')}\n`],{type:'text/csv;charset=utf-8'});
   const link=document.createElement('a');
   link.href=URL.createObjectURL(blob);
   link.download='ndss-506-template.csv';
   link.click();
   setTimeout(()=>URL.revokeObjectURL(link.href),500);
-  showToast('ดาวน์โหลดแม่แบบ รง.506 แล้ว');
+  showToast('ดาวน์โหลดแม่แบบ CSV รง.506 แล้ว');
 };
 const has506Headers = rows => {
   const supported=['disease','โรค','diag','diagnosis','icd10','icd-10','patient','name','ชื่อผู้ป่วย','hn','onset','วันที่เริ่มป่วย','dateonset','illdate','tambon','ตำบล','district','อำเภอ'];
