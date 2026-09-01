@@ -115,7 +115,7 @@ const waitForHospitalLogos = async () => {
     image.addEventListener('load',done,{once:true});
     image.addEventListener('error',done,{once:true});
     window.setTimeout(done,2200);
-  }))));
+  })));
 };
 const printWithHospitalHeader = async () => {
   preparePrintHospitalHeader();
