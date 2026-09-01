@@ -74,6 +74,23 @@ const overviewDashboard = (mode = 'dashboard') => {
 };
 document.querySelector('#app').innerHTML = shell(overviewDashboard());
 const root = document.querySelector('#module-root');
+let temporaryPrintHeaders=[];
+const preparePrintHospitalHeader = () => {
+  const aiTarget=document.body.classList.contains('printing-ai-report') ? root.querySelector('.ai-panel') : null;
+  const target=aiTarget || root.querySelector('.printable-command-report') || root.querySelector('.module-page') || root;
+  if(!target || target.querySelector('.print-hospital-header,.command-report-header,.ndss-universal-print-header')) return;
+  const title=target.querySelector('h1,h2')?.textContent?.trim() || root.querySelector('.module-head h1')?.textContent?.trim() || 'รายงานระบบเฝ้าระวังโรค';
+  const header=document.createElement('header');
+  header.className='ndss-universal-print-header';
+  header.innerHTML='<img src="./public/assets/naradhiwas-hospital-logo.jpg" alt="โลโก้โรงพยาบาลนราธิวาสราชนครินทร์" /><div><b>โรงพยาบาลนราธิวาสราชนครินทร์</b><small>Naradhiwas Rajanagarindra Hospital</small><strong></strong></div>';
+  header.querySelector('strong').textContent=title;
+  target.prepend(header);
+  temporaryPrintHeaders.push(header);
+};
+const clearPrintHospitalHeaders = () => { temporaryPrintHeaders.forEach(header=>header.remove()); temporaryPrintHeaders=[]; };
+const printWithHospitalHeader = () => { preparePrintHospitalHeader(); window.print(); };
+window.addEventListener('beforeprint',preparePrintHospitalHeader);
+window.addEventListener('afterprint',clearPrintHospitalHeaders);
 const ensureRefreshButton = () => {
   const actions=document.querySelector('.command-header .header-actions');
   if (!actions || actions.querySelector('[data-refresh-view]')) return;
@@ -1305,11 +1322,11 @@ document.addEventListener('click', event => {
   }
   if(event.target.closest('[data-export-506-csv]')) commandCsv();
   if(event.target.closest('[data-export-506-quality]')) export506Quality();
-  if(event.target.closest('[data-print-summary]')) window.print();
-  if(event.target.closest('[data-print-command-report]')) window.print();
+  if(event.target.closest('[data-print-summary]')) printWithHospitalHeader();
+  if(event.target.closest('[data-print-command-report]')) printWithHospitalHeader();
   if(event.target.closest('[data-print-ai-brief]')) {
     document.body.classList.add('printing-ai-report');
-    window.print();
+    printWithHospitalHeader();
     window.setTimeout(()=>document.body.classList.remove('printing-ai-report'),250);
   }
   if(event.target.closest('[data-save-ai-brief]')) {
