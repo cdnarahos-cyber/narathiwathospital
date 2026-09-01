@@ -914,6 +914,7 @@ const normalize506Date = value => {
   const parsed=new Date(text);
   return Number.isNaN(parsed) ? text : localIsoDate(parsed);
 };
+const isNormalized506Date = value => /^\d{4}-\d{2}-\d{2}$/.test(commandText(value)) && !Number.isNaN(new Date(`${value}T00:00:00`).getTime());
 const normalize506 = rows => rows.map(row => ({
   disease: fieldValue(row,['diagnosis_icd10_list','diagnosis icd10','icd10','icd-10','disease','diagnosis','diag','ชื่อโรค','โรค']),
   patient: patientName(row),
@@ -988,16 +989,17 @@ const import506File = async file => {
     const quality={
       missingDisease:normalized.filter(row => !row.disease).length,
       missingOnset:normalized.filter(row => !row.onset).length,
+      invalidOnset:normalized.filter(row => row.onset && !isNormalized506Date(row.onset)).length,
       missingTambon:normalized.filter(row => !row.tambon).length,
       missingDistrict:normalized.filter(row => !row.district).length,
       invalidAge:normalized.filter(row => row.age && (!Number.isFinite(Number(row.age)) || Number(row.age)<0 || Number(row.age)>130)).length,
       withCoordinates:normalized.filter(row => Number.isFinite(Number(row.latitude)) && Number.isFinite(Number(row.longitude))).length
     };
-    const incomplete=normalized.filter(row => !row.disease || !row.onset || !(row.tambon || row.district)).length;
+    const incomplete=normalized.filter(row => !row.disease || !isNormalized506Date(row.onset) || !(row.tambon || row.district)).length;
     const combined=[...existing,...unique];
     localStorage.setItem('ndss-506-records',JSON.stringify(combined));
     const sourceSheets=[...new Set(rows.map(row => commandText(row.__ndssSourceSheet)).filter(Boolean))];
-    const meta={fileName:file.name,imported:unique.length,duplicates:normalized.length-unique.length,incomplete,quality,sheetCount:sourceSheets.length,sourceSheets,mappingVersion:3,at:new Date().toLocaleString('th-TH')};
+    const meta={fileName:file.name,imported:unique.length,duplicates:normalized.length-unique.length,incomplete,quality,sheetCount:sourceSheets.length,sourceSheets,mappingVersion:4,at:new Date().toLocaleString('th-TH')};
     localStorage.setItem('ndss-506-import-meta',JSON.stringify(meta));
     recordAudit('นำเข้าข้อมูล รง.506',`ไฟล์ ${file.name} · ${sourceSheets.length || 1} ชีต · เพิ่ม ${unique.length} ราย · ซ้ำ ${meta.duplicates} ราย`);
     root.querySelector('[data-import-status]')?.replaceChildren(document.createTextNode(`อ่าน ${sourceSheets.length || 1} ชีต · นำเข้าข้อมูลใหม่ ${unique.length} ราย · รวมข้อมูล รง.506 ${combined.length} ราย`));
