@@ -96,7 +96,10 @@ normalizePdfButtonLabels();
 const pdfButtonObserver = new MutationObserver(records => {
   for (const record of records) {
     for (const node of record.addedNodes) {
-      if (node.nodeType === Node.ELEMENT_NODE) normalizePdfButtonLabels(node);
+      if (node.nodeType === Node.ELEMENT_NODE) {
+        normalizePdfButtonLabels(node);
+        repairHospitalLogoSources(node);
+      }
     }
   }
 });
@@ -113,6 +116,10 @@ const getEmbeddedHospitalLogo = () => {
   return embeddedHospitalLogoPromise;
 };
 const repairHospitalLogoSources = (scope=document) => {
+  if (scope.matches?.('img[src$="naradhiwas-hospital-logo.jpg"]')) {
+    scope.src=hospitalLogoUrl;
+    scope.removeAttribute('srcset');
+  }
   scope.querySelectorAll?.('img[src$="naradhiwas-hospital-logo.jpg"]').forEach(image => {
     image.src=hospitalLogoUrl;
     image.removeAttribute('srcset');
