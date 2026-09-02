@@ -1,5 +1,5 @@
 import { getDashboardData } from './services/dashboard-service.js';
-import { downloadCleanPdf } from './services/clean-pdf-generator.js';
+import { downloadCleanPdf } from './services/clean-pdf-generator.js?v=20260902-44';
 import { enableHistoryAreaFilter } from './components/history-area-filter.js';
 import { addNarathiwatBoundaries } from './components/narathiwat-boundaries.js';
 import { shell } from './components/layout.js'; import { metricsGrid } from './components/metrics.js'; import { analytics } from './components/charts.js'; import { caseTracking } from './components/case-tracking.js'; import { rightRail } from './components/alerts.js'; import { moduleView, diseaseMeta, investigationForm } from './components/modules.js';

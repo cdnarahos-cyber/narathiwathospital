@@ -64,7 +64,7 @@ const makePdf = (pages) => {
   text('%PDF-1.4\n%âãÏÓ\n');
   object(1, '<< /Type /Catalog /Pages 2 0 R >>');
   object(2, `<< /Type /Pages /Kids [${pageIds.map(id => `${id} 0 R`).join(' ')}] /Count ${pages.length} >>`);
-  pages.forEach((_, index) => {
+  pages.forEach((page, index) => {
     const pageId = 3 + index * 3;
     const imageId = pageId + 1;
     const contentId = pageId + 2;
