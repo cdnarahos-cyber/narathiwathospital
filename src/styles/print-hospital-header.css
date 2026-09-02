@@ -1,1 +1,34 @@
 .print-hospital-header,.ndss-universal-print-header{display:none}@media print{.print-hospital-header,.ndss-universal-print-header{display:flex;align-items:center;justify-content:center;gap:8pt;margin:0 0 6pt;padding:0 0 5pt;border-bottom:1pt solid #0b294d}.print-hospital-header img,.ndss-universal-print-header img{width:16mm;height:16mm;object-fit:contain}.print-hospital-header div,.ndss-universal-print-header div{text-align:left}.print-hospital-header b,.ndss-universal-print-header b{display:block;color:#071d38;font-size:14pt;font-weight:800;line-height:1.1}.print-hospital-header small,.ndss-universal-print-header small{display:block;margin-top:2pt;color:#31567f;font-size:8.5pt;font-weight:600}.ndss-universal-print-header strong{display:block;margin-top:4pt;color:#071d38;font-size:12pt;font-weight:800}.original-form .report-title{margin-top:0!important}}
+
+/* มาตรฐานเอกสาร NDSS: ใช้ร่วมกันทุกโมดูลที่พิมพ์หรือสร้าง PDF */
+@media print{
+  @page{size:A4 portrait;margin:10mm 11mm 12mm}
+  .print-hospital-header,.command-report-header,.ndss-universal-print-header{
+    display:grid!important;grid-template-columns:19mm minmax(0,1fr) auto;gap:4mm;align-items:center;
+    margin:0 0 5mm!important;padding:0 0 3mm!important;border:0!important;border-bottom:1.2pt solid #0b4e8a!important;
+    break-inside:avoid;page-break-inside:avoid
+  }
+  .print-hospital-header img,.command-report-header img,.ndss-universal-print-header img{
+    width:17mm!important;height:17mm!important;object-fit:contain!important;grid-column:1;grid-row:1/4
+  }
+  .print-hospital-header div,.command-report-header div,.ndss-universal-print-header div{grid-column:2;text-align:left!important}
+  .print-hospital-header b,.command-report-header b,.ndss-universal-print-header b{
+    display:block!important;color:#082f5c!important;font:800 14pt/1.12 "IBM Plex Sans Thai",sans-serif!important
+  }
+  .print-hospital-header small,.command-report-header span,.ndss-universal-print-header small{
+    display:block!important;margin-top:1pt!important;color:#416481!important;font:600 8.5pt/1.25 "IBM Plex Sans Thai",sans-serif!important
+  }
+  .command-report-header h2,.ndss-universal-print-header strong{
+    display:block!important;margin:2pt 0 0!important;color:#071d38!important;font:800 12pt/1.2 "IBM Plex Sans Thai",sans-serif!important
+  }
+  .command-report-header>small{grid-column:3!important;color:#56718e!important;text-align:right!important;font:600 8pt/1.35 "IBM Plex Sans Thai",sans-serif!important}
+  .printable-report,.printable-command-report{color:#071d38!important;font-family:"IBM Plex Sans Thai",sans-serif!important}
+  .printable-report .report-title{margin:0 0 3mm!important;padding:0 0 2mm!important;border-bottom:0.6pt solid #c9d9e8!important;color:#082f5c!important;font-size:15pt!important;line-height:1.2!important}
+  .printable-report h2,.printable-command-report h2{break-after:avoid-page;page-break-after:avoid;color:#082f5c!important}
+  .printable-command-report table{width:100%!important;border-collapse:collapse!important;font-size:9pt!important}
+  .printable-command-report th,.printable-command-report td{padding:2.2mm!important;border:0.5pt solid #d5e0eb!important;vertical-align:top!important}
+  .printable-command-report th{background:#edf5fc!important;color:#082f5c!important;font-weight:800!important}
+  .command-report-summary{gap:2.5mm!important;margin:0 0 4mm!important}
+  .command-report-summary b{padding:2.5mm!important;border:0.5pt solid #cfe0ee!important;border-radius:2mm!important;color:#0b4e8a!important;background:#f7fbff!important;font-size:9pt!important}
+  .command-report-footer{margin-top:5mm!important;padding-top:2.5mm!important;border-top:0.5pt solid #d5e0eb!important;color:#5d748c!important;font-size:8pt!important}
+}
