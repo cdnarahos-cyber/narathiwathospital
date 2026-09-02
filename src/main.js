@@ -219,7 +219,7 @@ const renderLoginGate = (mode = 'login') => {
   const message = signedIn
     ? 'บัญชีนี้กำลังรอการอนุมัติสิทธิ์จากผู้ดูแลระบบ กรุณาติดต่อผู้ดูแล NDSS'
     : mode === 'register'
-      ? 'ลงทะเบียนด้วยอีเมลและรหัสผ่าน แล้วเลือกบทบาทที่ต้องการขอใช้บริการ'
+      ? 'ลงทะเบียนด้วยชื่อ อีเมล และรหัสผ่าน จากนั้น ADMIN จะกำหนดบทบาทและสิทธิ์ให้'
       : 'เข้าสู่ระบบด้วยอีเมลและรหัสผ่านของเจ้าหน้าที่';
   const actions = signedIn
     ? '<button type="button" class="secondary" data-supabase-signout>ออกจากระบบ</button>'
@@ -496,7 +496,8 @@ const runPreflight = () => {
   } catch { checks.push(['ที่เก็บข้อมูลในอุปกรณ์', false, 'ไม่สามารถเข้าถึงที่เก็บข้อมูลในเบราว์เซอร์ได้']); }
   checks.push(['แผนที่ Leaflet', Boolean(window.L), window.L ? 'พร้อมแสดงแผนที่และขอบเขตพื้นที่' : 'ไม่พบไลบรารีแผนที่']);
   checks.push(['การสร้าง PDF', typeof window.HTMLCanvasElement !== 'undefined', typeof window.HTMLCanvasElement !== 'undefined' ? 'รองรับการสร้างรายงาน PDF ในอุปกรณ์นี้' : 'เบราว์เซอร์ไม่รองรับ Canvas']);
-  const centralReady = Boolean(globalThis.NDSS_CONFIG?.supabaseUrl && globalThis.NDSS_CONFIG?.supabasePublishableKey);
+  // The project URL is intentionally kept in the client module; only the publishable key belongs in runtime configuration.
+  const centralReady = hasSupabaseCredentials();
   checks.push(['ฐานข้อมูลกลาง', centralReady, centralReady ? 'ตรวจพบการตั้งค่า Supabase แล้ว' : 'ยังไม่ได้ตั้งค่า — ข้อมูลยังไม่ซิงก์ข้ามอุปกรณ์']);
   result.replaceChildren(...checks.map(([name, ok, detail]) => { const row = document.createElement('div'); const label = document.createElement('b'); const note = document.createElement('span'); label.textContent = `${ok ? '✓' : '!' } ${name}`; note.textContent = detail; row.append(label, note); return row; }));
   showToast(centralReady ? 'ตรวจสอบความพร้อมแล้ว' : 'ตรวจสอบแล้ว: ยังไม่ได้เชื่อมฐานข้อมูลกลาง', centralReady ? 'success' : 'info');
