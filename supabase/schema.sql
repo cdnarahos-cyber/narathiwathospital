@@ -52,45 +52,45 @@ drop policy if exists "ndss staff can update own alerts" on public.smart_alerts;
 -- Authorize from app_metadata only. Never use user_metadata for access decisions.
 create policy "ndss staff can read cases" on public.disease_cases
   for select to authenticated
-  using ((auth.jwt() -> 'app_metadata' ->> 'ndss_role') in ('admin', 'epidemiologist', 'viewer'));
+  using ((auth.jwt() -> 'app_metadata' ->> 'ndss_role') in ('admin', 'officer', 'viewer'));
 
 create policy "ndss staff can create cases" on public.disease_cases
   for insert to authenticated
   with check (
-    (auth.jwt() -> 'app_metadata' ->> 'ndss_role') in ('admin', 'epidemiologist')
+    (auth.jwt() -> 'app_metadata' ->> 'ndss_role') in ('admin', 'officer')
     and created_by = (select auth.uid())
   );
 
 create policy "ndss staff can update own cases" on public.disease_cases
   for update to authenticated
   using (
-    (auth.jwt() -> 'app_metadata' ->> 'ndss_role') in ('admin', 'epidemiologist')
+    (auth.jwt() -> 'app_metadata' ->> 'ndss_role') in ('admin', 'officer')
     and created_by = (select auth.uid())
   )
   with check (
-    (auth.jwt() -> 'app_metadata' ->> 'ndss_role') in ('admin', 'epidemiologist')
+    (auth.jwt() -> 'app_metadata' ->> 'ndss_role') in ('admin', 'officer')
     and created_by = (select auth.uid())
   );
 
 create policy "ndss staff can read alerts" on public.smart_alerts
   for select to authenticated
-  using ((auth.jwt() -> 'app_metadata' ->> 'ndss_role') in ('admin', 'epidemiologist', 'viewer'));
+  using ((auth.jwt() -> 'app_metadata' ->> 'ndss_role') in ('admin', 'officer', 'viewer'));
 
 create policy "ndss staff can create alerts" on public.smart_alerts
   for insert to authenticated
   with check (
-    (auth.jwt() -> 'app_metadata' ->> 'ndss_role') in ('admin', 'epidemiologist')
+    (auth.jwt() -> 'app_metadata' ->> 'ndss_role') in ('admin', 'officer')
     and created_by = (select auth.uid())
   );
 
 create policy "ndss staff can update own alerts" on public.smart_alerts
   for update to authenticated
   using (
-    (auth.jwt() -> 'app_metadata' ->> 'ndss_role') in ('admin', 'epidemiologist')
+    (auth.jwt() -> 'app_metadata' ->> 'ndss_role') in ('admin', 'officer')
     and created_by = (select auth.uid())
   )
   with check (
-    (auth.jwt() -> 'app_metadata' ->> 'ndss_role') in ('admin', 'epidemiologist')
+    (auth.jwt() -> 'app_metadata' ->> 'ndss_role') in ('admin', 'officer')
     and created_by = (select auth.uid())
   );
 
