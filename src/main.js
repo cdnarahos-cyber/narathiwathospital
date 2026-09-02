@@ -86,6 +86,21 @@ const renderCurrentUserName = () => {
 renderCurrentUserName();
 const root = document.querySelector('#module-root');
 let temporaryPrintHeaders=[];
+const normalizePdfButtonLabels = (scope=document) => {
+  scope.querySelectorAll?.('[data-print-summary],[data-print-command-report],[data-print-ai-brief]').forEach(button => {
+    button.textContent='▣ สร้าง PDF';
+    button.setAttribute('aria-label','สร้าง PDF');
+  });
+};
+normalizePdfButtonLabels();
+const pdfButtonObserver = new MutationObserver(records => {
+  for (const record of records) {
+    for (const node of record.addedNodes) {
+      if (node.nodeType === Node.ELEMENT_NODE) normalizePdfButtonLabels(node);
+    }
+  }
+});
+pdfButtonObserver.observe(document.documentElement,{childList:true,subtree:true});
 const hospitalLogoUrl='./public/assets/naradhiwas-hospital-logo.svg';
 let embeddedHospitalLogoPromise;
 const getEmbeddedHospitalLogo = () => {
