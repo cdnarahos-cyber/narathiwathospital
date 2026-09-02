@@ -1,14 +1,51 @@
-import { getSupabaseConfig, hasSupabaseCredentials, hasSupabaseSession } from '../config/supabase.js';
+import { getSupabaseConfig, getSupabaseUser, hasSupabaseCredentials, hasSupabaseSession } from '../config/supabase.js';
+
+const apiHeaders = (extra = {}) => {
+  const config = getSupabaseConfig();
+  return {
+    apikey: config.publishableKey,
+    Authorization: `Bearer ${config.accessToken || config.publishableKey}`,
+    ...extra,
+  };
+};
+
+const caseNumberFor = record => record.remoteCaseNumber || `NDSS-${Date.now()}-${Math.random().toString(36).slice(2, 8).toUpperCase()}`;
+
+export async function syncInvestigationCase(record) {
+  if (!hasSupabaseCredentials() || !hasSupabaseSession()) return { ...record, syncState: 'local' };
+  const userId = getSupabaseUser().sub;
+  if (!userId) throw new Error('ไม่พบข้อมูลผู้ใช้สำหรับบันทึกเคส');
+
+  const caseNumber = caseNumberFor(record);
+  const payload = {
+    case_number: caseNumber,
+    disease_name: record.disease || 'ไม่ระบุโรค',
+    patient_summary: record.patient || record.hn || 'ไม่ระบุผู้ป่วย',
+    location_name: record.location || 'ไม่ระบุพื้นที่',
+    status: record.remoteStatus || 'pending',
+    reported_at: record.onset || record.createdAt || new Date().toISOString(),
+    assigned_to: userId,
+  };
+  const isUpdate = Boolean(record.remoteCaseId);
+  const response = await fetch(
+    `${getSupabaseConfig().url}/rest/v1/disease_cases${isUpdate ? `?id=eq.${encodeURIComponent(record.remoteCaseId)}` : ''}`,
+    {
+      method: isUpdate ? 'PATCH' : 'POST',
+      headers: apiHeaders({ 'Content-Type': 'application/json', Prefer: 'return=representation' }),
+      body: JSON.stringify(payload),
+    },
+  );
+  const result = await response.json().catch(() => []);
+  if (!response.ok || !result[0]) throw new Error(`บันทึกฐานข้อมูลกลางไม่สำเร็จ${result?.message ? `: ${result.message}` : ''}`);
+  return { ...record, remoteCaseId: result[0].id, remoteCaseNumber: result[0].case_number, remoteStatus: result[0].status, syncState: 'synced' };
+}
 
 export async function getDashboardData() {
   if (!hasSupabaseCredentials()) return { metrics: [], cases: [], alerts: [], source: 'unconfigured' };
   if (!hasSupabaseSession()) return { metrics: [], cases: [], alerts: [], source: 'signed-out' };
   const supabaseConfig = getSupabaseConfig();
 
-  const headers = {
-    apikey: supabaseConfig.publishableKey,
-    Authorization: `Bearer ${supabaseConfig.accessToken || supabaseConfig.publishableKey}`,
-  };
+  const headers = apiHeaders();
   const request = (table, query) => fetch(`${supabaseConfig.url}/rest/v1/${table}?${query}`, { headers })
     .then(async response => {
       if (!response.ok) throw new Error(`${table}: ${response.status}`);
