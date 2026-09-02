@@ -923,6 +923,10 @@ document.addEventListener('click', async event => {
   if(!action) return;
   event.preventDefault();
   event.stopImmediatePropagation();
+  if(action.matches('[data-clear-pins],[data-clear-506],[data-clear-audit]') && getSupabaseRole() !== 'admin') {
+    showToast('เฉพาะ ADMIN เท่านั้นที่ล้างข้อมูลได้', 'error');
+    return;
+  }
   if(action.matches('[data-clear-pins]')) {
     if(!await confirmAction('ยืนยันการล้างหมุดเคส','ข้อมูลเคสสอบสวนทั้งหมดในอุปกรณ์นี้จะถูกลบ ต้องการดำเนินการหรือไม่?')) return;
     localStorage.removeItem('ndss-investigations'); activeDiseaseFilter='all'; recordAudit('ล้างเคสสอบสวน','ล้างข้อมูลเคสและหมุดทั้งหมดในอุปกรณ์นี้'); window.dispatchEvent(new Event('ndss-cases-updated')); renderPins(); renderHistory(); showToast('ล้างหมุดเคสและข้อมูลเคสแล้ว');
