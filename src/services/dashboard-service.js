@@ -40,6 +40,31 @@ export async function syncInvestigationCase(record) {
   return { ...record, remoteCaseId: result[0].id, remoteCaseNumber: result[0].case_number, remoteStatus: result[0].status, syncState: 'synced' };
 }
 
+// Fetches only rows allowed by the caller's RLS policies.  This lets a signed-in
+// user see their assigned/created investigation cases after changing browser or
+// refreshing, while the detailed form data can remain available locally.
+export async function fetchInvestigationCases() {
+  if (!hasSupabaseCredentials() || !hasSupabaseSession()) return [];
+  const config=getSupabaseConfig();
+  const response=await fetch(`${config.url}/rest/v1/disease_cases?select=id,case_number,disease_name,patient_summary,location_name,status,reported_at,updated_at&order=reported_at.desc&limit=200`, {
+    headers: apiHeaders(),
+  });
+  const result=await response.json().catch(() => []);
+  if (!response.ok) throw new Error(`ไม่สามารถโหลดเคสจากฐานข้อมูลกลางได้${result?.message ? `: ${result.message}` : ''}`);
+  return Array.isArray(result) ? result.map(row => ({
+    remoteCaseId: row.id,
+    remoteCaseNumber: row.case_number,
+    remoteStatus: row.status,
+    disease: row.disease_name || 'ไม่ระบุโรค',
+    patient: row.patient_summary || 'ไม่ระบุผู้ป่วย',
+    location: row.location_name || 'ไม่ระบุพื้นที่',
+    onset: row.reported_at ? String(row.reported_at).slice(0, 10) : '',
+    createdAt: row.reported_at || '',
+    updatedAt: row.updated_at || row.reported_at || '',
+    syncState: 'synced',
+  })) : [];
+}
+
 export async function getDashboardData() {
   if (!hasSupabaseCredentials()) return { metrics: [], cases: [], alerts: [], source: 'unconfigured' };
   if (!hasSupabaseSession()) return { metrics: [], cases: [], alerts: [], source: 'signed-out' };

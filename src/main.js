@@ -1,6 +1,6 @@
 import { clearSupabaseSession, consumeSupabaseSessionFromUrl, getSupabaseRole, getSupabaseUser, hasSupabaseCredentials, hasSupabaseSession, invokeAdminUserManagement, requestSupabasePasswordRecovery, signInWithPassword, signUpWithPassword, updateSupabasePassword } from './config/supabase.js';
 import { downloadCleanPdf } from './services/clean-pdf-generator.js';
-import { syncInvestigationCase } from './services/dashboard-service.js';
+import { fetchInvestigationCases, syncInvestigationCase } from './services/dashboard-service.js';
 import { enableHistoryAreaFilter } from './components/history-area-filter.js';
 import { addNarathiwatBoundaries } from './components/narathiwat-boundaries.js';
 import { shell } from './components/layout.js?v=20260901-4';
@@ -840,6 +840,29 @@ const refreshEpidemiology = () => {
 };
 const refreshDataViews = () => { refreshOverview(); refreshEpidemiology(); };
 window.addEventListener('ndss-cases-updated', refreshDataViews);
+const hydrateInvestigationCases = async () => {
+  if (!hasSupabaseSession()) return;
+  try {
+    const remoteCases=await fetchInvestigationCases();
+    if (!remoteCases.length) return;
+    const localCases=JSON.parse(localStorage.getItem('ndss-investigations') || '[]');
+    const localByRemote=new Map(localCases.map((item,index)=>[String(item.remoteCaseId || item.remoteCaseNumber || ''),index]).filter(([key])=>key));
+    const merged=[...localCases];
+    remoteCases.forEach(remote => {
+      const key=String(remote.remoteCaseId || remote.remoteCaseNumber || '');
+      const existingIndex=localByRemote.get(key);
+      if (existingIndex === undefined) merged.push(remote);
+      else merged[existingIndex]={ ...remote, ...merged[existingIndex], remoteCaseId:remote.remoteCaseId, remoteCaseNumber:remote.remoteCaseNumber, remoteStatus:remote.remoteStatus, syncState:'synced' };
+    });
+    if (JSON.stringify(merged) !== JSON.stringify(localCases)) {
+      localStorage.setItem('ndss-investigations',JSON.stringify(merged));
+      window.dispatchEvent(new Event('ndss-cases-updated'));
+    }
+  } catch (error) {
+    console.warn('ไม่สามารถโหลดเคสจากฐานข้อมูลกลางได้',error);
+  }
+};
+hydrateInvestigationCases();
 window.addEventListener('storage', event => {
   if (['ndss-investigations','ndss-506-records'].includes(event.key)) refreshDataViews();
   if (['ndss-investigations','ndss-case-contacts','ndss-response-tasks','ndss-lab-results','ndss-506-records','ndss-alert-state'].includes(event.key)) {
