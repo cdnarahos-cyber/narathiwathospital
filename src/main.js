@@ -131,7 +131,7 @@ const preparePrintHospitalHeader = () => {
   const aiTarget=document.body.classList.contains('printing-ai-report') ? root.querySelector('.ai-panel') : null;
   const target=aiTarget || root.querySelector('.printable-command-report') || root.querySelector('.module-page') || root;
   if(!target || target.querySelector('.print-hospital-header,.command-report-header,.ndss-universal-print-header')) return;
-  const title=target.querySelector('h1,h2')?.textContent?.trim() || root.querySelector('.module-head h1')?.textContent?.trim() || 'รายงานระบบเฝ้าระวังโรค';
+  const title=root.querySelector('.module-head h1')?.textContent?.trim() || target.querySelector('h1,h2')?.textContent?.trim() || 'รายงานระบบเฝ้าระวังโรค';
   const header=document.createElement('header');
   header.className='ndss-universal-print-header';
   header.innerHTML='<img src="./public/assets/naradhiwas-hospital-logo.svg" alt="โลโก้โรงพยาบาลนราธิวาสราชนครินทร์" /><div><b>โรงพยาบาลนราธิวาสราชนครินทร์</b><small>Naradhiwas Rajanagarindra Hospital</small><strong></strong></div>';
