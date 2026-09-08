@@ -3,7 +3,7 @@ import { downloadCleanPdf } from './services/clean-pdf-generator.js?v=20260902-4
 import { fetchInvestigationCases, syncInvestigationCase } from './services/dashboard-service.js?v=20260902-43';
 import { enableHistoryAreaFilter } from './components/history-area-filter.js';
 import { addNarathiwatBoundaries } from './components/narathiwat-boundaries.js';
-import { shell } from './components/layout.js?v=20260901-4';
+import { shell } from './components/layout.js?v=20260908-49';
 import { moduleView, diseaseMeta, investigationForm } from './components/modules.js?v=20260908-48';
 const authCallbackType = new URLSearchParams(location.hash.replace(/^#/, '')).get('type') || '';
 consumeSupabaseSessionFromUrl();
