@@ -1081,8 +1081,9 @@ const renderPins = () => { const mapNode = root.querySelector('[data-case-map]')
 document.addEventListener('submit', async event => {
   if (event.target.matches('[data-module-save]')) {
     event.preventDefault();
+    if(!canCreateOperationalRecord()) { showToast('VIEWER ไม่มีสิทธิ์บันทึกข้อมูลปฏิบัติการ', 'error'); return; }
     const records=JSON.parse(localStorage.getItem('ndss-module-records') || '[]');
-    records.push({module:event.target.dataset.moduleName,values:Object.fromEntries(new FormData(event.target)),createdAt:new Date().toISOString()});
+    records.push({module:event.target.dataset.moduleName,values:Object.fromEntries(new FormData(event.target)),createdAt:new Date().toISOString(),createdBy:getSupabaseUser()?.sub || ''});
     localStorage.setItem('ndss-module-records',JSON.stringify(records));
     event.target.reset(); renderModuleSaved(); showToast('บันทึกข้อมูลในเครื่องแล้ว');
   }
@@ -1254,6 +1255,10 @@ const has506Headers = rows => {
 };
 const import506File = async file => {
   if (!file) return;
+  if (getSupabaseRole() !== 'admin') {
+    showToast('เฉพาะ ADMIN เท่านั้นที่นำเข้าข้อมูล รง.506 ได้', 'error');
+    return;
+  }
   try {
     if (!/\.(xlsx|xls|csv)$/i.test(file.name)) throw new Error('รองรับเฉพาะไฟล์ .xlsx, .xls หรือ .csv');
     let rows=[];
@@ -1294,6 +1299,10 @@ const import506File = async file => {
   } catch(error) { console.error(error); showToast(`นำเข้าข้อมูลไม่สำเร็จ: ${error.message}`); }
 };
 const open506Import = () => {
+  if (getSupabaseRole() !== 'admin') {
+    showToast('เฉพาะ ADMIN เท่านั้นที่นำเข้าข้อมูล รง.506 ได้', 'error');
+    return;
+  }
   root.innerHTML=`<div class="module-page">${moduleView('import506')}</div>`;
   document.querySelectorAll('.nav-link').forEach(link=>link.classList.remove('active'));
   const mobileMenu=document.getElementById('mobile-sidebar-state');
