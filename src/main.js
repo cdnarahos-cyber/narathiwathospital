@@ -989,6 +989,7 @@ document.addEventListener('click', async event => {
   }
   if(action.dataset.deleteContact !== undefined) {
     const index=Number(action.dataset.deleteContact), contacts=readLocalList('ndss-case-contacts'), item=contacts[index];
+    if(!canManageOperationalRecord(item || {})) { showToast('บัญชีนี้ไม่มีสิทธิ์ลบข้อมูลผู้สัมผัสรายการนี้', 'error'); return; }
     if(!item || !await confirmAction('ยืนยันการลบผู้สัมผัส',`ต้องการลบข้อมูลผู้สัมผัส ${item.contactName} ใช่หรือไม่?`)) return;
     contacts.splice(index,1); localStorage.setItem('ndss-case-contacts',JSON.stringify(contacts));
     recordAudit('ลบข้อมูลผู้สัมผัส',item.contactName); root.innerHTML=`<div class="module-page">${moduleView('tracking')}</div>`;
@@ -997,6 +998,7 @@ document.addEventListener('click', async event => {
   }
   if(action.dataset.deleteLab !== undefined) {
     const index=Number(action.dataset.deleteLab), results=readLocalList('ndss-lab-results'), item=results[index];
+    if(!canManageOperationalRecord(item || {})) { showToast('บัญชีนี้ไม่มีสิทธิ์ลบผลตรวจรายการนี้', 'error'); return; }
     if(!item || !await confirmAction('ยืนยันการลบผลตรวจ',`ต้องการลบผลตรวจ ${item.specimenNo} ใช่หรือไม่?`)) return;
     results.splice(index,1); localStorage.setItem('ndss-lab-results',JSON.stringify(results));
     recordAudit('ลบผลตรวจห้องปฏิบัติการ',`เลขสิ่งส่งตรวจ ${item.specimenNo}`); root.innerHTML=`<div class="module-page">${moduleView('lab')}</div>`;
@@ -1004,6 +1006,7 @@ document.addEventListener('click', async event => {
     return;
   }
   const index=Number(action.dataset.deleteAiReport), reports=readLocalList('ndss-ai-reports');
+  if(!canManageOperationalRecord(reports[index] || {})) { showToast('บัญชีนี้ไม่มีสิทธิ์ลบร่างรายงานรายการนี้', 'error'); return; }
   if(!reports[index] || !await confirmAction('ยืนยันการลบร่างรายงาน','ต้องการลบร่างรายงานฉบับนี้ใช่หรือไม่?')) return;
   reports.splice(index,1); localStorage.setItem('ndss-ai-reports',JSON.stringify(reports));
   recordAudit('ลบร่างรายงานสถานการณ์','ลบรายงานที่บันทึกไว้'); root.innerHTML=`<div class="module-page">${moduleView('ai-brief')}</div>`;
@@ -1044,6 +1047,19 @@ const canEditInvestigation = item => {
   const userId=getSupabaseUser()?.sub || '';
   return role==='admin' || (role==='officer' && Boolean(userId) && (item.createdBy===userId || item.assignedTo===userId));
 };
+const canCreateOperationalRecord = () => ['admin','officer'].includes(getSupabaseRole());
+const canManageOperationalRecord = item => {
+  const role=getSupabaseRole();
+  const userId=getSupabaseUser()?.sub || '';
+  return role==='admin' || (role==='officer' && Boolean(userId) && item.createdBy===userId);
+};
+document.addEventListener('submit', event => {
+  if(!event.target.matches('[data-lab-result],[data-contact-tracing],[data-response-task]')) return;
+  if(canCreateOperationalRecord()) return;
+  event.preventDefault();
+  event.stopImmediatePropagation();
+  showToast('VIEWER ไม่มีสิทธิ์บันทึกหรือแก้ไขข้อมูลปฏิบัติการ', 'error');
+}, true);
 const renderHistory = keyword => {
   const rows=root.querySelector('[data-history-rows]');
   if(!rows) return;
@@ -1512,6 +1528,7 @@ document.addEventListener('click', event => {
     window.setTimeout(()=>document.body.classList.remove('printing-ai-report'),250);
   }
   if(event.target.closest('[data-save-ai-brief]')) {
+    if(!canCreateOperationalRecord()) { showToast('VIEWER ไม่มีสิทธิ์บันทึกร่างรายงาน', 'error'); return; }
     const output=root.querySelector('[data-ai-output]');
     const text=output?.innerText?.trim() || '';
     if(!text || text.includes('เลือกเงื่อนไข')) { showToast('สร้างร่างรายงานก่อนบันทึก'); return; }
@@ -1521,7 +1538,8 @@ document.addEventListener('click', event => {
       tone:root.querySelector('[data-ai-tone]')?.value || 'รายงานสถานการณ์',
       area:root.querySelector('[data-ai-area]')?.value || 'ทุกพื้นที่',
       text,
-      createdAt:new Date().toISOString()
+      createdAt:new Date().toISOString(),
+      createdBy:getSupabaseUser()?.sub || ''
     };
     reports.unshift(report);
     localStorage.setItem('ndss-ai-reports',JSON.stringify(reports.slice(0,100)));
@@ -1548,6 +1566,7 @@ document.addEventListener('click', event => {
   if(deleteAiReport) {
     let reports=[]; try { reports=JSON.parse(localStorage.getItem('ndss-ai-reports') || '[]'); } catch { reports=[]; }
     const index=Number(deleteAiReport.dataset.deleteAiReport);
+    if(!canManageOperationalRecord(reports[index] || {})) { showToast('บัญชีนี้ไม่มีสิทธิ์ลบร่างรายงานรายการนี้', 'error'); return; }
     if(!reports[index] || !window.confirm('ลบร่างรายงานฉบับนี้ใช่หรือไม่?')) return;
     reports.splice(index,1);
     localStorage.setItem('ndss-ai-reports',JSON.stringify(reports));
@@ -1589,7 +1608,7 @@ document.addEventListener('submit', event => {
   if(event.target.matches('[data-lab-result]')) {
     event.preventDefault();
     const results=(()=>{ try { return JSON.parse(localStorage.getItem('ndss-lab-results') || '[]'); } catch { return []; } })();
-    const result={...Object.fromEntries(new FormData(event.target)),createdAt:new Date().toISOString()};
+    const result={...Object.fromEntries(new FormData(event.target)),createdAt:new Date().toISOString(),createdBy:getSupabaseUser()?.sub || ''};
     results.unshift(result);
     localStorage.setItem('ndss-lab-results',JSON.stringify(results));
     recordAudit('บันทึกผลตรวจห้องปฏิบัติการ',`${result.test} · ${result.result} · ${result.specimenNo}`);
@@ -1601,7 +1620,7 @@ document.addEventListener('submit', event => {
   if(event.target.matches('[data-contact-tracing]')) {
     event.preventDefault();
     const contacts=(()=>{ try { return JSON.parse(localStorage.getItem('ndss-case-contacts') || '[]'); } catch { return []; } })();
-    const contact={...Object.fromEntries(new FormData(event.target)),createdAt:new Date().toISOString()};
+    const contact={...Object.fromEntries(new FormData(event.target)),createdAt:new Date().toISOString(),createdBy:getSupabaseUser()?.sub || ''};
     contacts.unshift(contact);
     localStorage.setItem('ndss-case-contacts',JSON.stringify(contacts));
     recordAudit('บันทึกผู้สัมผัส',`${contact.contactName} · ${contact.relationship || 'ไม่ระบุความสัมพันธ์'}`);
@@ -1613,7 +1632,7 @@ document.addEventListener('submit', event => {
   if(!event.target.matches('[data-response-task]')) return;
   event.preventDefault();
   const tasks=(()=>{ try { return JSON.parse(localStorage.getItem('ndss-response-tasks') || '[]'); } catch { return []; } })();
-  const task={...Object.fromEntries(new FormData(event.target)),createdAt:new Date().toISOString()};
+  const task={...Object.fromEntries(new FormData(event.target)),createdAt:new Date().toISOString(),createdBy:getSupabaseUser()?.sub || ''};
   tasks.push(task);
   localStorage.setItem('ndss-response-tasks',JSON.stringify(tasks));
   recordAudit('มอบหมายงานติดตาม',`ผู้รับผิดชอบ: ${task.owner} · กำหนด ${task.dueDate || '-'}`);
@@ -1628,6 +1647,7 @@ document.addEventListener('click', event => {
     const index=Number(contactAction.dataset.completeContact ?? contactAction.dataset.deleteContact);
     const contact=contacts[index];
     if(!contact) return;
+    if(!canManageOperationalRecord(contact)) { showToast('บัญชีนี้ไม่มีสิทธิ์แก้ไขข้อมูลผู้สัมผัสรายการนี้', 'error'); return; }
     if(contactAction.dataset.deleteContact !== undefined) {
       if(!window.confirm(`ลบข้อมูลผู้สัมผัส ${contact.contactName} ใช่หรือไม่?`)) return;
       contacts.splice(index,1);
@@ -1648,6 +1668,7 @@ document.addEventListener('click', event => {
   if(!action) return;
   const results=(()=>{ try { return JSON.parse(localStorage.getItem('ndss-lab-results') || '[]'); } catch { return []; } })();
   const item=results[Number(action.dataset.deleteLab)];
+  if(!canManageOperationalRecord(item || {})) { showToast('บัญชีนี้ไม่มีสิทธิ์ลบผลตรวจรายการนี้', 'error'); return; }
   if(!item || !window.confirm(`ลบผลตรวจ ${item.specimenNo} ใช่หรือไม่?`)) return;
   results.splice(Number(action.dataset.deleteLab),1);
   localStorage.setItem('ndss-lab-results',JSON.stringify(results));
@@ -1662,6 +1683,7 @@ document.addEventListener('click', event => {
   const tasks=(()=>{ try { return JSON.parse(localStorage.getItem('ndss-response-tasks') || '[]'); } catch { return []; } })();
   const task=tasks[Number(action.dataset.completeResponse)];
   if(!task) return;
+  if(!canManageOperationalRecord(task)) { showToast('บัญชีนี้ไม่มีสิทธิ์ปิดงานรายการนี้', 'error'); return; }
   task.status='ควบคุมแล้ว'; task.completedAt=new Date().toISOString();
   localStorage.setItem('ndss-response-tasks',JSON.stringify(tasks));
   recordAudit('ปิดงานติดตาม','บันทึกสถานะควบคุมแล้ว');
