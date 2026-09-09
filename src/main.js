@@ -1,4 +1,4 @@
-import { clearSupabaseSession, consumeSupabaseSessionFromUrl, getSupabaseRole, getSupabaseUser, hasSupabaseCredentials, hasSupabaseSession, invokeAdminUserManagement, requestSupabasePasswordRecovery, signInWithPassword, signUpWithPassword, updateSupabasePassword } from './config/supabase.js';
+import { clearSupabaseSession, consumeSupabaseSessionFromUrl, getSupabaseConfig, getSupabaseRole, getSupabaseUser, hasSupabaseCredentials, hasSupabaseSession, invokeAdminUserManagement, requestSupabasePasswordRecovery, signInWithPassword, signUpWithPassword, updateSupabasePassword } from './config/supabase.js';
 import { downloadCleanPdf } from './services/clean-pdf-generator.js?v=20260902-44';
 import { fetchInvestigationCases, syncInvestigationCase } from './services/dashboard-service.js?v=20260902-43';
 import { enableHistoryAreaFilter } from './components/history-area-filter.js';
@@ -487,7 +487,19 @@ const enhanceAdminUserManagement = () => {
   root.querySelector('[data-settings-preflight]')?.after(section);
   loadAdminUsers();
 };
-const runPreflight = () => {
+const testSupabaseConnectivity = async () => {
+  const config = getSupabaseConfig();
+  if (!config.publishableKey) return [false, 'ยังไม่ได้กำหนด publishable key'];
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 8000);
+  try {
+    const response = await fetch(`${config.url}/auth/v1/settings`, { headers: { apikey: config.publishableKey }, signal: controller.signal });
+    return [response.ok, response.ok ? 'เชื่อมต่อ Supabase สำเร็จ (ไม่ดึงข้อมูลผู้ป่วย)' : `เชื่อมต่อ Supabase ไม่สำเร็จ (${response.status})`];
+  } catch {
+    return [false, 'ไม่สามารถเชื่อมต่อ Supabase ได้ ตรวจสอบอินเทอร์เน็ตหรือการตั้งค่า key'];
+  } finally { clearTimeout(timeout); }
+};
+const runPreflight = async () => {
   const result = root.querySelector('[data-preflight-results]');
   if (!result) return;
   const checks = [];
@@ -498,8 +510,8 @@ const runPreflight = () => {
   checks.push(['แผนที่ Leaflet', Boolean(window.L), window.L ? 'พร้อมแสดงแผนที่และขอบเขตพื้นที่' : 'ไม่พบไลบรารีแผนที่']);
   checks.push(['การสร้าง PDF', typeof window.HTMLCanvasElement !== 'undefined', typeof window.HTMLCanvasElement !== 'undefined' ? 'รองรับการสร้างรายงาน PDF ในอุปกรณ์นี้' : 'เบราว์เซอร์ไม่รองรับ Canvas']);
   // The project URL is intentionally kept in the client module; only the publishable key belongs in runtime configuration.
-  const centralReady = hasSupabaseCredentials();
-  checks.push(['ฐานข้อมูลกลาง', centralReady, centralReady ? 'ตรวจพบการตั้งค่า Supabase แล้ว' : 'ยังไม่ได้ตั้งค่า — ข้อมูลยังไม่ซิงก์ข้ามอุปกรณ์']);
+  const [centralReady, centralDetail] = await testSupabaseConnectivity();
+  checks.push(['ฐานข้อมูลกลาง', centralReady, centralDetail]);
   result.replaceChildren(...checks.map(([name, ok, detail]) => { const row = document.createElement('div'); const label = document.createElement('b'); const note = document.createElement('span'); label.textContent = `${ok ? '✓' : '!' } ${name}`; note.textContent = detail; row.append(label, note); return row; }));
   showToast(centralReady ? 'ตรวจสอบความพร้อมแล้ว' : 'ตรวจสอบแล้ว: ยังไม่ได้เชื่อมฐานข้อมูลกลาง', centralReady ? 'success' : 'info');
 };
