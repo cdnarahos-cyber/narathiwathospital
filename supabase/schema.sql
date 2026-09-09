@@ -11,11 +11,17 @@ create table if not exists public.disease_cases (
   status text not null check (status in ('pending', 'acknowledged', 'in_progress', 'controlled', 'overdue')),
   reported_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
-  created_by uuid not null default auth.uid() references auth.users(id) on delete restrict
+  created_by uuid not null default auth.uid() references auth.users(id) on delete restrict,
+  assigned_to uuid references auth.users(id) on delete set null
 );
 
 create index if not exists disease_cases_reported_at_idx on public.disease_cases (reported_at desc);
 create index if not exists disease_cases_status_reported_at_idx on public.disease_cases (status, reported_at desc);
+
+-- Safe for an existing project that created disease_cases before assigned_to was added.
+alter table public.disease_cases
+  add column if not exists assigned_to uuid references auth.users(id) on delete set null;
+create index if not exists disease_cases_assigned_to_idx on public.disease_cases (assigned_to);
 
 create table if not exists public.smart_alerts (
   id uuid primary key default gen_random_uuid(),
@@ -64,12 +70,18 @@ create policy "ndss staff can create cases" on public.disease_cases
 create policy "ndss staff can update own cases" on public.disease_cases
   for update to authenticated
   using (
-    (auth.jwt() -> 'app_metadata' ->> 'ndss_role') in ('admin', 'officer')
-    and created_by = (select auth.uid())
+    (auth.jwt() -> 'app_metadata' ->> 'ndss_role') = 'admin'
+    or (
+      (auth.jwt() -> 'app_metadata' ->> 'ndss_role') = 'officer'
+      and (created_by = (select auth.uid()) or assigned_to = (select auth.uid()))
+    )
   )
   with check (
-    (auth.jwt() -> 'app_metadata' ->> 'ndss_role') in ('admin', 'officer')
-    and created_by = (select auth.uid())
+    (auth.jwt() -> 'app_metadata' ->> 'ndss_role') = 'admin'
+    or (
+      (auth.jwt() -> 'app_metadata' ->> 'ndss_role') = 'officer'
+      and (created_by = (select auth.uid()) or assigned_to = (select auth.uid()))
+    )
   );
 
 create policy "ndss staff can read alerts" on public.smart_alerts

@@ -46,7 +46,7 @@ export async function syncInvestigationCase(record) {
 export async function fetchInvestigationCases() {
   if (!hasSupabaseCredentials() || !hasSupabaseSession()) return [];
   const config=getSupabaseConfig();
-  const response=await fetch(`${config.url}/rest/v1/disease_cases?select=id,case_number,disease_name,patient_summary,location_name,status,reported_at,updated_at&order=reported_at.desc&limit=200`, {
+  const response=await fetch(`${config.url}/rest/v1/disease_cases?select=id,case_number,disease_name,patient_summary,location_name,status,reported_at,updated_at,created_by,assigned_to&order=reported_at.desc&limit=200`, {
     headers: apiHeaders(),
   });
   const result=await response.json().catch(() => []);
@@ -55,6 +55,8 @@ export async function fetchInvestigationCases() {
     remoteCaseId: row.id,
     remoteCaseNumber: row.case_number,
     remoteStatus: row.status,
+    createdBy: row.created_by || '',
+    assignedTo: row.assigned_to || '',
     disease: row.disease_name || 'ไม่ระบุโรค',
     patient: row.patient_summary || 'ไม่ระบุผู้ป่วย',
     location: row.location_name || 'ไม่ระบุพื้นที่',
