@@ -27,3 +27,23 @@ export async function saveOperationalRecord(kind, payload) {
   if (!response.ok || !data[0]) throw new Error(data?.message || 'บันทึกข้อมูลกลางไม่สำเร็จ');
   return data[0];
 }
+
+export async function updateOperationalRecord(kind, id, payload) {
+  if (!canSyncOperationalRecords() || !tables[kind] || !id) return null;
+  const response = await fetch(`${getSupabaseConfig().url}/rest/v1/${tables[kind]}?id=eq.${encodeURIComponent(id)}`, {
+    method: 'PATCH', headers: headers({ Prefer: 'return=representation' }), body: JSON.stringify(payload),
+  });
+  const data = await response.json().catch(() => []);
+  if (!response.ok || !data[0]) throw new Error(data?.message || 'อัปเดตข้อมูลกลางไม่สำเร็จ');
+  return data[0];
+}
+
+export async function deleteOperationalRecord(kind, id) {
+  if (!canSyncOperationalRecords() || !tables[kind] || !id) return null;
+  const response = await fetch(`${getSupabaseConfig().url}/rest/v1/${tables[kind]}?id=eq.${encodeURIComponent(id)}`, {
+    method: 'DELETE', headers: headers({ Prefer: 'return=representation' }),
+  });
+  const data = await response.json().catch(() => []);
+  if (!response.ok || !data[0]) throw new Error(data?.message || 'ลบข้อมูลกลางไม่สำเร็จ');
+  return data[0];
+}
