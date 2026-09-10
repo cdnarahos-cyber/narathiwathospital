@@ -37,6 +37,15 @@
   line-height: 1.4;
 }
 
+.case-history .history-actions .history-date-field {
+  display: grid;
+  gap: 4px;
+  color: #164d80;
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 1.25;
+}
+
 @media (max-width: 760px) {
   .form-modal__dialog {
     overflow-x: hidden;
@@ -119,6 +128,15 @@
     font-size: 17px;
     font-weight: 700;
     line-height: 1.35;
+  }
+
+  .case-history .history-actions .history-date-field {
+    display: grid;
+    gap: 5px;
+    color: #164d80;
+    font-size: 15px;
+    font-weight: 800;
+    line-height: 1.25;
   }
 
   .case-history .history-actions input {
