@@ -53,6 +53,7 @@ export async function fetchCentralAuditEvents() {
 
 export async function reportCentralFailure(operation, error) {
   const event = { operation, message: error?.message || String(error || 'ไม่ทราบสาเหตุ'), at: new Date().toISOString() };
+  globalThis.dispatchEvent?.(new CustomEvent('ndss-central-failure', { detail: { operation: scrub(operation) } }));
   try { await send(event); }
   catch { writeQueue([...readQueue(), event]); }
 }

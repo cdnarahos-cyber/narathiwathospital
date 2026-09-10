@@ -1155,6 +1155,10 @@ const canEditInvestigation = item => {
   const userId=getSupabaseUser()?.sub || '';
   return role==='admin' || (role==='officer' && Boolean(userId) && (item.createdBy===userId || item.assignedTo===userId));
 };
+window.addEventListener('ndss-central-failure', event => {
+  const operation=event.detail?.operation || 'ซิงก์ข้อมูล';
+  showToast(`${operation} ไม่สำเร็จ ระบบจะลองส่งใหม่เมื่อเชื่อมต่อได้`, 'error');
+});
 const canCreateOperationalRecord = () => ['admin','officer'].includes(getSupabaseRole());
 const canManageOperationalRecord = item => {
   const role=getSupabaseRole();
