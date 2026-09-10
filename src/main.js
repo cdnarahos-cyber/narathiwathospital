@@ -1,7 +1,7 @@
 import { clearSupabaseSession, consumeSupabaseSessionFromUrl, getSupabaseConfig, getSupabaseRole, getSupabaseUser, hasSupabaseCredentials, hasSupabaseSession, invokeAdminUserManagement, requestSupabasePasswordRecovery, signInWithPassword, signUpWithPassword, updateSupabasePassword } from './config/supabase.js';
 import { downloadCleanPdf } from './services/clean-pdf-generator.js?v=20260902-44';
 import { fetchInvestigationCases, syncInvestigationCase } from './services/dashboard-service.js?v=20260902-43';
-import { canSyncOperationalRecords, saveOperationalRecord } from './services/operational-service.js';
+import { canSyncOperationalRecords, fetchOperationalRecords, saveOperationalRecord } from './services/operational-service.js';
 import { enableHistoryAreaFilter } from './components/history-area-filter.js';
 import { addNarathiwatBoundaries } from './components/narathiwat-boundaries.js';
 import { shell } from './components/layout.js?v=20260908-49';
@@ -876,6 +876,17 @@ const hydrateInvestigationCases = async () => {
   }
 };
 hydrateInvestigationCases();
+const hydrateOperationalRecords = async () => {
+  if (!hasSupabaseSession()) return;
+  const mappings={
+    lab: ['ndss-lab-results', row=>({remoteId:row.id,caseNumber:row.case_number || '',specimenNo:row.specimen_no,test:row.test_name,receivedDate:row.received_on || '',result:row.result,detail:row.detail || '',createdAt:row.created_at,createdBy:row.created_by})],
+    contact: ['ndss-case-contacts', row=>({remoteId:row.id,caseNumber:row.case_number || '',contactName:row.contact_name,relationship:row.relationship || '',phone:row.phone || '',symptom:row.symptom || '',followup:row.followup,completedAt:row.completed_at || '',createdAt:row.created_at,createdBy:row.created_by})],
+    task: ['ndss-response-tasks', row=>({remoteId:row.id,caseNumber:row.case_number || '',owner:row.owner_name,dueDate:row.due_date || '',priority:row.priority || '',status:row.status,detail:row.detail || '',createdAt:row.created_at,createdBy:row.created_by})],
+  };
+  try { await Promise.all(Object.entries(mappings).map(async ([kind,[key,convert]]) => { const remote=await fetchOperationalRecords(kind); if(remote.length) localStorage.setItem(key,JSON.stringify(remote.map(convert))); })); }
+  catch (error) { console.warn('ไม่สามารถโหลดข้อมูลปฏิบัติการจากฐานข้อมูลกลางได้',error); }
+};
+hydrateOperationalRecords();
 window.addEventListener('storage', event => {
   if (['ndss-investigations','ndss-506-records'].includes(event.key)) refreshDataViews();
   if (['ndss-investigations','ndss-case-contacts','ndss-response-tasks','ndss-lab-results','ndss-506-records','ndss-alert-state'].includes(event.key)) {
