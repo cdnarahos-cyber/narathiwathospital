@@ -245,6 +245,12 @@ const renderPasswordRecoveryGate = () => {
 if (authCallbackType === 'recovery' && hasSupabaseSession()) renderPasswordRecoveryGate(); else renderLoginGate();
 enableHistoryAreaFilter(root);
 const readLocalList = key => { try { return JSON.parse(localStorage.getItem(key) || '[]'); } catch { return []; } };
+const operationalCaseNumber = record => {
+  const caseIndex=record?.caseIndex;
+  if (caseIndex===undefined || caseIndex===null || caseIndex==='') return record?.caseNumber || '';
+  const linked=readLocalList('ndss-investigations')[Number(caseIndex)] || {};
+  return linked.remoteCaseNumber || linked.caseNumber || record?.caseNumber || '';
+};
 const updateNotificationBadge = () => {
   const tasks=readLocalList('ndss-response-tasks');
   const labs=readLocalList('ndss-lab-results');
@@ -879,9 +885,9 @@ hydrateInvestigationCases();
 const hydrateOperationalRecords = async () => {
   if (!hasSupabaseSession()) return;
   const mappings={
-    lab: ['ndss-lab-results', row=>({remoteId:row.id,caseNumber:row.case_number || '',specimenNo:row.specimen_no,test:row.test_name,receivedDate:row.received_on || '',result:row.result,detail:row.detail || '',createdAt:row.created_at,createdBy:row.created_by})],
-    contact: ['ndss-case-contacts', row=>({remoteId:row.id,caseNumber:row.case_number || '',contactName:row.contact_name,relationship:row.relationship || '',phone:row.phone || '',symptom:row.symptom || '',followup:row.followup,completedAt:row.completed_at || '',createdAt:row.created_at,createdBy:row.created_by})],
-    task: ['ndss-response-tasks', row=>({remoteId:row.id,caseNumber:row.case_number || '',owner:row.owner_name,dueDate:row.due_date || '',priority:row.priority || '',status:row.status,detail:row.detail || '',createdAt:row.created_at,createdBy:row.created_by})],
+    lab: ['ndss-lab-results', row=>({remoteId:row.id,caseIndex:'',caseNumber:row.case_number || '',specimenNo:row.specimen_no,test:row.test_name,receivedAt:row.received_on || '',result:row.result,note:row.detail || '',createdAt:row.created_at,createdBy:row.created_by})],
+    contact: ['ndss-case-contacts', row=>({remoteId:row.id,caseIndex:'',caseNumber:row.case_number || '',contactName:row.contact_name,relationship:row.relationship || '',phone:row.phone || '',symptom:row.symptom || '',followup:row.followup,completedAt:row.completed_at || '',createdAt:row.created_at,createdBy:row.created_by})],
+    task: ['ndss-response-tasks', row=>({remoteId:row.id,caseIndex:'',caseNumber:row.case_number || '',owner:row.owner_name,dueDate:row.due_date || '',priority:row.priority || '',status:row.status,note:row.detail || '',createdAt:row.created_at,createdBy:row.created_by})],
   };
   try { await Promise.all(Object.entries(mappings).map(async ([kind,[key,convert]]) => { const remote=await fetchOperationalRecords(kind); if(remote.length) localStorage.setItem(key,JSON.stringify(remote.map(convert))); })); }
   catch (error) { console.warn('ไม่สามารถโหลดข้อมูลปฏิบัติการจากฐานข้อมูลกลางได้',error); }
@@ -1650,7 +1656,7 @@ document.addEventListener('submit', event => {
     const result={...Object.fromEntries(new FormData(event.target)),createdAt:new Date().toISOString(),createdBy:getSupabaseUser()?.sub || ''};
     results.unshift(result);
     localStorage.setItem('ndss-lab-results',JSON.stringify(results));
-    if (canSyncOperationalRecords()) saveOperationalRecord('lab',{case_number:result.caseNumber || null,specimen_no:result.specimenNo || '-',test_name:result.test || '-',received_on:result.receivedDate || null,result:result.result,detail:result.detail || null}).catch(error=>console.warn('LAB sync unavailable',error));
+    if (canSyncOperationalRecords()) saveOperationalRecord('lab',{case_number:operationalCaseNumber(result) || null,specimen_no:result.specimenNo || '-',test_name:result.test || '-',received_on:result.receivedAt || null,result:result.result,detail:result.note || null}).catch(error=>console.warn('LAB sync unavailable',error));
     recordAudit('บันทึกผลตรวจห้องปฏิบัติการ',`${result.test} · ${result.result} · ${result.specimenNo}`);
     root.innerHTML=`<div class="module-page">${moduleView('lab')}</div>`;
     document.querySelectorAll('.nav-link').forEach(link=>link.classList.toggle('active',link.dataset.view==='lab'));
@@ -1663,7 +1669,7 @@ document.addEventListener('submit', event => {
     const contact={...Object.fromEntries(new FormData(event.target)),createdAt:new Date().toISOString(),createdBy:getSupabaseUser()?.sub || ''};
     contacts.unshift(contact);
     localStorage.setItem('ndss-case-contacts',JSON.stringify(contacts));
-    if (canSyncOperationalRecords()) saveOperationalRecord('contact',{case_number:contact.caseNumber || null,contact_name:contact.contactName || '-',relationship:contact.relationship || null,phone:contact.phone || null,symptom:contact.symptom || null,followup:contact.followup || 'รอติดตาม'}).catch(error=>console.warn('Contact sync unavailable',error));
+    if (canSyncOperationalRecords()) saveOperationalRecord('contact',{case_number:operationalCaseNumber(contact) || null,contact_name:contact.contactName || '-',relationship:contact.relationship || null,phone:contact.phone || null,symptom:contact.symptom || null,followup:contact.followup || 'รอติดตาม'}).catch(error=>console.warn('Contact sync unavailable',error));
     recordAudit('บันทึกผู้สัมผัส',`${contact.contactName} · ${contact.relationship || 'ไม่ระบุความสัมพันธ์'}`);
     root.innerHTML=`<div class="module-page">${moduleView('tracking')}</div>`;
     document.querySelectorAll('.nav-link').forEach(link=>link.classList.toggle('active',link.dataset.view==='tracking'));
@@ -1676,7 +1682,7 @@ document.addEventListener('submit', event => {
   const task={...Object.fromEntries(new FormData(event.target)),createdAt:new Date().toISOString(),createdBy:getSupabaseUser()?.sub || ''};
   tasks.push(task);
   localStorage.setItem('ndss-response-tasks',JSON.stringify(tasks));
-  if (canSyncOperationalRecords()) saveOperationalRecord('task',{case_number:task.caseNumber || null,owner_name:task.owner || '-',due_date:task.dueDate || null,priority:task.priority || null,status:task.status || 'รอรับทราบ',detail:task.detail || null}).catch(error=>console.warn('Task sync unavailable',error));
+  if (canSyncOperationalRecords()) saveOperationalRecord('task',{case_number:operationalCaseNumber(task) || null,owner_name:task.owner || '-',due_date:task.dueDate || null,priority:task.priority || null,status:task.status || 'รอรับทราบ',detail:task.note || null}).catch(error=>console.warn('Task sync unavailable',error));
   recordAudit('มอบหมายงานติดตาม',`ผู้รับผิดชอบ: ${task.owner} · กำหนด ${task.dueDate || '-'}`);
   root.innerHTML=`<div class="module-page">${moduleView('tracking')}</div>`;
   document.querySelectorAll('.nav-link').forEach(link=>link.classList.toggle('active',link.dataset.view==='tracking'));
