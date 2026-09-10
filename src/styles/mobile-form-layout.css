@@ -1,0 +1,129 @@
+/* Mobile-first layout safeguards for every online investigation form. */
+.original-form .form-grid,
+.original-form .lab-grid,
+.original-form .lab-grid > div,
+.original-form .map-coordinates,
+.original-form label {
+  min-width: 0;
+}
+
+.original-form input,
+.original-form select,
+.original-form textarea {
+  box-sizing: border-box;
+  max-width: 100%;
+}
+
+.location-capture {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 2px 0 12px;
+  padding: 10px 12px;
+  border: 1px solid #d5e7f7;
+  border-radius: 12px;
+  background: linear-gradient(90deg, #eef8ff, #f9fcff);
+}
+
+.location-capture button {
+  flex: 0 0 auto;
+  white-space: nowrap;
+}
+
+.location-capture small {
+  flex: 1 1 180px;
+  color: #52708e;
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+@media (max-width: 760px) {
+  .form-modal__dialog {
+    overflow-x: hidden;
+  }
+
+  .form-modal__dialog .original-form {
+    width: 100%;
+    min-width: 0;
+    padding: 16px !important;
+  }
+
+  .form-modal__dialog .original-form .form-grid,
+  .form-modal__dialog .original-form .lab-grid,
+  .form-modal__dialog .original-form .lab-grid > div {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+
+  .form-modal__dialog .original-form .form-grid {
+    gap: 12px;
+  }
+
+  .form-modal__dialog .original-form .form-grid > h3,
+  .form-modal__dialog .original-form .lab-grid h3 {
+    grid-column: 1 / -1;
+    margin: 6px 0 0;
+  }
+
+  .form-modal__dialog .original-form .lab-grid {
+    gap: 16px;
+    padding: 14px;
+  }
+
+  .form-modal__dialog .original-form .lab-grid > div {
+    gap: 12px;
+  }
+
+  .form-modal__dialog .original-form label,
+  .form-modal__dialog .original-form input,
+  .form-modal__dialog .original-form select,
+  .form-modal__dialog .original-form textarea {
+    display: block;
+    width: 100%;
+    min-width: 0;
+  }
+
+  .form-modal__dialog .original-form h2 {
+    margin-top: 20px;
+  }
+
+  .location-capture {
+    align-items: stretch;
+    flex-direction: column;
+    gap: 7px;
+    margin-bottom: 14px;
+  }
+
+  .location-capture button {
+    width: 100%;
+    min-height: 44px;
+  }
+
+  .location-capture small {
+    flex-basis: auto;
+    text-align: center;
+  }
+
+  .case-history .history-actions {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 10px;
+  }
+
+  .case-history .history-actions input,
+  .case-history .history-actions select,
+  .case-history .history-actions button {
+    width: 100% !important;
+    min-width: 0;
+    min-height: 44px;
+  }
+
+  .case-history .history-actions input {
+    padding: 10px 12px;
+  }
+}
+
+@media print {
+  .location-capture {
+    display: none !important;
+  }
+}
