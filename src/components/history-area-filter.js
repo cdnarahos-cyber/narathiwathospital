@@ -16,7 +16,8 @@ export const installHistoryAreaFilter = root => {
     select = document.createElement('select');
     select.dataset.historyArea = '';
     select.setAttribute('aria-label', 'คัดกรองตามพื้นที่');
-    actions.append(select);
+    const searchButton = actions.querySelector('[data-run-history-search]');
+    actions.insertBefore(select, searchButton || null);
     const status = document.createElement('small');
     status.className = 'history-area-status';
     status.dataset.historyAreaStatus = '';

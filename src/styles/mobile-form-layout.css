@@ -106,7 +106,7 @@
   .case-history .history-actions {
     display: grid;
     grid-template-columns: minmax(0, 1fr);
-    gap: 10px;
+    gap: 12px;
   }
 
   .case-history .history-actions input,
@@ -115,10 +115,39 @@
     width: 100% !important;
     min-width: 0;
     min-height: 44px;
+    color: #103e70;
+    font-size: 17px;
+    font-weight: 700;
+    line-height: 1.35;
   }
 
   .case-history .history-actions input {
     padding: 10px 12px;
+  }
+
+  .case-history .history-actions select {
+    padding: 10px 12px;
+    border: 1px solid #c5dbef;
+    border-radius: 11px;
+    background-color: #fff;
+  }
+
+  .case-history .history-actions input[type='date'] {
+    padding-inline: 12px;
+    text-align: center;
+  }
+
+  .case-history .history-actions input::placeholder {
+    color: #5c7899;
+    font-weight: 600;
+    opacity: 1;
+  }
+
+  .case-history .history-search-button {
+    order: 10;
+    border: 1px solid #c9e1f6;
+    background: linear-gradient(135deg, #e8f4ff, #dceeff);
+    color: #075ca9;
   }
 }
 
