@@ -3,7 +3,7 @@ import { downloadCleanPdf } from './services/clean-pdf-generator.js?v=20260902-4
 import { deleteInvestigationCase, fetchInvestigationCases, syncInvestigationCase } from './services/dashboard-service.js?v=20260910-1';
 import { canSyncOperationalRecords, deleteOperationalRecord, fetchOperationalRecords, saveOperationalRecord, updateOperationalRecord } from './services/operational-service.js';
 import { canSync506Records, fetch506Records, save506Records, with506SyncKeys } from './services/report506-service.js';
-import { flushCentralFailureQueue, logCentralActivity, reportCentralFailure } from './services/audit-service.js';
+import { fetchCentralAuditEvents, flushCentralFailureQueue, logCentralActivity, reportCentralFailure } from './services/audit-service.js';
 import { enableHistoryAreaFilter } from './components/history-area-filter.js?v=20260910-2';
 import { addNarathiwatBoundaries } from './components/narathiwat-boundaries.js';
 import { shell } from './components/layout.js?v=20260908-49';
@@ -966,7 +966,18 @@ const hydrate506Records = async () => {
   } catch (error) { console.warn('ไม่สามารถโหลดข้อมูล รง.506 จากฐานข้อมูลกลางได้',error); reportCentralFailure('โหลดข้อมูล รง.506 จากฐานข้อมูลกลาง',error); }
 };
 hydrate506Records();
-window.addEventListener('online', () => { flushCentralFailureQueue(); hydrateInvestigationCases(); hydrateOperationalRecords(); hydrate506Records(); });
+const hydrateCentralAuditEvents = async () => {
+  if (!hasSupabaseSession() || getSupabaseRole() !== 'admin') return;
+  try {
+    const remote=await fetchCentralAuditEvents();
+    if (!remote.length) return;
+    const local=readLocalList('ndss-audit-log');
+    const merged=[...remote,...local].sort((left,right)=>String(right.at).localeCompare(String(left.at))).slice(0,200);
+    localStorage.setItem('ndss-audit-log',JSON.stringify(merged));
+  } catch (error) { reportCentralFailure('โหลด Audit Log กลาง',error); }
+};
+hydrateCentralAuditEvents();
+window.addEventListener('online', () => { flushCentralFailureQueue(); hydrateInvestigationCases(); hydrateOperationalRecords(); hydrate506Records(); hydrateCentralAuditEvents(); });
 flushCentralFailureQueue();
 window.addEventListener('storage', event => {
   if (['ndss-investigations','ndss-506-records'].includes(event.key)) refreshDataViews();

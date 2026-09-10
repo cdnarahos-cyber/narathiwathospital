@@ -36,6 +36,21 @@ export async function logCentralActivity(action) {
   if (!response.ok) throw new Error('ไม่สามารถบันทึกกิจกรรมส่วนกลางได้');
 }
 
+export async function fetchCentralAuditEvents() {
+  if (!hasSupabaseCredentials() || !hasSupabaseSession()) return [];
+  const config=getSupabaseConfig();
+  const response=await fetch(`${config.url}/rest/v1/ndss_audit_events?select=occurred_at,action,entity_type,severity,details&order=occurred_at.desc&limit=200`, { headers:headers() });
+  const result=await response.json().catch(() => []);
+  if (!response.ok) throw new Error(result?.message || 'ไม่สามารถโหลด Audit Log กลางได้');
+  return Array.isArray(result) ? result.map(row => ({
+    action: row.action === 'client_activity' ? (row.details?.action || 'กิจกรรมจากหน้าจอ') : `${row.action} · ${row.entity_type}`,
+    detail: row.action === 'connection_failure' ? `การเชื่อมต่อขัดข้อง: ${row.details?.operation || '-'}` : 'บันทึกจากฐานข้อมูลกลาง',
+    at: row.occurred_at,
+    source: 'central',
+    severity: row.severity,
+  })) : [];
+}
+
 export async function reportCentralFailure(operation, error) {
   const event = { operation, message: error?.message || String(error || 'ไม่ทราบสาเหตุ'), at: new Date().toISOString() };
   try { await send(event); }
