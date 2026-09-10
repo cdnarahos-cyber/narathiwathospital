@@ -25,6 +25,7 @@ export async function syncInvestigationCase(record) {
     status: record.remoteStatus || 'pending',
     reported_at: record.onset || record.createdAt || new Date().toISOString(),
     assigned_to: userId,
+    record_payload: record,
   };
   const isUpdate = Boolean(record.remoteCaseId);
   const response = await fetch(
@@ -40,18 +41,30 @@ export async function syncInvestigationCase(record) {
   return { ...record, remoteCaseId: result[0].id, remoteCaseNumber: result[0].case_number, remoteStatus: result[0].status, syncState: 'synced' };
 }
 
+export async function deleteInvestigationCase(id) {
+  if (!hasSupabaseCredentials() || !hasSupabaseSession() || !id) return null;
+  const response=await fetch(`${getSupabaseConfig().url}/rest/v1/disease_cases?id=eq.${encodeURIComponent(id)}`, {
+    method:'DELETE', headers:apiHeaders({ Prefer:'return=representation' }),
+  });
+  const result=await response.json().catch(() => []);
+  if (!response.ok || !result[0]) throw new Error(result?.message || 'ลบเคสจากฐานข้อมูลกลางไม่สำเร็จ');
+  return result[0];
+}
+
 // Fetches only rows allowed by the caller's RLS policies.  This lets a signed-in
 // user see their assigned/created investigation cases after changing browser or
 // refreshing, while the detailed form data can remain available locally.
 export async function fetchInvestigationCases() {
   if (!hasSupabaseCredentials() || !hasSupabaseSession()) return [];
   const config=getSupabaseConfig();
-  const response=await fetch(`${config.url}/rest/v1/disease_cases?select=id,case_number,disease_name,patient_summary,location_name,status,reported_at,updated_at,created_by,assigned_to&order=reported_at.desc&limit=200`, {
+  const response=await fetch(`${config.url}/rest/v1/disease_cases?select=id,case_number,disease_name,patient_summary,location_name,status,reported_at,updated_at,created_by,assigned_to,record_payload&order=reported_at.desc&limit=200`, {
     headers: apiHeaders(),
   });
   const result=await response.json().catch(() => []);
   if (!response.ok) throw new Error(`ไม่สามารถโหลดเคสจากฐานข้อมูลกลางได้${result?.message ? `: ${result.message}` : ''}`);
   return Array.isArray(result) ? result.map(row => ({
+    ...(row.record_payload || {}),
+    hasFullPayload: Object.keys(row.record_payload || {}).length > 0,
     remoteCaseId: row.id,
     remoteCaseNumber: row.case_number,
     remoteStatus: row.status,

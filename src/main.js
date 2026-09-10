@@ -1,7 +1,9 @@
 import { clearSupabaseSession, consumeSupabaseSessionFromUrl, getSupabaseConfig, getSupabaseRole, getSupabaseUser, hasSupabaseCredentials, hasSupabaseSession, invokeAdminUserManagement, requestSupabasePasswordRecovery, signInWithPassword, signUpWithPassword, updateSupabasePassword } from './config/supabase.js';
 import { downloadCleanPdf } from './services/clean-pdf-generator.js?v=20260902-44';
-import { fetchInvestigationCases, syncInvestigationCase } from './services/dashboard-service.js?v=20260902-43';
+import { deleteInvestigationCase, fetchInvestigationCases, syncInvestigationCase } from './services/dashboard-service.js?v=20260910-1';
 import { canSyncOperationalRecords, deleteOperationalRecord, fetchOperationalRecords, saveOperationalRecord, updateOperationalRecord } from './services/operational-service.js';
+import { canSync506Records, fetch506Records, save506Records, with506SyncKeys } from './services/report506-service.js';
+import { flushCentralFailureQueue, logCentralActivity, reportCentralFailure } from './services/audit-service.js';
 import { enableHistoryAreaFilter } from './components/history-area-filter.js?v=20260910-2';
 import { addNarathiwatBoundaries } from './components/narathiwat-boundaries.js';
 import { shell } from './components/layout.js?v=20260908-49';
@@ -868,15 +870,34 @@ const hydrateInvestigationCases = async () => {
   if (!hasSupabaseSession()) return;
   try {
     const remoteCases=await fetchInvestigationCases();
-    if (!remoteCases.length) return;
     const localCases=JSON.parse(localStorage.getItem('ndss-investigations') || '[]');
+    if (!remoteCases.length && localCases.length) {
+      const migrated=[];
+      for (const item of localCases) {
+        if (item.remoteCaseId) { migrated.push(item); continue; }
+        try { migrated.push(await syncInvestigationCase(item)); }
+        catch (error) { migrated.push(item); reportCentralFailure('ย้ายเคสสอบสวนเดิม', error); }
+      }
+      localStorage.setItem('ndss-investigations',JSON.stringify(migrated));
+      if (!migrated.some(item => !item.remoteCaseId)) window.dispatchEvent(new Event('ndss-cases-updated'));
+      return;
+    }
+    if (!remoteCases.length) return;
     const localByRemote=new Map(localCases.map((item,index)=>[String(item.remoteCaseId || item.remoteCaseNumber || ''),index]).filter(([key])=>key));
     const merged=[...localCases];
     remoteCases.forEach(remote => {
       const key=String(remote.remoteCaseId || remote.remoteCaseNumber || '');
       const existingIndex=localByRemote.get(key);
       if (existingIndex === undefined) merged.push(remote);
-      else merged[existingIndex]={ ...remote, ...merged[existingIndex], remoteCaseId:remote.remoteCaseId, remoteCaseNumber:remote.remoteCaseNumber, remoteStatus:remote.remoteStatus, syncState:'synced' };
+      else {
+        const local=merged[existingIndex];
+        if (!remote.hasFullPayload && Object.keys(local || {}).length) {
+          syncInvestigationCase({ ...local, remoteCaseId:remote.remoteCaseId, remoteCaseNumber:remote.remoteCaseNumber, remoteStatus:remote.remoteStatus })
+            .then(saved => { const current=readLocalList('ndss-investigations'); const idx=current.findIndex(item=>item.remoteCaseId===saved.remoteCaseId); if(idx>=0) { current[idx]=saved; localStorage.setItem('ndss-investigations',JSON.stringify(current)); } })
+            .catch(error=>reportCentralFailure('ย้ายรายละเอียดเคสเดิม',error));
+          merged[existingIndex]={ ...remote, ...local, remoteCaseId:remote.remoteCaseId, remoteCaseNumber:remote.remoteCaseNumber, remoteStatus:remote.remoteStatus, syncState:'syncing' };
+        } else merged[existingIndex]={ ...local, ...remote, remoteCaseId:remote.remoteCaseId, remoteCaseNumber:remote.remoteCaseNumber, remoteStatus:remote.remoteStatus, syncState:'synced' };
+      }
     });
     if (JSON.stringify(merged) !== JSON.stringify(localCases)) {
       localStorage.setItem('ndss-investigations',JSON.stringify(merged));
@@ -884,20 +905,69 @@ const hydrateInvestigationCases = async () => {
     }
   } catch (error) {
     console.warn('ไม่สามารถโหลดเคสจากฐานข้อมูลกลางได้',error);
+    reportCentralFailure('โหลดเคสสอบสวนจากฐานข้อมูลกลาง', error);
   }
 };
 hydrateInvestigationCases();
 const hydrateOperationalRecords = async () => {
   if (!hasSupabaseSession()) return;
   const mappings={
-    lab: ['ndss-lab-results', row=>({remoteId:row.id,caseIndex:operationalCaseIndex(row.case_number),caseNumber:row.case_number || '',specimenNo:row.specimen_no,test:row.test_name,receivedAt:row.received_on || '',result:row.result,note:row.detail || '',createdAt:row.created_at,createdBy:row.created_by})],
-    contact: ['ndss-case-contacts', row=>({remoteId:row.id,caseIndex:operationalCaseIndex(row.case_number),caseNumber:row.case_number || '',contactName:row.contact_name,relationship:row.relationship || '',phone:row.phone || '',symptom:row.symptom || '',followup:row.followup,completedAt:row.completed_at || '',createdAt:row.created_at,createdBy:row.created_by})],
-    task: ['ndss-response-tasks', row=>({remoteId:row.id,caseIndex:operationalCaseIndex(row.case_number),caseNumber:row.case_number || '',owner:row.owner_name,dueDate:row.due_date || '',priority:row.priority || '',status:row.status,note:row.detail || '',createdAt:row.created_at,createdBy:row.created_by})],
+    lab: ['ndss-lab-results', row=>({...(row.record_payload || {}),hasFullPayload:Object.keys(row.record_payload || {}).length>0,remoteId:row.id,caseIndex:operationalCaseIndex(row.case_number),caseNumber:row.case_number || '',specimenNo:row.specimen_no,test:row.test_name,receivedAt:row.received_on || '',result:row.result,note:row.detail || '',createdAt:row.created_at,createdBy:row.created_by,syncState:'synced'})],
+    contact: ['ndss-case-contacts', row=>({...(row.record_payload || {}),hasFullPayload:Object.keys(row.record_payload || {}).length>0,remoteId:row.id,caseIndex:operationalCaseIndex(row.case_number),caseNumber:row.case_number || '',contactName:row.contact_name,relationship:row.relationship || '',phone:row.phone || '',symptom:row.symptom || '',followup:row.followup,completedAt:row.completed_at || '',createdAt:row.created_at,createdBy:row.created_by,syncState:'synced'})],
+    task: ['ndss-response-tasks', row=>({...(row.record_payload || {}),hasFullPayload:Object.keys(row.record_payload || {}).length>0,remoteId:row.id,caseIndex:operationalCaseIndex(row.case_number),caseNumber:row.case_number || '',owner:row.owner_name,dueDate:row.due_date || '',priority:row.priority || null,status:row.status,note:row.detail || '',createdAt:row.created_at,createdBy:row.created_by,syncState:'synced'})],
   };
-  try { await Promise.all(Object.entries(mappings).map(async ([kind,[key,convert]]) => { const remote=await fetchOperationalRecords(kind); if(remote.length) localStorage.setItem(key,JSON.stringify(remote.map(convert))); })); }
-  catch (error) { console.warn('ไม่สามารถโหลดข้อมูลปฏิบัติการจากฐานข้อมูลกลางได้',error); }
+  try { await Promise.all(Object.entries(mappings).map(async ([kind,[key,convert]]) => {
+    const local=readLocalList(key);
+    const remote=await fetchOperationalRecords(kind);
+    const localByRemote=new Map(local.filter(item=>item.remoteId).map(item=>[item.remoteId,item]));
+    const merged=remote.map(row=>{
+      const previous=localByRemote.get(row.id) || {};
+      const converted=convert(row);
+      if (!converted.hasFullPayload && Object.keys(previous).length) {
+        updateOperationalRecord(kind,row.id,{record_payload:previous}).catch(error=>reportCentralFailure(`ย้ายรายละเอียด ${kind} เดิม`,error));
+        return {...converted,...previous,remoteId:row.id,syncState:'syncing'};
+      }
+      return {...previous,...converted,remoteId:row.id,syncState:'synced'};
+    });
+    for (const item of local.filter(item=>!item.remoteId)) {
+      try {
+        const summary=kind==='lab' ? {case_number:operationalCaseNumber(item) || null,specimen_no:item.specimenNo || '-',test_name:item.test || '-',received_on:item.receivedAt || null,result:item.result,detail:item.note || null}
+          : kind==='contact' ? {case_number:operationalCaseNumber(item) || null,contact_name:item.contactName || '-',relationship:item.relationship || null,phone:item.phone || null,symptom:item.symptom || null,followup:item.followup || 'รอติดตาม'}
+          : {case_number:operationalCaseNumber(item) || null,owner_name:item.owner || '-',due_date:item.dueDate || null,priority:item.priority || null,status:item.status || 'รอรับทราบ',detail:item.note || null};
+        const saved=await saveOperationalRecord(kind,{...summary,record_payload:item});
+        merged.push({...item,remoteId:saved.id,syncState:'synced'});
+      } catch (error) { merged.push(item); reportCentralFailure(`ย้ายข้อมูล ${kind} เดิม`, error); }
+    }
+    if (merged.length || local.length) localStorage.setItem(key,JSON.stringify(merged));
+  })); }
+  catch (error) { console.warn('ไม่สามารถโหลดข้อมูลปฏิบัติการจากฐานข้อมูลกลางได้',error); reportCentralFailure('โหลดข้อมูลงานติดตามจากฐานข้อมูลกลาง', error); }
 };
 hydrateOperationalRecords();
+const hydrate506Records = async () => {
+  if (!hasSupabaseSession() || !canSync506Records()) return;
+  try {
+    const remote=await fetch506Records();
+    const local=with506SyncKeys(commandRecords());
+    if (!remote.length && local.length && getSupabaseRole()==='admin') {
+      const migrated=await save506Records(local);
+      localStorage.setItem('ndss-506-records',JSON.stringify(migrated.map(row=>({...row,syncState:'synced'}))));
+      window.dispatchEvent(new Event('ndss-cases-updated'));
+      return;
+    }
+    if (getSupabaseRole()==='admin' && local.length) {
+      const remoteKeys=new Set(remote.map(row=>row.syncKey));
+      const missing=local.filter(row=>!remoteKeys.has(row.syncKey));
+      if (missing.length) await save506Records(missing);
+    }
+    if (remote.length) {
+      localStorage.setItem('ndss-506-records',JSON.stringify(remote));
+      window.dispatchEvent(new Event('ndss-cases-updated'));
+    }
+  } catch (error) { console.warn('ไม่สามารถโหลดข้อมูล รง.506 จากฐานข้อมูลกลางได้',error); reportCentralFailure('โหลดข้อมูล รง.506 จากฐานข้อมูลกลาง',error); }
+};
+hydrate506Records();
+window.addEventListener('online', () => { flushCentralFailureQueue(); hydrateInvestigationCases(); hydrateOperationalRecords(); hydrate506Records(); });
+flushCentralFailureQueue();
 window.addEventListener('storage', event => {
   if (['ndss-investigations','ndss-506-records'].includes(event.key)) refreshDataViews();
   if (['ndss-investigations','ndss-case-contacts','ndss-response-tasks','ndss-lab-results','ndss-506-records','ndss-alert-state'].includes(event.key)) {
@@ -1006,6 +1076,10 @@ document.addEventListener('click', async event => {
     if (getSupabaseRole() !== 'admin') { showToast('เฉพาะ ADMIN เท่านั้นที่ลบเคสได้', 'error'); return; }
     const index=Number(action.dataset.deleteCase), records=readLocalList('ndss-investigations'), item=records[index];
     if(!item || !await confirmAction('ยืนยันการลบเคส',`ต้องการลบเคส ${item.patient || item.disease} ใช่หรือไม่?`)) return;
+    if (item.remoteCaseId) {
+      try { await deleteInvestigationCase(item.remoteCaseId); }
+      catch (error) { reportCentralFailure('ลบเคสสอบสวน',error); showToast('ยังไม่สามารถลบเคสจากฐานข้อมูลกลางได้', 'error'); return; }
+    }
     records.splice(index,1); localStorage.setItem('ndss-investigations',JSON.stringify(records)); recordAudit('ลบเคสสอบสวน',item.patient || item.disease || 'ไม่ระบุเคส');
     window.dispatchEvent(new Event('ndss-cases-updated')); renderPins(); renderHistory(); showToast('ลบเคสแล้ว');
     return;
@@ -1203,7 +1277,7 @@ document.addEventListener('submit', event => { if(event.target.matches('[data-in
 // until a server-side 506 integration is configured by the administrator.
 const commandRecords = () => { try { return JSON.parse(localStorage.getItem('ndss-506-records') || '[]'); } catch { return []; } };
 const commandCases = () => { try { return JSON.parse(localStorage.getItem('ndss-investigations') || '[]'); } catch { return []; } };
-const recordAudit = (action, detail) => { let entries=[]; try { entries=JSON.parse(localStorage.getItem('ndss-audit-log') || '[]'); } catch { entries=[]; } entries.unshift({action,detail,at:new Date().toISOString()}); localStorage.setItem('ndss-audit-log',JSON.stringify(entries.slice(0,100))); };
+const recordAudit = (action, detail) => { let entries=[]; try { entries=JSON.parse(localStorage.getItem('ndss-audit-log') || '[]'); } catch { entries=[]; } entries.unshift({action,detail,at:new Date().toISOString()}); localStorage.setItem('ndss-audit-log',JSON.stringify(entries.slice(0,100))); logCentralActivity(action).catch(error=>reportCentralFailure('บันทึก Audit Log',error)); };
 const commandText = value => String(value ?? '').trim();
 const normalizedHeader = value => commandText(value).toLocaleLowerCase('th-TH').replaceAll(/[\s_.\-/()]/g,'');
 const fieldRaw = (row, names) => {
@@ -1329,10 +1403,20 @@ const import506File = async file => {
     };
     const incomplete=normalized.filter(row => !row.disease || !isNormalized506Date(row.onset) || !(row.tambon || row.district)).length;
     const combined=[...existing,...unique];
-    localStorage.setItem('ndss-506-records',JSON.stringify(combined));
+    const syncedRows=with506SyncKeys(combined);
+    localStorage.setItem('ndss-506-records',JSON.stringify(syncedRows));
     const sourceSheets=[...new Set(rows.map(row => commandText(row.__ndssSourceSheet)).filter(Boolean))];
     const meta={fileName:file.name,imported:unique.length,duplicates:normalized.length-unique.length,incomplete,quality,sheetCount:sourceSheets.length,sourceSheets,mappingVersion:4,at:new Date().toLocaleString('th-TH')};
     localStorage.setItem('ndss-506-import-meta',JSON.stringify(meta));
+    if (canSync506Records()) {
+      try {
+        const remoteRows=await save506Records(syncedRows);
+        localStorage.setItem('ndss-506-records',JSON.stringify(remoteRows.map(row=>({...row,syncState:'synced'}))));
+      } catch (error) {
+        reportCentralFailure('นำเข้าข้อมูล รง.506',error);
+        showToast('นำเข้าในอุปกรณ์แล้ว แต่ยังไม่ซิงก์ฐานข้อมูลกลาง', 'info');
+      }
+    }
     recordAudit('นำเข้าข้อมูล รง.506',`ไฟล์ ${file.name} · ${sourceSheets.length || 1} ชีต · เพิ่ม ${unique.length} ราย · ซ้ำ ${meta.duplicates} ราย`);
     root.querySelector('[data-import-status]')?.replaceChildren(document.createTextNode(`อ่าน ${sourceSheets.length || 1} ชีต · นำเข้าข้อมูลใหม่ ${unique.length} ราย · รวมข้อมูล รง.506 ${combined.length} ราย`));
     window.dispatchEvent(new Event('ndss-cases-updated'));
@@ -1661,7 +1745,7 @@ document.addEventListener('submit', event => {
     const result={...Object.fromEntries(new FormData(event.target)),createdAt:new Date().toISOString(),createdBy:getSupabaseUser()?.sub || ''};
     results.unshift(result);
     localStorage.setItem('ndss-lab-results',JSON.stringify(results));
-    if (canSyncOperationalRecords()) saveOperationalRecord('lab',{case_number:operationalCaseNumber(result) || null,specimen_no:result.specimenNo || '-',test_name:result.test || '-',received_on:result.receivedAt || null,result:result.result,detail:result.note || null}).then(remote=>{ result.remoteId=remote.id; result.syncState='synced'; localStorage.setItem('ndss-lab-results',JSON.stringify(results)); }).catch(error=>console.warn('LAB sync unavailable',error));
+    if (canSyncOperationalRecords()) saveOperationalRecord('lab',{case_number:operationalCaseNumber(result) || null,specimen_no:result.specimenNo || '-',test_name:result.test || '-',received_on:result.receivedAt || null,result:result.result,detail:result.note || null,record_payload:result}).then(remote=>{ result.remoteId=remote.id; result.syncState='synced'; localStorage.setItem('ndss-lab-results',JSON.stringify(results)); }).catch(error=>{ console.warn('LAB sync unavailable',error); reportCentralFailure('บันทึกผลตรวจห้องปฏิบัติการ',error); });
     recordAudit('บันทึกผลตรวจห้องปฏิบัติการ',`${result.test} · ${result.result} · ${result.specimenNo}`);
     root.innerHTML=`<div class="module-page">${moduleView('lab')}</div>`;
     document.querySelectorAll('.nav-link').forEach(link=>link.classList.toggle('active',link.dataset.view==='lab'));
@@ -1674,7 +1758,7 @@ document.addEventListener('submit', event => {
     const contact={...Object.fromEntries(new FormData(event.target)),createdAt:new Date().toISOString(),createdBy:getSupabaseUser()?.sub || ''};
     contacts.unshift(contact);
     localStorage.setItem('ndss-case-contacts',JSON.stringify(contacts));
-    if (canSyncOperationalRecords()) saveOperationalRecord('contact',{case_number:operationalCaseNumber(contact) || null,contact_name:contact.contactName || '-',relationship:contact.relationship || null,phone:contact.phone || null,symptom:contact.symptom || null,followup:contact.followup || 'รอติดตาม'}).then(remote=>{ contact.remoteId=remote.id; contact.syncState='synced'; localStorage.setItem('ndss-case-contacts',JSON.stringify(contacts)); }).catch(error=>console.warn('Contact sync unavailable',error));
+    if (canSyncOperationalRecords()) saveOperationalRecord('contact',{case_number:operationalCaseNumber(contact) || null,contact_name:contact.contactName || '-',relationship:contact.relationship || null,phone:contact.phone || null,symptom:contact.symptom || null,followup:contact.followup || 'รอติดตาม',record_payload:contact}).then(remote=>{ contact.remoteId=remote.id; contact.syncState='synced'; localStorage.setItem('ndss-case-contacts',JSON.stringify(contacts)); }).catch(error=>{ console.warn('Contact sync unavailable',error); reportCentralFailure('บันทึกผู้สัมผัส',error); });
     recordAudit('บันทึกผู้สัมผัส',`${contact.contactName} · ${contact.relationship || 'ไม่ระบุความสัมพันธ์'}`);
     root.innerHTML=`<div class="module-page">${moduleView('tracking')}</div>`;
     document.querySelectorAll('.nav-link').forEach(link=>link.classList.toggle('active',link.dataset.view==='tracking'));
@@ -1687,7 +1771,7 @@ document.addEventListener('submit', event => {
   const task={...Object.fromEntries(new FormData(event.target)),createdAt:new Date().toISOString(),createdBy:getSupabaseUser()?.sub || ''};
   tasks.push(task);
   localStorage.setItem('ndss-response-tasks',JSON.stringify(tasks));
-  if (canSyncOperationalRecords()) saveOperationalRecord('task',{case_number:operationalCaseNumber(task) || null,owner_name:task.owner || '-',due_date:task.dueDate || null,priority:task.priority || null,status:task.status || 'รอรับทราบ',detail:task.note || null}).then(remote=>{ task.remoteId=remote.id; task.syncState='synced'; localStorage.setItem('ndss-response-tasks',JSON.stringify(tasks)); }).catch(error=>console.warn('Task sync unavailable',error));
+  if (canSyncOperationalRecords()) saveOperationalRecord('task',{case_number:operationalCaseNumber(task) || null,owner_name:task.owner || '-',due_date:task.dueDate || null,priority:task.priority || null,status:task.status || 'รอรับทราบ',detail:task.note || null,record_payload:task}).then(remote=>{ task.remoteId=remote.id; task.syncState='synced'; localStorage.setItem('ndss-response-tasks',JSON.stringify(tasks)); }).catch(error=>{ console.warn('Task sync unavailable',error); reportCentralFailure('บันทึกงานติดตาม',error); });
   recordAudit('มอบหมายงานติดตาม',`ผู้รับผิดชอบ: ${task.owner} · กำหนด ${task.dueDate || '-'}`);
   root.innerHTML=`<div class="module-page">${moduleView('tracking')}</div>`;
   document.querySelectorAll('.nav-link').forEach(link=>link.classList.toggle('active',link.dataset.view==='tracking'));
