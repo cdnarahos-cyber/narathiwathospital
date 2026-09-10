@@ -2,7 +2,7 @@ import { clearSupabaseSession, consumeSupabaseSessionFromUrl, getSupabaseConfig,
 import { downloadCleanPdf } from './services/clean-pdf-generator.js?v=20260902-44';
 import { fetchInvestigationCases, syncInvestigationCase } from './services/dashboard-service.js?v=20260902-43';
 import { canSyncOperationalRecords, deleteOperationalRecord, fetchOperationalRecords, saveOperationalRecord, updateOperationalRecord } from './services/operational-service.js';
-import { enableHistoryAreaFilter } from './components/history-area-filter.js';
+import { enableHistoryAreaFilter } from './components/history-area-filter.js?v=20260910-2';
 import { addNarathiwatBoundaries } from './components/narathiwat-boundaries.js';
 import { shell } from './components/layout.js?v=20260908-49';
 import { moduleView, diseaseMeta, investigationForm } from './components/modules.js?v=20260908-48';
