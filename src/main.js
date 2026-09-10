@@ -1,6 +1,7 @@
 import { clearSupabaseSession, consumeSupabaseSessionFromUrl, getSupabaseConfig, getSupabaseRole, getSupabaseUser, hasSupabaseCredentials, hasSupabaseSession, invokeAdminUserManagement, requestSupabasePasswordRecovery, signInWithPassword, signUpWithPassword, updateSupabasePassword } from './config/supabase.js';
 import { downloadCleanPdf } from './services/clean-pdf-generator.js?v=20260902-44';
 import { fetchInvestigationCases, syncInvestigationCase } from './services/dashboard-service.js?v=20260902-43';
+import { canSyncOperationalRecords, saveOperationalRecord } from './services/operational-service.js';
 import { enableHistoryAreaFilter } from './components/history-area-filter.js';
 import { addNarathiwatBoundaries } from './components/narathiwat-boundaries.js';
 import { shell } from './components/layout.js?v=20260908-49';
@@ -1053,6 +1054,24 @@ const canManageOperationalRecord = item => {
   const userId=getSupabaseUser()?.sub || '';
   return role==='admin' || (role==='officer' && Boolean(userId) && item.createdBy===userId);
 };
+const mountLocationCapture = form => {
+  const lat=form?.elements.lat, lng=form?.elements.lng;
+  if (!lat || !lng || form.querySelector('[data-capture-location]')) return;
+  const wrap=document.createElement('div'); wrap.className='location-capture no-print';
+  wrap.innerHTML='<button type="button" class="secondary" data-capture-location>◎ ดึงพิกัดปัจจุบัน</button><small data-location-status>กดปุ่มเพื่อขอพิกัดจากอุปกรณ์</small>';
+  lat.closest('.form-grid')?.after(wrap);
+};
+document.addEventListener('click', event => {
+  const button=event.target.closest('[data-capture-location]'); if(!button) return;
+  const form=button.closest('form'); const status=form?.querySelector('[data-location-status]');
+  if (!navigator.geolocation) { if(status) status.textContent='อุปกรณ์หรือเบราว์เซอร์นี้ไม่รองรับการระบุตำแหน่ง'; return; }
+  button.disabled=true; if(status) status.textContent='กำลังขอพิกัดปัจจุบัน…';
+  navigator.geolocation.getCurrentPosition(position => {
+    form.elements.lat.value=position.coords.latitude.toFixed(6); form.elements.lng.value=position.coords.longitude.toFixed(6);
+    if(status) status.textContent=`ได้พิกัดแล้ว (ความคลาดเคลื่อนประมาณ ${Math.round(position.coords.accuracy)} เมตร)`;
+    button.disabled=false; showToast('เติมพิกัดปัจจุบันแล้ว');
+  }, () => { if(status) status.textContent='ไม่สามารถรับพิกัดได้ โปรดอนุญาตตำแหน่งหรือตรวจสอบ GPS'; button.disabled=false; showToast('ไม่สามารถรับพิกัดปัจจุบันได้','error'); }, {enableHighAccuracy:true,timeout:15000,maximumAge:0});
+});
 document.addEventListener('submit', event => {
   if(!event.target.matches('[data-lab-result],[data-contact-tracing],[data-response-task]')) return;
   if(canCreateOperationalRecord()) return;
@@ -1076,7 +1095,7 @@ const renderHistory = keyword => {
   });
   rows.innerHTML=filtered.length ? filtered.map(item=>`<tr><td>${item.createdAt?new Date(item.createdAt).toLocaleDateString('th-TH'):'-'}</td><td><span class="disease-dot" style="background:${diseaseMeta[item.disease]?.color || '#176fca'}"></span>${escapeHtml(item.disease)}</td><td>${escapeHtml(item.patient)}</td><td>${escapeHtml(item.hn)}</td><td>${escapeHtml(item.location)}</td><td class="case-actions"><button class="table-action" data-view-case="${item.index}">ดู</button>${canEditInvestigation(item) ? `<button class="table-action" data-edit-case="${item.index}">แก้ไข</button>` : ''}<button class="table-action" data-print-case="${item.index}">PDF</button>${canDelete ? `<button class="table-action danger" data-delete-case="${item.index}">ลบ</button>` : ''}</td></tr>`).join('') : '<tr><td colspan="6" class="empty-history">ไม่พบข้อมูลที่ค้นหา</td></tr>';
 };
-const openCaseForm = (item = {}, index = null) => { const modal=root.querySelector('[data-form-modal]'); const dialog=modal.querySelector('.form-modal__dialog'); const oldForm=dialog.querySelector('[data-investigation-form]'); oldForm.outerHTML=investigationForm(item.disease || 'ไข้เลือดออก'); const form=dialog.querySelector('[data-investigation-form]'); Object.entries(item).forEach(([name,value])=>{ const field=form.elements[name]; if(!field) return; if(field.type==='checkbox') field.checked=Boolean(value); else field.value=value ?? ''; }); editingCaseIndex=index; modal.hidden=false; document.body.classList.add('modal-open'); const firstField=form.querySelector('input:not([type="hidden"]):not([disabled]),select:not([disabled]),textarea:not([disabled])'); requestAnimationFrame(()=>firstField?.focus()); };
+const openCaseForm = (item = {}, index = null) => { const modal=root.querySelector('[data-form-modal]'); const dialog=modal.querySelector('.form-modal__dialog'); const oldForm=dialog.querySelector('[data-investigation-form]'); oldForm.outerHTML=investigationForm(item.disease || 'ไข้เลือดออก'); const form=dialog.querySelector('[data-investigation-form]'); Object.entries(item).forEach(([name,value])=>{ const field=form.elements[name]; if(!field) return; if(field.type==='checkbox') field.checked=Boolean(value); else field.value=value ?? ''; }); mountLocationCapture(form); editingCaseIndex=index; modal.hidden=false; document.body.classList.add('modal-open'); const firstField=form.querySelector('input:not([type="hidden"]):not([disabled]),select:not([disabled]),textarea:not([disabled])'); requestAnimationFrame(()=>firstField?.focus()); };
 const renderPins = () => { const mapNode = root.querySelector('[data-case-map]'); if (!mapNode) return; const cases = JSON.parse(localStorage.getItem('ndss-investigations') || '[]'); const visibleCases=activeDiseaseFilter === 'all' ? cases : cases.filter(item => item.disease === activeDiseaseFilter); root.querySelector('[data-total-cases]').textContent = cases.length; Object.keys(diseaseMeta).forEach(disease => { root.querySelector(`[data-disease-total="${disease}"]`).textContent = cases.filter(item => item.disease === disease).length; }); root.querySelectorAll('[data-map-filter]').forEach(card=>card.classList.toggle('active',card.dataset.mapFilter===activeDiseaseFilter)); root.querySelector('[data-map-filter-label]').textContent=activeDiseaseFilter==='all'?'Leaflet.js · แสดงทุกโรค':`Leaflet.js · แสดงเฉพาะ ${activeDiseaseFilter}`; if (!window.L) { mapNode.textContent = 'กำลังโหลดแผนที่ Leaflet...'; return; } if (investigationMap) investigationMap.remove(); investigationMap = window.L.map(mapNode,{scrollWheelZoom:false}).setView([6.426,101.825],12); window.L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'© OpenStreetMap contributors'}).addTo(investigationMap); const bounds=[]; visibleCases.forEach(item => { const lat=Number(item.lat); const lng=Number(item.lng); if (!hasMapCoordinates(lat,lng)) return; const color=diseaseMeta[item.disease]?.color || '#176fca'; const marker=window.L.circleMarker([lat,lng],{radius:10,color:'#fff',weight:3,fillColor:color,fillOpacity:1}).addTo(investigationMap); const detail=`<b>${escapeHtml(item.patient)}</b><br>${escapeHtml(item.disease)}<br>${escapeHtml(item.location)}<br><small>เริ่มป่วย ${escapeHtml(item.onset)} · ${lat.toFixed(5)}, ${lng.toFixed(5)}</small>`; marker.bindPopup(detail).on('click',()=>root.querySelector('[data-map-details]').innerHTML=detail); bounds.push([lat,lng]); }); if(bounds.length) investigationMap.fitBounds(bounds,{padding:[36,36],maxZoom:14}); investigationMap.on('click',event=>{ const lat=event.latlng.lat.toFixed(6), lng=event.latlng.lng.toFixed(6); const form=root.querySelector('[data-investigation-form]'); if(form?.elements.lat) form.elements.lat.value=lat; if(form?.elements.lng) form.elements.lng.value=lng; root.querySelector('[data-map-details]').textContent=`เลือกพิกัด ${lat}, ${lng} แล้ว — บันทึกแบบฟอร์มเพื่อปักหมุด`; }); root.querySelector('[data-map-details]').textContent = bounds.length ? `${bounds.length} เคสที่มีพิกัดบนแผนที่ — คลิกหมุดหรือพื้นที่บนแผนที่เพื่อเลือกพิกัด` : visibleCases.length ? 'ข้อมูลเคสมีอยู่ แต่ยังไม่มีพิกัดจริงสำหรับแสดงหมุด — โปรดเลือกตำแหน่งบนแผนที่แล้วบันทึกแบบสอบสวน' : 'ไม่พบเคสตามตัวกรองที่เลือก'; setTimeout(()=>investigationMap.invalidateSize(),100); };
 document.addEventListener('submit', async event => {
   if (event.target.matches('[data-module-save]')) {
@@ -1124,7 +1143,7 @@ document.addEventListener('submit', async event => {
   renderPins(); renderHistory();
   showToast(saved.syncState === 'synced' ? 'บันทึกและซิงก์ฐานข้อมูลกลางแล้ว' : 'บันทึกข้อมูลในเครื่องแล้ว');
 });
-document.addEventListener('change', event => { if(event.target.matches('[data-disease]')) { const disease=event.target.value; const meta=diseaseMeta[disease]; const template=root.querySelector('[data-template-download]'); if(template) { template.href=`./public/forms/${encodeURIComponent(meta.template)}`; template.textContent=`เปิด PDF ต้นฉบับ: ${disease}`; } const pages=root.querySelector('[data-template-pages]'); if(pages) pages.innerHTML=Array.from({length:meta.pages},(_,i)=>`<img src="./public/form-pages/${encodeURIComponent(meta.template.replace('.pdf',''))}-${i+1}.png" alt="แบบฟอร์ม ${disease} หน้า ${i+1}" loading="lazy" />`).join(''); event.target.closest('[data-investigation-form]').outerHTML=investigationForm(disease); showToast(`เปลี่ยนเป็นแบบฟอร์ม ${disease} ตามต้นฉบับแล้ว`); } });
+document.addEventListener('change', event => { if(event.target.matches('[data-disease]')) { const disease=event.target.value; const meta=diseaseMeta[disease]; const template=root.querySelector('[data-template-download]'); if(template) { template.href=`./public/forms/${encodeURIComponent(meta.template)}`; template.textContent=`เปิด PDF ต้นฉบับ: ${disease}`; } const pages=root.querySelector('[data-template-pages]'); if(pages) pages.innerHTML=Array.from({length:meta.pages},(_,i)=>`<img src="./public/form-pages/${encodeURIComponent(meta.template.replace('.pdf',''))}-${i+1}.png" alt="แบบฟอร์ม ${disease} หน้า ${i+1}" loading="lazy" />`).join(''); event.target.closest('[data-investigation-form]').outerHTML=investigationForm(disease); mountLocationCapture(root.querySelector('[data-investigation-form]')); showToast(`เปลี่ยนเป็นแบบฟอร์ม ${disease} ตามต้นฉบับแล้ว`); } });
 document.addEventListener('input', event => { if (event.target.matches('[data-filter]')) { const keyword = event.target.value.toLowerCase(); event.target.closest('.work-panel').querySelectorAll('tbody tr').forEach(row => row.hidden = !row.textContent.toLowerCase().includes(keyword)); } if(event.target.matches('[data-history-search],[data-history-from],[data-history-to]')) renderHistory(); });
 document.addEventListener('keydown', event => { if(event.key === 'Enter' && event.target.matches('[data-history-search]')) { event.preventDefault(); renderHistory(); } });
 document.addEventListener('change', event => { if(event.target.matches('[data-history-disease]')) renderHistory(); });
@@ -1620,6 +1639,7 @@ document.addEventListener('submit', event => {
     const result={...Object.fromEntries(new FormData(event.target)),createdAt:new Date().toISOString(),createdBy:getSupabaseUser()?.sub || ''};
     results.unshift(result);
     localStorage.setItem('ndss-lab-results',JSON.stringify(results));
+    if (canSyncOperationalRecords()) saveOperationalRecord('lab',{case_number:result.caseNumber || null,specimen_no:result.specimenNo || '-',test_name:result.test || '-',received_on:result.receivedDate || null,result:result.result,detail:result.detail || null}).catch(error=>console.warn('LAB sync unavailable',error));
     recordAudit('บันทึกผลตรวจห้องปฏิบัติการ',`${result.test} · ${result.result} · ${result.specimenNo}`);
     root.innerHTML=`<div class="module-page">${moduleView('lab')}</div>`;
     document.querySelectorAll('.nav-link').forEach(link=>link.classList.toggle('active',link.dataset.view==='lab'));
@@ -1632,6 +1652,7 @@ document.addEventListener('submit', event => {
     const contact={...Object.fromEntries(new FormData(event.target)),createdAt:new Date().toISOString(),createdBy:getSupabaseUser()?.sub || ''};
     contacts.unshift(contact);
     localStorage.setItem('ndss-case-contacts',JSON.stringify(contacts));
+    if (canSyncOperationalRecords()) saveOperationalRecord('contact',{case_number:contact.caseNumber || null,contact_name:contact.contactName || '-',relationship:contact.relationship || null,phone:contact.phone || null,symptom:contact.symptom || null,followup:contact.followup || 'รอติดตาม'}).catch(error=>console.warn('Contact sync unavailable',error));
     recordAudit('บันทึกผู้สัมผัส',`${contact.contactName} · ${contact.relationship || 'ไม่ระบุความสัมพันธ์'}`);
     root.innerHTML=`<div class="module-page">${moduleView('tracking')}</div>`;
     document.querySelectorAll('.nav-link').forEach(link=>link.classList.toggle('active',link.dataset.view==='tracking'));
@@ -1644,6 +1665,7 @@ document.addEventListener('submit', event => {
   const task={...Object.fromEntries(new FormData(event.target)),createdAt:new Date().toISOString(),createdBy:getSupabaseUser()?.sub || ''};
   tasks.push(task);
   localStorage.setItem('ndss-response-tasks',JSON.stringify(tasks));
+  if (canSyncOperationalRecords()) saveOperationalRecord('task',{case_number:task.caseNumber || null,owner_name:task.owner || '-',due_date:task.dueDate || null,priority:task.priority || null,status:task.status || 'รอรับทราบ',detail:task.detail || null}).catch(error=>console.warn('Task sync unavailable',error));
   recordAudit('มอบหมายงานติดตาม',`ผู้รับผิดชอบ: ${task.owner} · กำหนด ${task.dueDate || '-'}`);
   root.innerHTML=`<div class="module-page">${moduleView('tracking')}</div>`;
   document.querySelectorAll('.nav-link').forEach(link=>link.classList.toggle('active',link.dataset.view==='tracking'));
