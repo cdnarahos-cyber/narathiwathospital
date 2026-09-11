@@ -1395,7 +1395,7 @@ const setImportProgress = (message, state = 'loading') => {
   if(progress) { progress.hidden=false; progress.dataset.state=state; progress.setAttribute('aria-busy',String(busy)); }
   if(text) text.textContent=message;
   const input=root.querySelector('[data-import-506]');
-  if(input) input.disabled=busy;
+  if(input) { input.disabled=busy; if(!busy) input.value=''; }
   root.querySelector('label[for="import-506-file"]')?.classList.toggle('is-disabled',busy);
 };
 const import506File = async file => {
