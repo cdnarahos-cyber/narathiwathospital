@@ -1383,10 +1383,11 @@ const has506Headers = rows => {
   const supported=['disease','โรค','diag','diagnosis','icd10','icd-10','diagnosis_icd10_list','patient','name','ชื่อผู้ป่วย','ชื่อ','hn','cid','onset','วันที่เริ่มป่วย','วันที่เริ่มมีอาการ','dateonset','illdate','tambon','ตำบล','district','อำเภอ'];
   return Object.keys(rows[0] || {}).some(header => supported.some(name => normalizedHeader(header).includes(normalizedHeader(name))));
 };
+const canImport506 = () => ['admin', 'officer'].includes(getSupabaseRole());
 const import506File = async file => {
   if (!file) return;
-  if (getSupabaseRole() !== 'admin') {
-    showToast('เฉพาะ ADMIN เท่านั้นที่นำเข้าข้อมูล รง.506 ได้', 'error');
+  if (!canImport506()) {
+    showToast('เฉพาะ ADMIN หรือ OFFICER เท่านั้นที่นำเข้าข้อมูล รง.506 ได้', 'error');
     return;
   }
   try {
@@ -1419,14 +1420,16 @@ const import506File = async file => {
     const incomplete=normalized.filter(row => !row.disease || !isNormalized506Date(row.onset) || !(row.tambon || row.district)).length;
     const combined=[...existing,...unique];
     const syncedRows=with506SyncKeys(combined);
+    const newSyncedRows=syncedRows.slice(existing.length);
     localStorage.setItem('ndss-506-records',JSON.stringify(syncedRows));
     const sourceSheets=[...new Set(rows.map(row => commandText(row.__ndssSourceSheet)).filter(Boolean))];
     const meta={fileName:file.name,imported:unique.length,duplicates:normalized.length-unique.length,incomplete,quality,sheetCount:sourceSheets.length,sourceSheets,mappingVersion:4,at:new Date().toLocaleString('th-TH')};
     localStorage.setItem('ndss-506-import-meta',JSON.stringify(meta));
     if (canSync506Records()) {
       try {
-        const remoteRows=await save506Records(syncedRows);
-        localStorage.setItem('ndss-506-records',JSON.stringify(remoteRows.map(row=>({...row,syncState:'synced'}))));
+        const remoteRows=await save506Records(getSupabaseRole() === 'admin' ? syncedRows : newSyncedRows);
+        const savedKeys=new Set(remoteRows.map(row=>row.syncKey));
+        localStorage.setItem('ndss-506-records',JSON.stringify(syncedRows.map(row=>({ ...row, syncState: getSupabaseRole() === 'admin' || savedKeys.has(row.syncKey) ? 'synced' : (row.syncState || 'local') }))));
       } catch (error) {
         reportCentralFailure('นำเข้าข้อมูล รง.506',error);
         showToast('นำเข้าในอุปกรณ์แล้ว แต่ยังไม่ซิงก์ฐานข้อมูลกลาง', 'info');
@@ -1439,8 +1442,8 @@ const import506File = async file => {
   } catch(error) { console.error(error); showToast(`นำเข้าข้อมูลไม่สำเร็จ: ${error.message}`); }
 };
 const open506Import = () => {
-  if (getSupabaseRole() !== 'admin') {
-    showToast('เฉพาะ ADMIN เท่านั้นที่นำเข้าข้อมูล รง.506 ได้', 'error');
+  if (!canImport506()) {
+    showToast('เฉพาะ ADMIN หรือ OFFICER เท่านั้นที่นำเข้าข้อมูล รง.506 ได้', 'error');
     return;
   }
   root.innerHTML=`<div class="module-page">${moduleView('import506')}</div>`;
