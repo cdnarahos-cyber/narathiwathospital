@@ -445,7 +445,7 @@ const enhanceSettingsHealth = () => {
   const incomplete = rows.filter(row => !row.disease || !row.onset || !(row.tambon || row.district)).length;
   const items = [
     ['ข้อมูล รง.506', `${rows.length} ราย`, incomplete ? `ควรตรวจสอบ ${incomplete} รายการ` : 'ข้อมูลสำคัญครบตามเกณฑ์', incomplete ? 'orange' : 'blue'],
-    ['แบบสอบสวน', `${cases.length} เคส`, 'เก็บในอุปกรณ์ปัจจุบัน', 'green'],
+    ['แบบสอบสวน', `${cases.length} เคส`, hasSupabaseSession() ? 'เชื่อมต่อฐานข้อมูลกลางแล้ว' : 'เก็บในอุปกรณ์ปัจจุบัน', 'green'],
     ['งานติดตาม', `${tasks.length} งาน`, `${tasks.filter(task => task.status !== 'ควบคุมแล้ว').length} งานยังไม่ปิด`, 'purple'],
     ['ผล LAB', `${labs.length} รายการ`, `${labs.filter(item => item.result === 'Positive').length} ผล Positive`, 'red']
   ];
