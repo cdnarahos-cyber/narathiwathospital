@@ -16,7 +16,14 @@ export const canSync506Records = () => hasSupabaseCredentials() && hasSupabaseSe
 
 export const with506SyncKeys = rows => rows.map((row, index) => {
   if (row.syncKey) return row;
-  const identity = [row.hn, row.cid, row.disease, row.onset, row.tambon, row.district, row.location, row.importedAt, index].join('|');
+  // Keep the central identity independent of the browser and import time.  This
+  // lets Postgres' unique source_key reject the same case when two officers
+  // upload the same file at the same time.  A completely blank row is still
+  // distinguished by its row position, but valid 506 rows use patient/case data.
+  const hasCaseIdentity = [row.hn, row.cid, row.patient].some(value => String(value || '').trim());
+  const identity = hasCaseIdentity
+    ? [row.hn, row.cid, row.patient, row.disease, row.onset, row.tambon, row.district, row.location].join('|')
+    : [row.disease, row.onset, row.tambon, row.district, row.location, `row-${index + 1}`].join('|');
   return { ...row, syncKey: `506-${hash(identity)}` };
 });
 
