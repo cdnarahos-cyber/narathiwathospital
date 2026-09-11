@@ -7,7 +7,7 @@ import { fetchCentralAuditEvents, flushCentralFailureQueue, logCentralActivity, 
 import { enableHistoryAreaFilter } from './components/history-area-filter.js?v=20260910-2';
 import { addNarathiwatBoundaries } from './components/narathiwat-boundaries.js';
 import { shell } from './components/layout.js?v=20260908-49';
-import { moduleView, diseaseMeta, investigationForm } from './components/modules.js?v=20260908-48';
+import { moduleView, diseaseMeta, investigationForm } from './components/modules.js?v=20260911-1';
 const authCallbackType = new URLSearchParams(location.hash.replace(/^#/, '')).get('type') || '';
 consumeSupabaseSessionFromUrl();
 const escapeOverview = value => String(value ?? '-').replace(/[&<>"']/g, char => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[char]));
