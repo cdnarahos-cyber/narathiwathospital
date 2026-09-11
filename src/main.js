@@ -2,7 +2,7 @@ import { clearSupabaseSession, consumeSupabaseSessionFromUrl, getSupabaseConfig,
 import { downloadCleanPdf } from './services/clean-pdf-generator.js?v=20260902-44';
 import { deleteInvestigationCase, fetchInvestigationCases, syncInvestigationCase } from './services/dashboard-service.js?v=20260910-1';
 import { canSyncOperationalRecords, deleteOperationalRecord, fetchOperationalRecords, saveOperationalRecord, updateOperationalRecord } from './services/operational-service.js';
-import { canSync506Records, fetch506Records, save506Records, with506SyncKeys } from './services/report506-service.js?v=20260911-5';
+import { canSync506Records, fetch506Records, save506Records, with506SyncKeys } from './services/report506-service.js?v=20260911-6';
 import { fetchCentralAuditEvents, flushCentralFailureQueue, logCentralActivity, reportCentralFailure } from './services/audit-service.js';
 import { enableHistoryAreaFilter } from './components/history-area-filter.js?v=20260910-2';
 import { addNarathiwatBoundaries } from './components/narathiwat-boundaries.js';
@@ -1388,6 +1388,16 @@ const has506Headers = rows => {
   return Object.keys(rows[0] || {}).some(header => supported.some(name => normalizedHeader(header).includes(normalizedHeader(name))));
 };
 const canImport506 = () => ['admin', 'officer'].includes(getSupabaseRole());
+const setImportProgress = (message, state = 'loading') => {
+  const progress=root.querySelector('[data-import-progress]');
+  const text=progress?.querySelector('[data-import-progress-text]');
+  const busy=state === 'loading';
+  if(progress) { progress.hidden=false; progress.dataset.state=state; progress.setAttribute('aria-busy',String(busy)); }
+  if(text) text.textContent=message;
+  const input=root.querySelector('[data-import-506]');
+  if(input) input.disabled=busy;
+  root.querySelector('label[for="import-506-file"]')?.classList.toggle('is-disabled',busy);
+};
 const import506File = async file => {
   if (!file) return;
   if (!canImport506()) {
@@ -1395,6 +1405,7 @@ const import506File = async file => {
     return;
   }
   try {
+    setImportProgress(`กำลังอ่านไฟล์ ${file.name}…`);
     if (!/\.(xlsx|xls|csv)$/i.test(file.name)) throw new Error('รองรับเฉพาะไฟล์ .xlsx, .xls หรือ .csv');
     let rows=[];
     if (/\.csv$/i.test(file.name)) rows=csvRows(await file.text());
@@ -1407,6 +1418,7 @@ const import506File = async file => {
     else throw new Error('ไม่พบตัวอ่านไฟล์ Excel');
     if (!rows.length) throw new Error('ไม่พบแถวข้อมูลในไฟล์');
     if (!has506Headers(rows)) throw new Error('ไม่พบหัวคอลัมน์ รง.506 ที่ระบบรองรับ');
+    setImportProgress('กำลังตรวจสอบและจัดรูปแบบข้อมูล…');
     const normalized=normalize506(rows);
     if(!normalized.length) throw new Error('ไม่พบแถวข้อมูลที่นำเข้าได้');
     const existing=commandRecords();
@@ -1429,12 +1441,15 @@ const import506File = async file => {
     const sourceSheets=[...new Set(rows.map(row => commandText(row.__ndssSourceSheet)).filter(Boolean))];
     const meta={fileName:file.name,imported:unique.length,duplicates:normalized.length-unique.length,incomplete,quality,sheetCount:sourceSheets.length,sourceSheets,mappingVersion:4,at:new Date().toLocaleString('th-TH')};
     localStorage.setItem('ndss-506-import-meta',JSON.stringify(meta));
+    let syncFailed=false;
     if (canSync506Records()) {
       try {
+        setImportProgress('กำลังบันทึกและซิงค์ฐานข้อมูลกลาง…');
         const remoteRows=await save506Records(getSupabaseRole() === 'admin' ? syncedRows : newSyncedRows);
         const savedKeys=new Set(remoteRows.map(row=>row.syncKey));
         localStorage.setItem('ndss-506-records',JSON.stringify(syncedRows.map(row=>({ ...row, syncState: getSupabaseRole() === 'admin' || savedKeys.has(row.syncKey) ? 'synced' : (row.syncState || 'local') }))));
       } catch (error) {
+        syncFailed=true;
         reportCentralFailure('นำเข้าข้อมูล รง.506',error);
         showToast('นำเข้าในอุปกรณ์แล้ว แต่ยังไม่ซิงก์ฐานข้อมูลกลาง', 'info');
       }
@@ -1442,8 +1457,9 @@ const import506File = async file => {
     recordAudit('นำเข้าข้อมูล รง.506',`ไฟล์ ${file.name} · ${sourceSheets.length || 1} ชีต · เพิ่ม ${unique.length} ราย · ซ้ำ ${meta.duplicates} ราย`);
     root.querySelector('[data-import-status]')?.replaceChildren(document.createTextNode(`อ่าน ${sourceSheets.length || 1} ชีต · นำเข้าข้อมูลใหม่ ${unique.length} ราย · รวมข้อมูล รง.506 ${combined.length} ราย`));
     window.dispatchEvent(new Event('ndss-cases-updated'));
+    setImportProgress(syncFailed ? `✓ นำเข้าในอุปกรณ์แล้ว · รอซิงค์ฐานข้อมูลกลาง` : `✓ นำเข้าข้อมูลเรียบร้อย · เพิ่ม ${unique.length} ราย`, syncFailed ? 'error' : 'success');
     showToast(`นำเข้าข้อมูล รง.506 ใหม่ ${unique.length} รายแล้ว`);
-  } catch(error) { console.error(error); showToast(`นำเข้าข้อมูลไม่สำเร็จ: ${error.message}`); }
+  } catch(error) { console.error(error); setImportProgress(`นำเข้าข้อมูลไม่สำเร็จ: ${error.message}`, 'error'); showToast(`นำเข้าข้อมูลไม่สำเร็จ: ${error.message}`); }
 };
 const open506Import = () => {
   if (!canImport506()) {
@@ -1451,6 +1467,7 @@ const open506Import = () => {
     return;
   }
   root.innerHTML=`<div class="module-page">${moduleView('import506')}</div>`;
+  root.querySelector('.import-drop')?.insertAdjacentHTML('beforeend','<div class="import-progress" data-import-progress role="status" aria-live="polite" hidden><i aria-hidden="true"></i><span data-import-progress-text>กำลังเตรียมการนำเข้า…</span></div>');
   document.querySelectorAll('.nav-link').forEach(link=>link.classList.remove('active'));
   const mobileMenu=document.getElementById('mobile-sidebar-state');
   if(mobileMenu) mobileMenu.checked=false;
