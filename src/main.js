@@ -6,7 +6,7 @@ import { canSync506Records, fetch506Records, save506Records, with506SyncKeys } f
 import { fetchCentralAuditEvents, flushCentralFailureQueue, logCentralActivity, reportCentralFailure } from './services/audit-service.js';
 import { enableHistoryAreaFilter } from './components/history-area-filter.js?v=20260910-2';
 import { addNarathiwatBoundaries } from './components/narathiwat-boundaries.js';
-import { shell } from './components/layout.js?v=20260908-49';
+import { shell } from './components/layout.js?v=20260911-3';
 import { moduleView, diseaseMeta, investigationForm } from './components/modules.js?v=20260911-2';
 const authCallbackType = new URLSearchParams(location.hash.replace(/^#/, '')).get('type') || '';
 consumeSupabaseSessionFromUrl();
@@ -84,8 +84,12 @@ const renderCurrentUserName = () => {
   const role=String(getSupabaseRole() || '').toUpperCase();
   const nameNode=document.querySelector('[data-current-user-name]');
   const detailNode=document.querySelector('[data-current-user-detail]');
+  const syncTitle=document.querySelector('[data-sync-title]');
+  const syncDetail=document.querySelector('[data-sync-detail]');
   if(nameNode) nameNode.textContent=name;
   if(detailNode) detailNode.textContent=role || 'NDSS Narathiwat';
+  if(syncTitle) syncTitle.textContent=hasSupabaseCredentials() && hasSupabaseSession() ? 'เชื่อมต่อฐานข้อมูลกลางแล้ว' : 'ข้อมูลจากอุปกรณ์นี้';
+  if(syncDetail) syncDetail.textContent=hasSupabaseCredentials() && hasSupabaseSession() ? 'ซิงค์ข้อมูลตามสิทธิ์ของผู้ใช้' : 'เชื่อมฐานข้อมูลกลางได้จากเมนูตั้งค่า';
 };
 renderCurrentUserName();
 const root = document.querySelector('#module-root');
