@@ -11,6 +11,35 @@ const hash = value => {
   for (const char of String(value)) result = Math.imul(result ^ char.charCodeAt(0), 16777619);
   return (result >>> 0).toString(36);
 };
+const pause = milliseconds => new Promise(resolve => setTimeout(resolve, milliseconds));
+
+// Short, bounded retries absorb temporary API throttling or network jitter
+// without turning a bad request (for example, an RLS rejection) into repeats.
+async function upsertChunk(url, payload) {
+  let lastError;
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    let response;
+    try {
+      response = await fetch(url, {
+        method: 'POST',
+        headers: headers({ Prefer: 'resolution=merge-duplicates,return=minimal' }),
+        body: JSON.stringify(payload),
+      });
+    } catch (error) {
+      lastError = error;
+      if (attempt < 2) await pause(300 * (attempt + 1));
+      continue;
+    }
+    if (response.ok) return;
+    const result = await response.json().catch(() => ({}));
+    if (response.status !== 429 && response.status < 500) {
+      throw new Error(result?.message || 'ไม่สามารถบันทึกข้อมูล รง.506 ลงฐานข้อมูลกลางได้');
+    }
+    lastError = new Error(result?.message || `ฐานข้อมูลกลางตอบกลับ ${response.status}`);
+    if (attempt < 2) await pause(300 * (attempt + 1));
+  }
+  throw lastError || new Error('ไม่สามารถบันทึกข้อมูล รง.506 ลงฐานข้อมูลกลางได้');
+}
 
 export const canSync506Records = () => hasSupabaseCredentials() && hasSupabaseSession();
 
@@ -41,15 +70,7 @@ export async function save506Records(rows) {
       location_name: row.location || [row.tambon, row.district].filter(Boolean).join(' ') || null,
       raw_record: row,
     }));
-    const response = await fetch(`${config.url}/rest/v1/${table}?on_conflict=source_key`, {
-      method: 'POST',
-      headers: headers({ Prefer: 'resolution=merge-duplicates,return=minimal' }),
-      body: JSON.stringify(payload),
-    });
-    if (!response.ok) {
-      const result = await response.json().catch(() => ({}));
-      throw new Error(result?.message || 'ไม่สามารถบันทึกข้อมูล รง.506 ลงฐานข้อมูลกลางได้');
-    }
+    await upsertChunk(`${config.url}/rest/v1/${table}?on_conflict=source_key`, payload);
   }
   return prepared;
 }
