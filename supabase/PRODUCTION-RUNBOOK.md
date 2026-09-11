@@ -29,7 +29,7 @@ Use separate browser profiles or private windows. Do not share passwords.
 | Role | Expected result |
 | --- | --- |
 | ADMIN | May manage accounts, assign and update any case, manage alerts, and delete only where the UI explicitly allows it. |
-| OFFICER | May create a case assigned to themselves; sees and updates only cases created by or assigned to them; cannot import รง.506 or manage users. |
+| OFFICER | May import รง.506, create a case assigned to themselves, and update only cases created by or assigned to them; cannot manage users or delete central cases. |
 | VIEWER | May view permitted dashboards and reports; may not create, modify, import, or delete operational data. |
 
 After a role is changed by ADMIN, the user must sign out and sign in again (or refresh their session) so the new `app_metadata.ndss_role` claim is applied.
@@ -38,6 +38,15 @@ After a role is changed by ADMIN, the user must sign out and sign in again (or r
 
 - Before each import, retain the original Excel file in the approved hospital storage location.
 - Verify the import quality summary: disease, onset date, and area fields.
+- During import, wait for the blue progress indicator to complete. A green result means central sync completed; a red “รอซิงค์ฐานข้อมูลกลาง” message means the local import succeeded but must be retried after connectivity is restored.
+- When several officers receive the same source file, they may import it safely: the system uses a stable source key and database upsert to avoid creating duplicate central rows.
 - Test one generated PDF after a browser update or a deployment.
 - Review Supabase Security Advisors monthly and Performance Advisors quarterly.
 - Use the hospital incident process for suspected account misuse or unintended patient-data access.
+
+## 5. Load-monitoring baseline
+
+1. In Supabase **Observability**, review API response errors, response speed, database connections, CPU, and disk usage at least weekly during the first month of operation.
+2. Escalate to hospital IT when API errors exceed 1% for 15 minutes, database connections stay near the plan limit, or CPU/disk IOPS remain saturated for 15 minutes.
+3. Do not run bulk upload or artificial load tests against the production project during clinic hours. Use a separate Supabase project and non-patient test files for stress testing.
+4. Retain the date, time range, observed metrics, and response action in the hospital IT change record.

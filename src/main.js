@@ -551,7 +551,10 @@ const enhanceKnowledgeForms = () => {
   section.className = 'work-panel knowledge-form-library';
   section.setAttribute('data-knowledge-forms', 'true');
   section.innerHTML = `<div class="panel-top"><div><h2>คลังแบบสอบสวนต้นฉบับ</h2><small>เปิดเอกสาร PDF ทั้ง 6 ฉบับจากหน้านี้ได้โดยตรง</small></div></div><div class="knowledge-form-links">${Object.entries(diseaseMeta).map(([name, meta], index) => `<a href="./public/forms/${encodeURIComponent(meta.template)}" target="_blank" rel="noopener" style="--disease-color:${meta.color}"><i>${String(index + 1).padStart(2,'0')}</i><span><b>${name}</b><small>${meta.pages} หน้า · PDF ต้นฉบับ</small></span><em>เปิด ↗</em></a>`).join('')}</div>`;
-  tools.after(section);
+  const guide = document.createElement('section');
+  guide.className = 'work-panel scope-note'; guide.setAttribute('data-knowledge-operating-guide', 'true');
+  guide.innerHTML = '<h2>คู่มือย่อก่อนเริ่มงาน</h2><ol class="command-list"><li><b>นำเข้า Excel:</b> เก็บไฟล์ต้นฉบับในพื้นที่ที่หน่วยงานอนุญาต เลือกไฟล์ แล้วรอวงกลมสถานะเป็นสีเขียวก่อนปิดหน้า</li><li><b>หากขึ้น “รอซิงค์ฐานข้อมูลกลาง”:</b> ข้อมูลอยู่ในอุปกรณ์แล้ว ให้ตรวจอินเทอร์เน็ตและนำเข้าไฟล์เดิมซ้ำเมื่อระบบกลับมา</li><li><b>สร้าง PDF / ส่งออก:</b> ตรวจตัวกรอง ชื่อโรค และพื้นที่ก่อนทุกครั้ง และส่งต่อเฉพาะผู้มีสิทธิ์</li><li><b>สิทธิ์ผู้ใช้:</b> OFFICER ทำงานที่ได้รับมอบหมายและนำเข้า รง.506 ได้ ส่วน ADMIN เป็นผู้อนุมัติและจัดการบัญชี</li></ol><div class="form-actions"><button type="button" class="primary" data-view="import506">ไปหน้านำเข้า Excel</button><button type="button" class="secondary" data-view="security">ตรวจสอบสิทธิ์</button></div>';
+  tools.after(section, guide);
 };
 const enhanceExportHistory = () => {
   const heading = root.querySelector('.command-head h1');
