@@ -8,6 +8,17 @@
 เปิด `index.html` ด้วย web server แบบ static (เช่น VS Code Live Server) ได้ทันที
 หรือใช้ `npx serve .` หากมี Node.js ติดตั้งอยู่
 
+## ตรวจรับก่อนเผยแพร่
+
+เมื่อมี Node.js ให้รันคำสั่งด้านล่างจากโฟลเดอร์โครงการก่อนพุชขึ้น GitHub:
+
+```powershell
+node tests/report506-service.test.mjs
+node tests/ndss-readiness.test.mjs
+```
+
+คำสั่งนี้ไม่เชื่อมต่อ ไม่อ่าน และไม่เขียนข้อมูลผู้ป่วยใน Supabase โดยจะตรวจการนำเข้า รง.506, การ retry, การกันรายการซ้ำ, ไฟล์เริ่มต้นหน้าเว็บ, ความพร้อมของการซิงค์ และการไม่มี service-role key ใน runtime configuration.
+
 ## Supabase
 
 คัดลอก `src/config/runtime-config.example.js` เป็น `src/config/runtime-config.js` และใส่ **publishable/anon key** ของโปรเจกต์

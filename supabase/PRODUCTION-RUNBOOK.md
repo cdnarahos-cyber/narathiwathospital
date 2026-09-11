@@ -13,12 +13,12 @@ This setting is managed by Supabase Auth and cannot be changed safely from brows
 
 ## 2. Backup and recovery verification
 
-1. The current Free Plan has no scheduled project backups. Upgrade to Pro or above before storing production patient data solely in Supabase.
-2. After upgrading, check the project plan and the Backup/Database settings in the Supabase Dashboard.
-3. Confirm the latest automatic backup timestamp and retention period meet the hospital policy.
-4. At least once per quarter, restore a backup into a separate development branch or temporary project.
-5. In that isolated copy, verify table counts for `disease_cases`, `smart_alerts`, `lab_results`, `case_contacts`, and `response_tasks`.
-6. Record the test date, operator, backup timestamp, result, and any corrective action in the hospital IT change record.
+1. The current Free Plan has no scheduled project backups. Until a paid backup plan is approved, retain every original Excel file in approved hospital storage and have ADMIN export the operational report at least daily and before any bulk update.
+2. Store exported files outside the browser device, name them with the date/time and operator, and restrict the folder to authorised hospital staff.
+3. A CSV/PDF export is an operational fallback only; it is **not** a database backup and cannot validate a full database restore.
+4. Before storing production patient data solely in Supabase, upgrade to Pro or above and check the Backup/Database settings in the Supabase Dashboard.
+5. Confirm the latest automatic backup timestamp and retention period meet the hospital policy. At least once per quarter, restore a backup into a separate development branch or temporary project.
+6. In that isolated copy, verify table counts for `disease_cases`, `smart_alerts`, `lab_results`, `case_contacts`, and `response_tasks`. Record the test date, operator, backup timestamp, result, and any corrective action in the hospital IT change record.
 
 Never perform a restore over the production project merely to test recovery.
 
