@@ -26,6 +26,7 @@ for (const capability of [
 const layout = read('src/components/layout.js');
 assert.ok(layout.includes('data-current-user-sidebar-name'), 'signed-in user name must be visible in the mobile menu');
 assert.ok(layout.includes('data-current-user-detail'), 'signed-in user status must be visible in the header');
+assert.ok(main.includes('data-label="รายละเอียดผู้ใช้งาน"'), 'mobile account cards must label registered user details');
 
 const migrationDirectory = join(root, 'supabase', 'migrations');
 const migrations = readdirSync(migrationDirectory).filter(file => file.endsWith('.sql')).map(file => read(`supabase/migrations/${file}`)).join('\n');
