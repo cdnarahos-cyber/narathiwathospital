@@ -60,7 +60,9 @@ export async function deleteInvestigationCase(id, allowSessionRefresh = true) {
   if (response.status === 401 || response.status === 403) {
     throw new Error('ไม่สามารถลบเคสได้: สิทธิ์ ADMIN ไม่เป็นปัจจุบัน กรุณาออกจากระบบแล้วเข้าสู่ระบบใหม่');
   }
-  if (!response.ok || !result[0]) throw new Error(result?.message || 'ลบเคสจากฐานข้อมูลกลางไม่สำเร็จ');
+  if (response.status === 400) throw new Error('ไม่สามารถลบเคสได้: รหัสเคสที่เชื่อมโยงกับฐานข้อมูลกลางไม่ถูกต้อง กรุณารีเฟรชหน้าแล้วลองใหม่');
+  if (!response.ok) throw new Error(`ไม่สามารถลบเคสจากฐานข้อมูลกลางได้ (สถานะ ${response.status})`);
+  if (!result[0]) throw new Error('ไม่พบเคสในฐานข้อมูลกลางหรือเคสถูกลบไปแล้ว กรุณารีเฟรชหน้าจอ');
   return result[0];
 }
 

@@ -44,4 +44,7 @@ globalThis.fetch = async () => {
 await assert.rejects(() => service.deleteInvestigationCase('case-2', false), /สิทธิ์ ADMIN ไม่เป็นปัจจุบัน/, 'a genuine authorization denial must be actionable');
 assert.equal(deniedCalls, 1, 'a non-refresh retry must not loop');
 
+globalThis.fetch = async () => new Response(JSON.stringify({ message: 'invalid uuid' }), { status: 400, headers: { 'content-type': 'application/json' } });
+await assert.rejects(() => service.deleteInvestigationCase('not-a-uuid', false), /รหัสเคสที่เชื่อมโยง/, 'an invalid remote case identifier must explain how to recover');
+
 console.log('dashboard service delete tests passed');

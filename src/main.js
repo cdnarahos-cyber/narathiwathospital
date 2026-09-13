@@ -1,6 +1,6 @@
 import { clearSupabaseSession, consumeSupabaseSessionFromUrl, getSupabaseConfig, getSupabaseDisplayIdentity, getSupabaseRole, getSupabaseUser, hasSupabaseCredentials, hasSupabaseSession, invokeAdminUserManagement, requestSupabasePasswordRecovery, restoreSupabaseSession, signInWithPassword, signUpWithPassword, updateSupabasePassword } from './config/supabase.js?v=20260913-3';
 import { downloadCleanPdf } from './services/clean-pdf-generator.js?v=20260902-44';
-import { deleteInvestigationCase, fetchInvestigationCases, syncInvestigationCase } from './services/dashboard-service.js?v=20260913-2';
+import { deleteInvestigationCase, fetchInvestigationCases, syncInvestigationCase } from './services/dashboard-service.js?v=20260914-1';
 import { canSyncOperationalRecords, deleteOperationalRecord, fetchOperationalRecords, saveOperationalRecord, updateOperationalRecord } from './services/operational-service.js?v=20260913-2';
 import { canSync506Records, fetch506Records, save506Records, with506SyncKeys } from './services/report506-service.js?v=20260911-6';
 import { fetchCentralAuditEvents, flushCentralFailureQueue, logCentralActivity, reportCentralFailure } from './services/audit-service.js?v=20260913-2';
@@ -1119,7 +1119,7 @@ document.addEventListener('click', async event => {
     if(!item || !await confirmAction('ยืนยันการลบเคส',`ต้องการลบเคส ${item.patient || item.disease} ใช่หรือไม่?`)) return;
     if (item.remoteCaseId) {
       try { await deleteInvestigationCase(item.remoteCaseId); }
-      catch (error) { reportCentralFailure('ลบเคสสอบสวน',error); showToast('ยังไม่สามารถลบเคสจากฐานข้อมูลกลางได้', 'error'); return; }
+      catch (error) { reportCentralFailure('ลบเคสสอบสวน',error); showToast(error?.message || 'ยังไม่สามารถลบเคสจากฐานข้อมูลกลางได้', 'error'); return; }
     }
     records.splice(index,1); localStorage.setItem('ndss-investigations',JSON.stringify(records)); recordAudit('ลบเคสสอบสวน',item.patient || item.disease || 'ไม่ระบุเคส');
     window.dispatchEvent(new Event('ndss-cases-updated')); renderPins(); renderHistory(); showToast('ลบเคสแล้ว');
