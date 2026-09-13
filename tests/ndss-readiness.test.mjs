@@ -91,5 +91,7 @@ for (const item of ['current Free Plan has no scheduled project backups', 'Never
 const auditService = read('src/services/audit-service.js');
 assert.ok(auditService.includes("'ndss-central-failure'"), 'central connection failures must notify the UI');
 assert.ok(auditService.includes('ndss-pending-audit-events'), 'central connection failures must be queued for retry');
+assert.ok(main.includes("await deleteOperationalRecord('contact', item.remoteId)"), 'synced contacts must delete from the central database before local state');
+assert.ok(main.includes("await deleteOperationalRecord('lab', item.remoteId)"), 'synced lab results must delete from the central database before local state');
 
 console.log(`ndss readiness tests passed (${localAssets.length} local startup assets and ${buttonActions.size} button actions verified)`);

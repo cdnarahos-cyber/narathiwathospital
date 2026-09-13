@@ -1129,6 +1129,12 @@ document.addEventListener('click', async event => {
     const index=Number(action.dataset.deleteContact), contacts=readLocalList('ndss-case-contacts'), item=contacts[index];
     if(!canManageOperationalRecord(item || {})) { showToast('บัญชีนี้ไม่มีสิทธิ์ลบข้อมูลผู้สัมผัสรายการนี้', 'error'); return; }
     if(!item || !await confirmAction('ยืนยันการลบผู้สัมผัส',`ต้องการลบข้อมูลผู้สัมผัส ${item.contactName} ใช่หรือไม่?`)) return;
+    // A synced record must be removed centrally first.  Removing only the
+    // browser copy makes it reappear after the next Supabase refresh.
+    if (item.remoteId) {
+      try { await deleteOperationalRecord('contact', item.remoteId); }
+      catch (error) { reportCentralFailure('ลบข้อมูลผู้สัมผัส', error); showToast('ยังไม่สามารถลบข้อมูลผู้สัมผัสจากฐานข้อมูลกลางได้', 'error'); return; }
+    }
     contacts.splice(index,1); localStorage.setItem('ndss-case-contacts',JSON.stringify(contacts));
     recordAudit('ลบข้อมูลผู้สัมผัส',item.contactName); root.innerHTML=`<div class="module-page">${moduleView('tracking')}</div>`;
     document.querySelectorAll('.nav-link').forEach(link=>link.classList.toggle('active',link.dataset.view==='tracking')); showToast('ลบข้อมูลผู้สัมผัสแล้ว');
@@ -1138,6 +1144,10 @@ document.addEventListener('click', async event => {
     const index=Number(action.dataset.deleteLab), results=readLocalList('ndss-lab-results'), item=results[index];
     if(!canManageOperationalRecord(item || {})) { showToast('บัญชีนี้ไม่มีสิทธิ์ลบผลตรวจรายการนี้', 'error'); return; }
     if(!item || !await confirmAction('ยืนยันการลบผลตรวจ',`ต้องการลบผลตรวจ ${item.specimenNo} ใช่หรือไม่?`)) return;
+    if (item.remoteId) {
+      try { await deleteOperationalRecord('lab', item.remoteId); }
+      catch (error) { reportCentralFailure('ลบผลตรวจห้องปฏิบัติการ', error); showToast('ยังไม่สามารถลบผลตรวจจากฐานข้อมูลกลางได้', 'error'); return; }
+    }
     results.splice(index,1); localStorage.setItem('ndss-lab-results',JSON.stringify(results));
     recordAudit('ลบผลตรวจห้องปฏิบัติการ',`เลขสิ่งส่งตรวจ ${item.specimenNo}`); root.innerHTML=`<div class="module-page">${moduleView('lab')}</div>`;
     document.querySelectorAll('.nav-link').forEach(link=>link.classList.toggle('active',link.dataset.view==='lab')); showToast('ลบผลตรวจแล้ว');
