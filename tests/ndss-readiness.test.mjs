@@ -23,6 +23,23 @@ for (const capability of [
   'app.inert = !allowed',
 ]) assert.ok(main.includes(capability), `operational capability is missing: ${capability}`);
 
+// Every data-driven button must have a second reference in the application
+// source (its delegated handler, renderer, or feature service). This catches
+// visual buttons accidentally left without a working action after refactors.
+const walk = directory => readdirSync(directory, { withFileTypes: true }).flatMap(entry => {
+  const path = join(directory, entry.name);
+  return entry.isDirectory() ? walk(path) : entry.name.endsWith('.js') ? [path] : [];
+});
+const applicationSource = walk(join(root, 'src')).map(file => readFileSync(file, 'utf8')).join('\n');
+const buttonActions = new Set([...applicationSource.matchAll(/<button\b[^>]*>/g)]
+  .flatMap(button => [...button[0].matchAll(/\b(data-[a-z0-9-]+)(?:=|\s|>)/g)].map(match => match[1])));
+const buttonMetadata = new Set(['data-epi-target', 'data-user-id']);
+for (const action of buttonActions) {
+  if (buttonMetadata.has(action)) continue;
+  const references = applicationSource.split(action).length - 1;
+  assert.ok(references >= 2, `${action} is rendered as a button but has no linked application action`);
+}
+
 const layout = read('src/components/layout.js');
 assert.ok(layout.includes('data-current-user-sidebar-name'), 'signed-in user name must be visible in the mobile menu');
 assert.ok(layout.includes('data-current-user-detail'), 'signed-in user status must be visible in the header');
@@ -61,4 +78,4 @@ assert.ok(functionDeployWorkflow.includes('supabase functions deploy manage-user
 assert.ok(functionDeployWorkflow.includes('SUPABASE_FUNCTIONS_DEPLOY_ENABLED'), 'function deployment must require explicit repository approval');
 assert.ok(!/SUPABASE_ACCESS_TOKEN:\s*['"][A-Za-z0-9_\-]+/i.test(functionDeployWorkflow), 'function deployment must not commit an access token');
 
-console.log(`ndss readiness tests passed (${localAssets.length} local startup assets verified)`);
+console.log(`ndss readiness tests passed (${localAssets.length} local startup assets and ${buttonActions.size} button actions verified)`);
