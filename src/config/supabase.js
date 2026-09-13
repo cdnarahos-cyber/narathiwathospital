@@ -17,7 +17,6 @@ export const getSupabaseConfig = () => ({
 });
 
 export const hasSupabaseCredentials = () => Boolean(getSupabaseConfig().publishableKey);
-export const hasSupabaseSession = () => Boolean(getSupabaseConfig().accessToken);
 
 const decodeJwt = token => {
   try {
@@ -34,9 +33,12 @@ const clearStoredSession = () => {
 };
 
 export const isSupabaseSessionExpired = (token = getSupabaseConfig().accessToken) => {
+  if (!token) return true;
   const expiresAt = Number(decodeJwt(token).exp || 0) * 1000;
-  return Boolean(expiresAt) && expiresAt <= Date.now() + 30_000;
+  return !expiresAt || expiresAt <= Date.now() + 30_000;
 };
+
+export const hasSupabaseSession = () => !isSupabaseSessionExpired(getSupabaseConfig().accessToken);
 
 export const storeSupabaseSession = session => {
   if (!session?.access_token) throw new Error('ไม่พบข้อมูลการเข้าสู่ระบบ');

@@ -1,4 +1,4 @@
-import { clearSupabaseSession, consumeSupabaseSessionFromUrl, getSupabaseConfig, getSupabaseRole, getSupabaseUser, hasSupabaseCredentials, hasSupabaseSession, invokeAdminUserManagement, requestSupabasePasswordRecovery, restoreSupabaseSession, signInWithPassword, signUpWithPassword, updateSupabasePassword } from './config/supabase.js?v=20260913-1';
+import { clearSupabaseSession, consumeSupabaseSessionFromUrl, getSupabaseConfig, getSupabaseRole, getSupabaseUser, hasSupabaseCredentials, hasSupabaseSession, invokeAdminUserManagement, requestSupabasePasswordRecovery, restoreSupabaseSession, signInWithPassword, signUpWithPassword, updateSupabasePassword } from './config/supabase.js?v=20260913-2';
 import { downloadCleanPdf } from './services/clean-pdf-generator.js?v=20260902-44';
 import { deleteInvestigationCase, fetchInvestigationCases, syncInvestigationCase } from './services/dashboard-service.js?v=20260910-1';
 import { canSyncOperationalRecords, deleteOperationalRecord, fetchOperationalRecords, saveOperationalRecord, updateOperationalRecord } from './services/operational-service.js';

@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 
-const store = new Map([['ndss-supabase-access-token', 'test-token']]);
+const testAccessToken = `header.${Buffer.from(JSON.stringify({ exp: Math.floor(Date.now() / 1000) + 3600, app_metadata: { ndss_role: 'officer' } })).toString('base64url')}.signature`;
+const store = new Map([['ndss-supabase-access-token', testAccessToken]]);
 globalThis.localStorage = {
   getItem: key => store.get(key) || '',
   setItem: (key, value) => store.set(key, String(value)),

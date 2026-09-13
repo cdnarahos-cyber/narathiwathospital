@@ -33,4 +33,7 @@ storage.delete('ndss-supabase-refresh-token');
 assert.equal(await auth.restoreSupabaseSession(), false, 'expired session without refresh token must require sign-in');
 assert.equal(auth.getSupabaseConfig().accessToken, '', 'invalid expired token must be cleared');
 
+storage.set('ndss-supabase-access-token', 'invalid-token');
+assert.equal(auth.hasSupabaseSession(), false, 'malformed access token must never be treated as a signed-in session');
+
 console.log('supabase session tests passed');
