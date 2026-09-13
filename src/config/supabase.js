@@ -29,6 +29,15 @@ const decodeJwt = token => {
 export const getSupabaseRole = () => String(decodeJwt(getSupabaseConfig().accessToken).app_metadata?.ndss_role || '').toLowerCase();
 export const getSupabaseUser = () => decodeJwt(getSupabaseConfig().accessToken);
 
+const clearStoredSession = () => {
+  try { localStorage.removeItem(SESSION_KEY); localStorage.removeItem(REFRESH_KEY); } catch { /* storage unavailable */ }
+};
+
+export const isSupabaseSessionExpired = (token = getSupabaseConfig().accessToken) => {
+  const expiresAt = Number(decodeJwt(token).exp || 0) * 1000;
+  return Boolean(expiresAt) && expiresAt <= Date.now() + 30_000;
+};
+
 export const storeSupabaseSession = session => {
   if (!session?.access_token) throw new Error('ไม่พบข้อมูลการเข้าสู่ระบบ');
   writeStorage(SESSION_KEY, session.access_token);
@@ -91,6 +100,22 @@ export const refreshSupabaseSession = async () => {
   return result;
 };
 
+// Restore an expired browser session before any data service is called.  This
+// avoids sending an expired JWT to the REST API and makes refresh handling
+// transparent to staff who already have a valid refresh token.
+export const restoreSupabaseSession = async () => {
+  const config = getSupabaseConfig();
+  if (!config.accessToken || !isSupabaseSessionExpired(config.accessToken)) return Boolean(config.accessToken);
+  if (!config.refreshToken) { clearStoredSession(); return false; }
+  try {
+    await refreshSupabaseSession();
+    return true;
+  } catch {
+    clearStoredSession();
+    return false;
+  }
+};
+
 export const invokeAdminUserManagement = async (action, payload = {}) => {
   const config = getSupabaseConfig();
   if (!config.accessToken) throw new Error('กรุณาเข้าสู่ระบบก่อน');
@@ -121,6 +146,6 @@ export const clearSupabaseSession = async () => {
   try {
     if (config.accessToken && config.publishableKey) await authRequest('/auth/v1/logout', { accessToken: config.accessToken });
   } catch { /* Clear local tokens even when the network is unavailable. */ }
-  try { localStorage.removeItem(SESSION_KEY); localStorage.removeItem(REFRESH_KEY); } catch { /* storage unavailable */ }
+  clearStoredSession();
 };
 

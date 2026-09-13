@@ -1,4 +1,4 @@
-import { clearSupabaseSession, consumeSupabaseSessionFromUrl, getSupabaseConfig, getSupabaseRole, getSupabaseUser, hasSupabaseCredentials, hasSupabaseSession, invokeAdminUserManagement, requestSupabasePasswordRecovery, signInWithPassword, signUpWithPassword, updateSupabasePassword } from './config/supabase.js';
+import { clearSupabaseSession, consumeSupabaseSessionFromUrl, getSupabaseConfig, getSupabaseRole, getSupabaseUser, hasSupabaseCredentials, hasSupabaseSession, invokeAdminUserManagement, requestSupabasePasswordRecovery, restoreSupabaseSession, signInWithPassword, signUpWithPassword, updateSupabasePassword } from './config/supabase.js?v=20260913-1';
 import { downloadCleanPdf } from './services/clean-pdf-generator.js?v=20260902-44';
 import { deleteInvestigationCase, fetchInvestigationCases, syncInvestigationCase } from './services/dashboard-service.js?v=20260910-1';
 import { canSyncOperationalRecords, deleteOperationalRecord, fetchOperationalRecords, saveOperationalRecord, updateOperationalRecord } from './services/operational-service.js';
@@ -10,6 +10,7 @@ import { shell } from './components/layout.js?v=20260911-3';
 import { moduleView, diseaseMeta, investigationForm } from './components/modules.js?v=20260911-2';
 const authCallbackType = new URLSearchParams(location.hash.replace(/^#/, '')).get('type') || '';
 consumeSupabaseSessionFromUrl();
+await restoreSupabaseSession();
 const escapeOverview = value => String(value ?? '-').replace(/[&<>"']/g, char => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[char]));
 function cleanDiseaseLabel(value) {
   const raw=String(value ?? '').trim();
@@ -1016,7 +1017,6 @@ const showToast = (message, icon = 'success') => {
       timer: 2600,
       timerProgressBar: true,
       backdrop: false,
-      allowOutsideClick: true,
       width: 360,
       customClass: { popup: 'ndss-swal-popup' }
     });
@@ -1037,7 +1037,6 @@ const showRegistrationSuccess = () => {
       timer: 3600,
       timerProgressBar: true,
       backdrop: false,
-      allowOutsideClick: true,
       width: 390,
       customClass: { popup: 'ndss-swal-popup' }
     });

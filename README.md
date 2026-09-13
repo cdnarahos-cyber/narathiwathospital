@@ -15,9 +15,10 @@
 ```powershell
 node tests/report506-service.test.mjs
 node tests/ndss-readiness.test.mjs
+node tests/supabase-session.test.mjs
 ```
 
-คำสั่งนี้ไม่เชื่อมต่อ ไม่อ่าน และไม่เขียนข้อมูลผู้ป่วยใน Supabase โดยจะตรวจการนำเข้า รง.506, การ retry, การกันรายการซ้ำ, ไฟล์เริ่มต้นหน้าเว็บ, ความพร้อมของการซิงค์ และการไม่มี service-role key ใน runtime configuration.
+คำสั่งนี้ไม่เชื่อมต่อ ไม่อ่าน และไม่เขียนข้อมูลผู้ป่วยใน Supabase โดยจะตรวจการนำเข้า รง.506, การ retry, การกันรายการซ้ำ, การต่ออายุ session, ไฟล์เริ่มต้นหน้าเว็บ, ความพร้อมของการซิงค์ และการไม่มี service-role key ใน runtime configuration.
 
 ## Supabase
 
