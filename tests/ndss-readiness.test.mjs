@@ -19,6 +19,7 @@ for (const capability of [
   'data-open-506-import',
   'data-supabase-signout',
   'data-run-preflight',
+  'การเข้าถึงข้อมูลผู้ป่วย รายงาน และสถานการณ์โรคต้องผ่านการยืนยันตัวตน',
 ]) assert.ok(main.includes(capability), `operational capability is missing: ${capability}`);
 
 const migrationDirectory = join(root, 'supabase', 'migrations');
