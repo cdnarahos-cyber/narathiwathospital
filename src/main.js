@@ -6,7 +6,7 @@ import { canSync506Records, fetch506Records, save506Records, with506SyncKeys } f
 import { fetchCentralAuditEvents, flushCentralFailureQueue, logCentralActivity, reportCentralFailure } from './services/audit-service.js';
 import { enableHistoryAreaFilter } from './components/history-area-filter.js?v=20260910-2';
 import { addNarathiwatBoundaries } from './components/narathiwat-boundaries.js';
-import { shell } from './components/layout.js?v=20260911-3';
+import { shell } from './components/layout.js?v=20260913-2';
 import { moduleView, diseaseMeta, investigationForm } from './components/modules.js?v=20260911-2';
 const authCallbackType = new URLSearchParams(location.hash.replace(/^#/, '')).get('type') || '';
 consumeSupabaseSessionFromUrl();

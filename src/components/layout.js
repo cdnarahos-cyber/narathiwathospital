@@ -6,7 +6,7 @@ export function shell(content) {
       {id:'investigation',label:'📝 แบบสอบสวนโรคออนไลน์'},
       {id:'tracking',label:'🦠 ติดตามและควบคุมโรค'},
       {id:'alerts',label:'🚨 ระบบแจ้งเตือน'},
-      {id:'queue',label:'🔥 Qutbreak Management'},
+      {id:'queue',label:'🔥 Outbreak Management'},
       {id:'report506',label:'📄 รายงาน 506'},
       {id:'lab',label:'🧪 รายงานห้องปฏิบัติการ'},
       {id:'executive',label:'👨‍💼 รายงานผู้บริหาร'},
