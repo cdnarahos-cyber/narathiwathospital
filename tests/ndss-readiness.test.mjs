@@ -27,6 +27,8 @@ const layout = read('src/components/layout.js');
 assert.ok(layout.includes('data-current-user-sidebar-name'), 'signed-in user name must be visible in the mobile menu');
 assert.ok(layout.includes('data-current-user-detail'), 'signed-in user status must be visible in the header');
 assert.ok(main.includes('data-label="รายละเอียดผู้ใช้งาน"'), 'mobile account cards must label registered user details');
+assert.ok(main.includes('กำลังรีเฟรช…'), 'admin refresh must provide a visible loading state');
+assert.ok(main.includes("loadAdminUsers({ notify: true })"), 'admin refresh button must explicitly reload the user list');
 const commandStyles = read('src/styles/command-reference.css');
 assert.ok(commandStyles.includes('[data-admin-user-action="update"]'), 'save-role action must have a dedicated high-visibility style');
 assert.ok(commandStyles.includes('[data-admin-user-action="delete"]'), 'delete action must have a dedicated high-visibility style');
@@ -47,6 +49,7 @@ const supabaseConfig = read('src/config/supabase.js');
 assert.ok(supabaseConfig.includes('getSupabaseDisplayIdentity'), 'signed-in identity display helper is missing');
 assert.ok(supabaseConfig.includes('สถานะ: ใช้งานอยู่'), 'signed-in account status is missing');
 assert.ok(supabaseConfig.includes('server-issued app_metadata claim'), 'profile metadata must not control authorization');
+assert.ok(supabaseConfig.includes('allowSessionRefresh = true'), 'admin requests must retry once with a refreshed session');
 
 const manageUsersFunction = read('supabase/functions/manage-users/index.ts');
 assert.ok(manageUsersFunction.includes('fullName: user.user_metadata?.full_name'), 'ADMIN user list must include registered full name');

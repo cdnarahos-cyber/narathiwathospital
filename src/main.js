@@ -497,12 +497,24 @@ const renderAdminUserManagement = users => {
     return `<tr><td data-label="รายละเอียดผู้ใช้งาน"><dl class="admin-user-details"><div><dt>ชื่อ–สกุล</dt><dd>${escapeOverview(user.fullName || '-')}</dd></div><div><dt>อีเมล</dt><dd>${escapeOverview(user.email || '-')}</dd></div><div><dt>เบอร์โทรศัพท์</dt><dd>${escapeOverview(user.phone || '-')}</dd></div><div><dt>รหัสผ่าน</dt><dd><span class="password-protected">••••••••</span><small>ไม่แสดงเพื่อความปลอดภัย</small></dd></div></dl><small class="admin-user-id">รหัสบัญชี: ${escapeOverview(user.id)}</small><small>${user.confirmedAt ? 'ยืนยันอีเมลแล้ว' : 'รอยืนยันอีเมล'}</small></td><td data-label="สิทธิ์ปัจจุบัน"><span class="role-pill ${role}">${roleDefinitions[role]?.[0] || 'PENDING'}</span><small>ขอ: ${escapeOverview(requested)}</small></td><td data-label="สถานะ"><b>${status}</b></td><td data-label="เข้าสู่ระบบล่าสุด">${user.lastSignInAt ? new Date(user.lastSignInAt).toLocaleString('th-TH') : '-'}</td><td data-label="จัดการ"><div class="admin-user-actions"><label>สิทธิ์<select data-user-role="${escapeOverview(user.id)}" ${isSelf ? 'disabled' : ''}><option value="officer" ${role === 'officer' ? 'selected' : ''}>OFFICER</option><option value="viewer" ${role === 'viewer' ? 'selected' : ''}>VIEWER</option><option value="admin" ${role === 'admin' ? 'selected' : ''}>ADMIN</option></select></label><label>สถานะ<select data-user-status="${escapeOverview(user.id)}" ${isSelf ? 'disabled' : ''}><option value="pending" ${accountStatus === 'pending' ? 'selected' : ''}>รออนุมัติ</option><option value="active" ${accountStatus === 'active' ? 'selected' : ''}>เปิดใช้งาน</option><option value="suspended" ${accountStatus === 'suspended' ? 'selected' : ''}>ระงับบัญชี</option></select></label>${isSelf ? '<small>ไม่สามารถลดสิทธิ์หรือระงับบัญชีตนเอง</small>' : `<button type="button" class="table-action" data-admin-user-action="update" data-user-id="${escapeOverview(user.id)}">บันทึกสิทธิ์</button><button type="button" class="table-action danger" data-admin-user-action="delete" data-user-id="${escapeOverview(user.id)}">ลบ</button>`}</div></td></tr>`;
   }).join('') : '<tr><td colspan="5">ยังไม่มีบัญชีผู้ใช้</td></tr>';
 };
-const loadAdminUsers = async () => {
+const loadAdminUsers = async ({ notify = false } = {}) => {
   if (getSupabaseRole() !== 'admin') return;
   const section = root.querySelector('[data-admin-user-management]');
   if (!section) return;
-  try { renderAdminUserManagement((await invokeAdminUserManagement('list')).users || []); }
-  catch (error) { section.querySelector('[data-admin-users]').innerHTML = `<tr><td colspan="5">${escapeOverview(error.message)}</td></tr>`; }
+  const body = section.querySelector('[data-admin-users]');
+  const refresh = section.querySelector('[data-refresh-admin-users]');
+  if (!body) return;
+  if (refresh) { refresh.disabled = true; refresh.setAttribute('aria-busy', 'true'); refresh.textContent = 'กำลังรีเฟรช…'; }
+  body.innerHTML = '<tr><td colspan="5" class="admin-users-loading">กำลังโหลดข้อมูลผู้ใช้งาน…</td></tr>';
+  try {
+    renderAdminUserManagement((await invokeAdminUserManagement('list')).users || []);
+    if (notify) showToast('รีเฟรชรายชื่อผู้ใช้งานแล้ว', 'success');
+  } catch (error) {
+    body.innerHTML = `<tr><td colspan="5" class="admin-users-error">${escapeOverview(error.message)}</td></tr>`;
+    if (notify) showToast(error.message, 'error');
+  } finally {
+    if (refresh) { refresh.disabled = false; refresh.removeAttribute('aria-busy'); refresh.textContent = '↻ รีเฟรช'; }
+  }
 };
 const enhanceAdminUserManagement = () => {
   const heading = root.querySelector('.command-head h1');
@@ -657,7 +669,7 @@ document.addEventListener('click', event => {
   }
   const toggle = event.target.closest('[data-toggle-password]');
   if (toggle) { const input = toggle.closest('.password-field')?.querySelector('input'); if (input) { const isPassword = input.type === 'password'; input.type = isPassword ? 'text' : 'password'; toggle.textContent = isPassword ? '◉' : '◌'; toggle.setAttribute('aria-label', isPassword ? 'ซ่อนรหัสผ่าน' : 'แสดงรหัสผ่าน'); } return; }
-  if (event.target.closest('[data-refresh-admin-users]')) { loadAdminUsers(); return; }
+  if (event.target.closest('[data-refresh-admin-users]')) { loadAdminUsers({ notify: true }); return; }
   const adminAction = event.target.closest('[data-admin-user-action]');
   if (adminAction) {
     const id = adminAction.dataset.userId;

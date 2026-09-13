@@ -133,7 +133,7 @@ export const restoreSupabaseSession = async () => {
   }
 };
 
-export const invokeAdminUserManagement = async (action, payload = {}) => {
+export const invokeAdminUserManagement = async (action, payload = {}, allowSessionRefresh = true) => {
   const config = getSupabaseConfig();
   if (!config.accessToken) throw new Error('กรุณาเข้าสู่ระบบก่อน');
   const response = await fetch(`${config.url}/functions/v1/manage-users`, {
@@ -144,6 +144,16 @@ export const invokeAdminUserManagement = async (action, payload = {}) => {
   const result = await response.json().catch(() => ({}));
   if (!response.ok) {
     if (result?.error === 'protected_admin_account') throw new Error('ไม่สามารถลบบัญชีผู้ดูแลหลักของระบบได้');
+    // Role changes are issued in app_metadata and only appear in a freshly
+    // minted JWT. Refresh once transparently so the ADMIN screen does not
+    // look unresponsive after an account has just been approved or updated.
+    if (result?.error === 'forbidden' && allowSessionRefresh && config.refreshToken) {
+      try {
+        await refreshSupabaseSession();
+        return await invokeAdminUserManagement(action, payload, false);
+      } catch { /* Show the actionable access message below. */ }
+    }
+    if (result?.error === 'forbidden') throw new Error('ไม่สามารถโหลดรายชื่อได้: สิทธิ์ ADMIN หมดอายุหรือยังไม่ได้รับสิทธิ์ กรุณาออกจากระบบแล้วเข้าสู่ระบบใหม่');
     throw new Error(result?.error || 'ไม่สามารถจัดการบัญชีได้ในขณะนี้');
   }
   return result;
