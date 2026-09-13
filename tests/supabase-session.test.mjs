@@ -28,6 +28,18 @@ assert.equal(await auth.restoreSupabaseSession(), true, 'valid refresh token mus
 assert.equal(refreshCalls, 1, 'expired session must refresh once');
 assert.equal(auth.getSupabaseConfig().accessToken, renewed, 'renewed access token must be stored');
 
+const namedOfficer = token({
+  exp: Math.floor(Date.now() / 1000) + 3600,
+  app_metadata: { ndss_role: 'officer' },
+  user_metadata: { full_name: 'เจ้าหน้าที่ ทดสอบ' },
+});
+storage.set('ndss-supabase-access-token', namedOfficer);
+assert.deepEqual(auth.getSupabaseDisplayIdentity(), {
+  name: 'เจ้าหน้าที่ ทดสอบ',
+  role: 'OFFICER',
+  status: 'สถานะ: ใช้งานอยู่ · OFFICER (เจ้าหน้าที่)',
+}, 'display identity must show profile name and server-issued role status');
+
 storage.set('ndss-supabase-access-token', expired);
 storage.delete('ndss-supabase-refresh-token');
 assert.equal(await auth.restoreSupabaseSession(), false, 'expired session without refresh token must require sign-in');

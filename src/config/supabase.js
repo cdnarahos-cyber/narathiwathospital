@@ -28,6 +28,21 @@ const decodeJwt = token => {
 export const getSupabaseRole = () => String(decodeJwt(getSupabaseConfig().accessToken).app_metadata?.ndss_role || '').toLowerCase();
 export const getSupabaseUser = () => decodeJwt(getSupabaseConfig().accessToken);
 
+// Profile fields are presentation-only.  Role and access checks must continue
+// to use the server-issued app_metadata claim through getSupabaseRole().
+export const getSupabaseDisplayIdentity = () => {
+  const user = getSupabaseUser() || {};
+  const metadata = user.user_metadata || user.metadata || {};
+  const name = String(metadata.full_name || metadata.name || user.full_name || user.name || user.email?.split('@')[0] || 'ผู้ใช้').trim() || 'ผู้ใช้';
+  const role = String(getSupabaseRole() || '').toUpperCase();
+  const roleLabel = { ADMIN: 'ผู้ดูแลระบบ', OFFICER: 'เจ้าหน้าที่', VIEWER: 'ผู้ดูข้อมูล' }[role] || 'รอตรวจสอบสิทธิ์';
+  return {
+    name,
+    role,
+    status: role ? `สถานะ: ใช้งานอยู่ · ${role} (${roleLabel})` : 'สถานะ: รอตรวจสอบสิทธิ์',
+  };
+};
+
 const clearStoredSession = () => {
   try { localStorage.removeItem(SESSION_KEY); localStorage.removeItem(REFRESH_KEY); } catch { /* storage unavailable */ }
 };

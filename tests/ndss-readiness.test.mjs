@@ -21,8 +21,6 @@ for (const capability of [
   'data-run-preflight',
   'การเข้าถึงข้อมูลผู้ป่วย รายงาน และสถานการณ์โรคต้องผ่านการยืนยันตัวตน',
   'app.inert = !allowed',
-  'สถานะ: ใช้งานอยู่',
-  'server-issued app_metadata role',
 ]) assert.ok(main.includes(capability), `operational capability is missing: ${capability}`);
 
 const layout = read('src/components/layout.js');
@@ -40,5 +38,10 @@ assert.match(officer506Policy, /'admin',\s*'officer'/i, 'officer must be allowed
 
 const runtimeConfig = read('src/config/runtime-config.js');
 assert.ok(!/service[_-]?role\s*[:=]\s*['"][^'"]+/i.test(runtimeConfig), 'a service-role key must never be in browser runtime configuration');
+
+const supabaseConfig = read('src/config/supabase.js');
+assert.ok(supabaseConfig.includes('getSupabaseDisplayIdentity'), 'signed-in identity display helper is missing');
+assert.ok(supabaseConfig.includes('สถานะ: ใช้งานอยู่'), 'signed-in account status is missing');
+assert.ok(supabaseConfig.includes('server-issued app_metadata claim'), 'profile metadata must not control authorization');
 
 console.log(`ndss readiness tests passed (${localAssets.length} local startup assets verified)`);

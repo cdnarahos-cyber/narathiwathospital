@@ -1,4 +1,4 @@
-import { clearSupabaseSession, consumeSupabaseSessionFromUrl, getSupabaseConfig, getSupabaseRole, getSupabaseUser, hasSupabaseCredentials, hasSupabaseSession, invokeAdminUserManagement, requestSupabasePasswordRecovery, restoreSupabaseSession, signInWithPassword, signUpWithPassword, updateSupabasePassword } from './config/supabase.js?v=20260913-2';
+import { clearSupabaseSession, consumeSupabaseSessionFromUrl, getSupabaseConfig, getSupabaseDisplayIdentity, getSupabaseRole, getSupabaseUser, hasSupabaseCredentials, hasSupabaseSession, invokeAdminUserManagement, requestSupabasePasswordRecovery, restoreSupabaseSession, signInWithPassword, signUpWithPassword, updateSupabasePassword } from './config/supabase.js?v=20260913-3';
 import { downloadCleanPdf } from './services/clean-pdf-generator.js?v=20260902-44';
 import { deleteInvestigationCase, fetchInvestigationCases, syncInvestigationCase } from './services/dashboard-service.js?v=20260910-1';
 import { canSyncOperationalRecords, deleteOperationalRecord, fetchOperationalRecords, saveOperationalRecord, updateOperationalRecord } from './services/operational-service.js';
@@ -81,14 +81,7 @@ const canRenderProtectedData = () => ['admin', 'officer', 'viewer'].includes(get
 const signedOutStartPage = () => `<div class="module-page access-safe-page"><section class="work-panel"><h1>เข้าสู่ระบบเพื่อใช้งาน NDSS</h1><p>การเข้าถึงข้อมูลผู้ป่วย รายงาน และสถานการณ์โรคต้องผ่านการยืนยันตัวตนและสิทธิ์ที่เหมาะสม</p><p class="scope-note">หากบัญชีเพิ่งได้รับสิทธิ์จาก ADMIN โปรดออกจากระบบและเข้าสู่ระบบอีกครั้ง</p></section></div>`;
 document.querySelector('#app').innerHTML = shell(canRenderProtectedData() ? overviewDashboard() : signedOutStartPage());
 const renderCurrentUserName = () => {
-  const user=getSupabaseUser() || {};
-  const metadata=user.user_metadata || user.metadata || {};
-  const name=String(metadata.full_name || metadata.name || user.full_name || user.name || user.email?.split('@')[0] || 'ผู้ใช้').trim() || 'ผู้ใช้';
-  const role=String(getSupabaseRole() || '').toUpperCase();
-  // user metadata is for display only.  Access control remains based on the
-  // server-issued app_metadata role read by getSupabaseRole().
-  const roleLabel={ADMIN:'ผู้ดูแลระบบ',OFFICER:'เจ้าหน้าที่',VIEWER:'ผู้ดูข้อมูล'}[role] || 'รอตรวจสอบสิทธิ์';
-  const status=role ? `สถานะ: ใช้งานอยู่ · ${role} (${roleLabel})` : 'สถานะ: รอตรวจสอบสิทธิ์';
+  const { name, status }=getSupabaseDisplayIdentity();
   const nameNode=document.querySelector('[data-current-user-name]');
   const detailNode=document.querySelector('[data-current-user-detail]');
   const sidebarNameNode=document.querySelector('[data-current-user-sidebar-name]');
