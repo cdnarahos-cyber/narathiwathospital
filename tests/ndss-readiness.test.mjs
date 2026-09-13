@@ -102,5 +102,8 @@ assert.ok(dashboardService.includes('รหัสเคสที่เชื่�
 assert.ok(dashboardService.includes("invokeAdminUserManagement('delete_case'"), 'case deletion must have a server-verified ADMIN fallback for stale RLS claims');
 assert.ok(manageUsersFunction.includes('action === "delete_case"'), 'the ADMIN gateway must only accept an explicit delete-case action');
 assert.ok(manageUsersFunction.includes('invalid_case'), 'the ADMIN gateway must validate the central case UUID');
+assert.ok(manageUsersFunction.includes('action === "update"'), 'the ADMIN save-role control must be handled by the server');
+assert.ok(manageUsersFunction.includes('invalid_update'), 'the ADMIN save-role control must validate role and status');
+assert.ok(manageUsersFunction.includes('cannot_change_own_access'), 'the ADMIN gateway must prevent self-lockout');
 
 console.log(`ndss readiness tests passed (${localAssets.length} local startup assets and ${buttonActions.size} button actions verified)`);

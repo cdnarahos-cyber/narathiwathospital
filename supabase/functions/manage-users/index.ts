@@ -69,7 +69,24 @@ Deno.serve(async request => {
 
   const userId = String(body.userId || "");
   if (!userId) return json({ error: "invalid_user" }, 400);
-  if (userId === requester.id && (action === "suspend" || action === "delete")) return json({ error: "cannot_change_own_access" }, 400);
+  if (userId === requester.id && (action === "suspend" || action === "delete" || action === "update")) return json({ error: "cannot_change_own_access" }, 400);
+
+  if (action === "update") {
+    const role = String(body.role || "").toLowerCase();
+    const status = String(body.status || "").toLowerCase();
+    if (!validRoles.has(role) || !["pending", "active", "suspended"].includes(status)) return json({ error: "invalid_update" }, 400);
+    const { data: target, error: targetError } = await admin.auth.admin.getUserById(userId);
+    if (targetError || !target.user) return json({ error: "user_not_found" }, 404);
+    if (protectedAdminEmails.has(String(target.user.email || "").toLowerCase())) return json({ error: "protected_admin_account" }, 400);
+    const appMetadata = { ...target.user.app_metadata };
+    if (status === "pending") delete appMetadata.ndss_role;
+    else appMetadata.ndss_role = role;
+    const { error: profileError } = await admin.auth.admin.updateUserById(userId, { app_metadata: appMetadata });
+    if (profileError) return json({ error: "update_failed" }, 500);
+    const { error: statusError } = await admin.auth.admin.updateUserById(userId, { ban_duration: status === "suspended" ? "876000h" : "none" });
+    if (statusError) return json({ error: "status_update_failed" }, 500);
+    return json({ ok: true });
+  }
 
   if (action === "approve") {
     const role = String(body.role || "").toLowerCase();
