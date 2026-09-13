@@ -33,3 +33,8 @@ node tests/supabase-session.test.mjs
 
 เมื่อตารางและ token ของผู้ใช้งานพร้อม หน้าเว็บจะเรียก Supabase REST API โดยตรง
 และจะกลับไปใช้ข้อมูลตัวอย่างหากการเชื่อมต่อหรือสิทธิ์ RLS ยังไม่พร้อม.
+
+ก่อนเปิดใช้งานกับข้อมูลจริง ให้ ADMIN ใช้
+[`supabase/ACCEPTANCE-CHECKLIST.md`](supabase/ACCEPTANCE-CHECKLIST.md) เพื่อทดสอบ
+ADMIN/OFFICER/VIEWER แยกกัน และปฏิบัติตามแผนสำรองใน
+[`supabase/PRODUCTION-RUNBOOK.md`](supabase/PRODUCTION-RUNBOOK.md).
