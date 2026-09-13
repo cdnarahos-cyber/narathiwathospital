@@ -41,6 +41,11 @@ Deno.serve(async request => {
     return json({ users: data.users.map(user => ({
       id: user.id,
       email: user.email || "",
+      // Registration profile is returned for ADMIN to identify the account.
+      // It is never used to grant access; app_metadata.ndss_role remains the
+      // authorization source.
+      fullName: user.user_metadata?.full_name || user.user_metadata?.name || "",
+      phone: user.phone || user.user_metadata?.phone || "",
       role: user.app_metadata?.ndss_role || "",
       requestedRole: user.user_metadata?.requested_ndss_role || "",
       bannedUntil: user.banned_until || "",

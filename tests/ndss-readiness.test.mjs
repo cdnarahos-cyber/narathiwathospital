@@ -44,4 +44,9 @@ assert.ok(supabaseConfig.includes('getSupabaseDisplayIdentity'), 'signed-in iden
 assert.ok(supabaseConfig.includes('สถานะ: ใช้งานอยู่'), 'signed-in account status is missing');
 assert.ok(supabaseConfig.includes('server-issued app_metadata claim'), 'profile metadata must not control authorization');
 
+const manageUsersFunction = read('supabase/functions/manage-users/index.ts');
+assert.ok(manageUsersFunction.includes('fullName: user.user_metadata?.full_name'), 'ADMIN user list must include registered full name');
+assert.ok(manageUsersFunction.includes('phone: user.phone || user.user_metadata?.phone'), 'ADMIN user list must include registered phone');
+assert.ok(!/password:\s*user\./i.test(manageUsersFunction), 'user passwords must never be returned from the admin API');
+
 console.log(`ndss readiness tests passed (${localAssets.length} local startup assets verified)`);
