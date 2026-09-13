@@ -6,7 +6,7 @@ import { canSync506Records, fetch506Records, save506Records, with506SyncKeys } f
 import { fetchCentralAuditEvents, flushCentralFailureQueue, logCentralActivity, reportCentralFailure } from './services/audit-service.js';
 import { enableHistoryAreaFilter } from './components/history-area-filter.js?v=20260910-2';
 import { addNarathiwatBoundaries } from './components/narathiwat-boundaries.js';
-import { shell } from './components/layout.js?v=20260913-2';
+import { shell } from './components/layout.js?v=20260913-3';
 import { moduleView, diseaseMeta, investigationForm } from './components/modules.js?v=20260911-2';
 const authCallbackType = new URLSearchParams(location.hash.replace(/^#/, '')).get('type') || '';
 consumeSupabaseSessionFromUrl();
@@ -85,12 +85,22 @@ const renderCurrentUserName = () => {
   const metadata=user.user_metadata || user.metadata || {};
   const name=String(metadata.full_name || metadata.name || user.full_name || user.name || user.email?.split('@')[0] || 'ผู้ใช้').trim() || 'ผู้ใช้';
   const role=String(getSupabaseRole() || '').toUpperCase();
+  // user metadata is for display only.  Access control remains based on the
+  // server-issued app_metadata role read by getSupabaseRole().
+  const roleLabel={ADMIN:'ผู้ดูแลระบบ',OFFICER:'เจ้าหน้าที่',VIEWER:'ผู้ดูข้อมูล'}[role] || 'รอตรวจสอบสิทธิ์';
+  const status=role ? `สถานะ: ใช้งานอยู่ · ${role} (${roleLabel})` : 'สถานะ: รอตรวจสอบสิทธิ์';
   const nameNode=document.querySelector('[data-current-user-name]');
   const detailNode=document.querySelector('[data-current-user-detail]');
+  const sidebarNameNode=document.querySelector('[data-current-user-sidebar-name]');
+  const sidebarStatusNode=document.querySelector('[data-current-user-sidebar-status]');
+  const profileNode=document.querySelector('[data-current-user-profile]');
   const syncTitle=document.querySelector('[data-sync-title]');
   const syncDetail=document.querySelector('[data-sync-detail]');
   if(nameNode) nameNode.textContent=name;
-  if(detailNode) detailNode.textContent=role || 'NDSS Narathiwat';
+  if(detailNode) detailNode.textContent=status;
+  if(sidebarNameNode) sidebarNameNode.textContent=name;
+  if(sidebarStatusNode) sidebarStatusNode.textContent=status;
+  if(profileNode) profileNode.setAttribute('aria-label',`ผู้ใช้งาน ${name}, ${status}`);
   if(syncTitle) syncTitle.textContent=hasSupabaseCredentials() && hasSupabaseSession() ? 'เชื่อมต่อฐานข้อมูลกลางแล้ว' : 'ข้อมูลจากอุปกรณ์นี้';
   if(syncDetail) syncDetail.textContent=hasSupabaseCredentials() && hasSupabaseSession() ? 'ซิงค์ข้อมูลตามสิทธิ์ของผู้ใช้' : 'เชื่อมฐานข้อมูลกลางได้จากเมนูตั้งค่า';
 };

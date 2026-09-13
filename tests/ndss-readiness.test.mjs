@@ -21,7 +21,13 @@ for (const capability of [
   'data-run-preflight',
   'การเข้าถึงข้อมูลผู้ป่วย รายงาน และสถานการณ์โรคต้องผ่านการยืนยันตัวตน',
   'app.inert = !allowed',
+  'สถานะ: ใช้งานอยู่',
+  'server-issued app_metadata role',
 ]) assert.ok(main.includes(capability), `operational capability is missing: ${capability}`);
+
+const layout = read('src/components/layout.js');
+assert.ok(layout.includes('data-current-user-sidebar-name'), 'signed-in user name must be visible in the mobile menu');
+assert.ok(layout.includes('data-current-user-detail'), 'signed-in user status must be visible in the header');
 
 const migrationDirectory = join(root, 'supabase', 'migrations');
 const migrations = readdirSync(migrationDirectory).filter(file => file.endsWith('.sql')).map(file => read(`supabase/migrations/${file}`)).join('\n');
