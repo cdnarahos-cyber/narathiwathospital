@@ -50,3 +50,13 @@ After a role is changed by ADMIN, the user must sign out and sign in again (or r
 2. Escalate to hospital IT when API errors exceed 1% for 15 minutes, database connections stay near the plan limit, or CPU/disk IOPS remain saturated for 15 minutes.
 3. Do not run bulk upload or artificial load tests against the production project during clinic hours. Use a separate Supabase project and non-patient test files for stress testing.
 4. Retain the date, time range, observed metrics, and response action in the hospital IT change record.
+
+## 6. Deploy Edge Functions through GitHub Actions
+
+The static GitHub Pages workflow does not deploy Supabase Edge Functions. The repository includes `.github/workflows/deploy-supabase-functions.yml` to deploy `manage-users` safely after an approved change.
+
+1. In GitHub repository **Settings** → **Secrets and variables** → **Actions**, create the secret `SUPABASE_ACCESS_TOKEN` with a Supabase personal access token. Never put this token in source code, `runtime-config.js`, or browser storage.
+2. In the same page, create the repository variable `SUPABASE_FUNCTIONS_DEPLOY_ENABLED` with the value `true`.
+3. Trigger the workflow from the **Actions** tab, or push a change under `supabase/functions/`.
+4. Confirm the workflow is successful, then sign in as ADMIN and press **รีเฟรช** in the account-management panel. Registered name and phone should appear; passwords must remain unavailable.
+5. If deployment must be paused, set `SUPABASE_FUNCTIONS_DEPLOY_ENABLED` to any value other than `true`. The workflow will be skipped without exposing the access token.

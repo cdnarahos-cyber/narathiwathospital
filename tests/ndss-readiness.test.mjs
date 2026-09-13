@@ -53,4 +53,9 @@ assert.ok(manageUsersFunction.includes('fullName: user.user_metadata?.full_name'
 assert.ok(manageUsersFunction.includes('phone: user.phone || user.user_metadata?.phone'), 'ADMIN user list must include registered phone');
 assert.ok(!/password:\s*user\./i.test(manageUsersFunction), 'user passwords must never be returned from the admin API');
 
+const functionDeployWorkflow = read('.github/workflows/deploy-supabase-functions.yml');
+assert.ok(functionDeployWorkflow.includes('supabase functions deploy manage-users'), 'manage-users deployment workflow is missing');
+assert.ok(functionDeployWorkflow.includes('SUPABASE_FUNCTIONS_DEPLOY_ENABLED'), 'function deployment must require explicit repository approval');
+assert.ok(!/SUPABASE_ACCESS_TOKEN:\s*['"][A-Za-z0-9_\-]+/i.test(functionDeployWorkflow), 'function deployment must not commit an access token');
+
 console.log(`ndss readiness tests passed (${localAssets.length} local startup assets verified)`);

@@ -1,0 +1,30 @@
+name: Deploy NDSS Supabase Functions
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'supabase/functions/**'
+      - '.github/workflows/deploy-supabase-functions.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  deploy-manage-users:
+    # Deployment stays disabled until a repository administrator explicitly
+    # enables it. This prevents a missing or accidental credential from
+    # triggering a deployment.
+    if: ${{ vars.SUPABASE_FUNCTIONS_DEPLOY_ENABLED == 'true' }}
+    runs-on: ubuntu-latest
+    env:
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+      SUPABASE_PROJECT_REF: eyrplueyhpeiuruelvlq
+    steps:
+      - uses: actions/checkout@v4
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+      - name: Deploy manage-users
+        run: supabase functions deploy manage-users --project-ref "$SUPABASE_PROJECT_REF"
