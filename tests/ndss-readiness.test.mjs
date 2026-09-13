@@ -7,11 +7,13 @@ const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 const read = file => readFileSync(join(root, file), 'utf8');
 
 const index = read('index.html');
+assert.ok(index.includes('src/main.js?v=20260913-6'), 'the startup script must use the current cache-busting version');
 const localAssets = [...index.matchAll(/(?:href|src)="(\.\/[^"?]+)(?:\?[^\"]*)?"/g)].map(match => match[1].replace(/^\.\//, ''));
 assert.ok(localAssets.length >= 20, 'startup page must include the expected local assets');
 for (const asset of localAssets) assert.ok(existsSync(join(root, asset)), `startup asset is missing: ${asset}`);
 
 const main = read('src/main.js');
+assert.ok(main.includes("dashboard-service.js?v=20260913-2"), 'the updated central case deletion service must not be served from a stale cache');
 for (const capability of [
   'hydrateInvestigationCases',
   'hydrateOperationalRecords',
