@@ -27,6 +27,9 @@ const layout = read('src/components/layout.js');
 assert.ok(layout.includes('data-current-user-sidebar-name'), 'signed-in user name must be visible in the mobile menu');
 assert.ok(layout.includes('data-current-user-detail'), 'signed-in user status must be visible in the header');
 assert.ok(main.includes('data-label="รายละเอียดผู้ใช้งาน"'), 'mobile account cards must label registered user details');
+const commandStyles = read('src/styles/command-reference.css');
+assert.ok(commandStyles.includes('[data-admin-user-action="update"]'), 'save-role action must have a dedicated high-visibility style');
+assert.ok(commandStyles.includes('[data-admin-user-action="delete"]'), 'delete action must have a dedicated high-visibility style');
 
 const migrationDirectory = join(root, 'supabase', 'migrations');
 const migrations = readdirSync(migrationDirectory).filter(file => file.endsWith('.sql')).map(file => read(`supabase/migrations/${file}`)).join('\n');
