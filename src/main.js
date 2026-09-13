@@ -547,11 +547,18 @@ const runPreflight = async () => {
   } catch { checks.push(['ที่เก็บข้อมูลในอุปกรณ์', false, 'ไม่สามารถเข้าถึงที่เก็บข้อมูลในเบราว์เซอร์ได้']); }
   checks.push(['แผนที่ Leaflet', Boolean(window.L), window.L ? 'พร้อมแสดงแผนที่และขอบเขตพื้นที่' : 'ไม่พบไลบรารีแผนที่']);
   checks.push(['การสร้าง PDF', typeof window.HTMLCanvasElement !== 'undefined', typeof window.HTMLCanvasElement !== 'undefined' ? 'รองรับการสร้างรายงาน PDF ในอุปกรณ์นี้' : 'เบราว์เซอร์ไม่รองรับ Canvas']);
+  const signedIn = hasSupabaseSession();
+  checks.push(['สถานะบัญชีผู้ใช้', signedIn, signedIn ? `เข้าสู่ระบบแล้ว · ${roleDefinitions[getSupabaseRole()]?.[0] || 'รอตรวจสอบสิทธิ์'}` : 'ยังไม่ได้เข้าสู่ระบบ จึงไม่สามารถยืนยันสิทธิ์หรือซิงก์ข้อมูลกลางได้']);
+  let pendingAudits = 0;
+  try { pendingAudits = JSON.parse(localStorage.getItem('ndss-pending-audit-events') || '[]').length; } catch { pendingAudits = 0; }
+  checks.push(['คิวแจ้งเหตุการเชื่อมต่อ', pendingAudits === 0, pendingAudits === 0 ? 'ไม่มีรายการรอส่ง' : `มี ${pendingAudits} รายการรอส่ง ระบบจะลองส่งใหม่เมื่อเชื่อมต่อได้`]);
   // The project URL is intentionally kept in the client module; only the publishable key belongs in runtime configuration.
   const [centralReady, centralDetail] = await testSupabaseConnectivity();
   checks.push(['ฐานข้อมูลกลาง', centralReady, centralDetail]);
   result.replaceChildren(...checks.map(([name, ok, detail]) => { const row = document.createElement('div'); const label = document.createElement('b'); const note = document.createElement('span'); label.textContent = `${ok ? '✓' : '!' } ${name}`; note.textContent = detail; row.append(label, note); return row; }));
-  showToast(centralReady ? 'ตรวจสอบความพร้อมแล้ว' : 'ตรวจสอบแล้ว: ยังไม่ได้เชื่อมฐานข้อมูลกลาง', centralReady ? 'success' : 'info');
+  try { localStorage.setItem('ndss-last-preflight-at', new Date().toISOString()); } catch { /* non-essential display timestamp */ }
+  const fullyReady = centralReady && signedIn && pendingAudits === 0;
+  showToast(fullyReady ? 'ตรวจสอบความพร้อมแล้ว' : 'ตรวจสอบแล้ว: โปรดดูรายการที่มีเครื่องหมาย !', fullyReady ? 'success' : 'info');
 };
 const enhanceImportQualityActions = () => {
   const panel = [...root.querySelectorAll('.work-panel')].find(item => item.querySelector('.panel-top h2')?.textContent === 'ตรวจสอบคุณภาพข้อมูล');

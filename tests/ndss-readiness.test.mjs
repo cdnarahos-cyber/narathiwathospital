@@ -19,6 +19,8 @@ for (const capability of [
   'data-open-506-import',
   'data-supabase-signout',
   'data-run-preflight',
+  'คิวแจ้งเหตุการเชื่อมต่อ',
+  'ndss-last-preflight-at',
   'การเข้าถึงข้อมูลผู้ป่วย รายงาน และสถานการณ์โรคต้องผ่านการยืนยันตัวตน',
   'app.inert = !allowed',
 ]) assert.ok(main.includes(capability), `operational capability is missing: ${capability}`);
@@ -79,7 +81,7 @@ assert.ok(functionDeployWorkflow.includes('SUPABASE_FUNCTIONS_DEPLOY_ENABLED'), 
 assert.ok(!/SUPABASE_ACCESS_TOKEN:\s*['"][A-Za-z0-9_\-]+/i.test(functionDeployWorkflow), 'function deployment must not commit an access token');
 
 const acceptanceChecklist = read('supabase/ACCEPTANCE-CHECKLIST.md');
-for (const item of ['ADMIN', 'OFFICER', 'VIEWER', 'ข้อมูลระบุตัวบุคคล', 'ไม่มีรายการส่วนกลางซ้ำ', 'Audit Log']) {
+for (const item of ['ADMIN', 'OFFICER', 'VIEWER', 'ข้อมูลระบุตัวบุคคล', 'ไม่มีรายการส่วนกลางซ้ำ', 'Audit Log', 'บันทึกผลการทดสอบรายบัญชี']) {
   assert.ok(acceptanceChecklist.includes(item), `role/data UAT checklist is missing: ${item}`);
 }
 const productionRunbook = read('supabase/PRODUCTION-RUNBOOK.md');
