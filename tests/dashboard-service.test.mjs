@@ -37,12 +37,14 @@ assert.equal(refreshCalls, 1, 'a stale authorization claim must refresh the sess
 storage.set('ndss-supabase-access-token', renewedToken);
 storage.set('ndss-supabase-refresh-token', 'renewed-refresh-token');
 let deniedCalls = 0;
-globalThis.fetch = async () => {
+globalThis.fetch = async url => {
   deniedCalls += 1;
+  if (String(url).includes('/functions/v1/manage-users')) return new Response(JSON.stringify({ ok: true }), { status: 200, headers: { 'content-type': 'application/json' } });
   return new Response(JSON.stringify({ message: 'still forbidden' }), { status: 403, headers: { 'content-type': 'application/json' } });
 };
-await assert.rejects(() => service.deleteInvestigationCase('case-2', false), /สิทธิ์ ADMIN ไม่เป็นปัจจุบัน/, 'a genuine authorization denial must be actionable');
-assert.equal(deniedCalls, 1, 'a non-refresh retry must not loop');
+const gatewayDeleted = await service.deleteInvestigationCase('case-2', false);
+assert.equal(gatewayDeleted.id, 'case-2', 'a server-verified ADMIN gateway must recover from a stale RLS claim');
+assert.equal(deniedCalls, 2, 'a denied direct delete must call the gateway once without looping');
 
 globalThis.fetch = async () => new Response(JSON.stringify({ message: 'invalid uuid' }), { status: 400, headers: { 'content-type': 'application/json' } });
 await assert.rejects(() => service.deleteInvestigationCase('not-a-uuid', false), /รหัสเคสที่เชื่อมโยง/, 'an invalid remote case identifier must explain how to recover');

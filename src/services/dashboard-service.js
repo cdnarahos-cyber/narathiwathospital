@@ -1,4 +1,4 @@
-import { getSupabaseConfig, getSupabaseUser, hasSupabaseCredentials, hasSupabaseSession, refreshSupabaseSession } from '../config/supabase.js';
+import { getSupabaseConfig, getSupabaseUser, hasSupabaseCredentials, hasSupabaseSession, invokeAdminUserManagement, refreshSupabaseSession } from '../config/supabase.js';
 
 const apiHeaders = (extra = {}) => {
   const config = getSupabaseConfig();
@@ -58,6 +58,14 @@ export async function deleteInvestigationCase(id, allowSessionRefresh = true) {
     } catch { /* Return the actionable authorization message below. */ }
   }
   if (response.status === 401 || response.status === 403) {
+    // The database policy is intentionally strict. If its cached JWT claim
+    // still disagrees after a refresh, verify the current user with Supabase
+    // Auth in the server-side ADMIN gateway. This does not expose a service key
+    // to the browser and accepts only one validated central case UUID.
+    try {
+      const gateway = await invokeAdminUserManagement('delete_case', { caseId: id });
+      if (gateway?.ok) return { id };
+    } catch { /* Show the safe, actionable message below. */ }
     throw new Error('ไม่สามารถลบเคสได้: สิทธิ์ ADMIN ไม่เป็นปัจจุบัน กรุณาออกจากระบบแล้วเข้าสู่ระบบใหม่');
   }
   if (response.status === 400) throw new Error('ไม่สามารถลบเคสได้: รหัสเคสที่เชื่อมโยงกับฐานข้อมูลกลางไม่ถูกต้อง กรุณารีเฟรชหน้าแล้วลองใหม่');

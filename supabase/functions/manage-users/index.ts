@@ -54,6 +54,19 @@ Deno.serve(async request => {
     })) });
   }
 
+  // A delete normally uses the browser's RLS policy. This narrow fallback is
+  // used only when the database JWT is stale after refresh; requireAdmin()
+  // above verifies the current user with Supabase Auth before this service-role
+  // client can remove the requested case.
+  if (action === "delete_case") {
+    const caseId = String(body.caseId || "");
+    if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(caseId)) return json({ error: "invalid_case" }, 400);
+    const { data, error } = await admin.from("disease_cases").delete().eq("id", caseId).select("id").maybeSingle();
+    if (error) return json({ error: "case_delete_failed" }, 500);
+    if (!data) return json({ error: "case_not_found" }, 404);
+    return json({ ok: true });
+  }
+
   const userId = String(body.userId || "");
   if (!userId) return json({ error: "invalid_user" }, 400);
   if (userId === requester.id && (action === "suspend" || action === "delete")) return json({ error: "cannot_change_own_access" }, 400);
