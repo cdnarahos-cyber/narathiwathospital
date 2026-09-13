@@ -93,5 +93,8 @@ assert.ok(auditService.includes("'ndss-central-failure'"), 'central connection f
 assert.ok(auditService.includes('ndss-pending-audit-events'), 'central connection failures must be queued for retry');
 assert.ok(main.includes("await deleteOperationalRecord('contact', item.remoteId)"), 'synced contacts must delete from the central database before local state');
 assert.ok(main.includes("await deleteOperationalRecord('lab', item.remoteId)"), 'synced lab results must delete from the central database before local state');
+const dashboardService = read('src/services/dashboard-service.js');
+assert.ok(dashboardService.includes('refreshSupabaseSession'), 'case deletion must renew a stale server-issued role claim once');
+assert.ok(dashboardService.includes('สิทธิ์ ADMIN ไม่เป็นปัจจุบัน'), 'case deletion must show an actionable authorization error');
 
 console.log(`ndss readiness tests passed (${localAssets.length} local startup assets and ${buttonActions.size} button actions verified)`);

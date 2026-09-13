@@ -1,4 +1,4 @@
-import { getSupabaseConfig, getSupabaseUser, hasSupabaseCredentials, hasSupabaseSession } from '../config/supabase.js';
+import { getSupabaseConfig, getSupabaseUser, hasSupabaseCredentials, hasSupabaseSession, refreshSupabaseSession } from '../config/supabase.js';
 
 const apiHeaders = (extra = {}) => {
   const config = getSupabaseConfig();
@@ -41,12 +41,25 @@ export async function syncInvestigationCase(record) {
   return { ...record, remoteCaseId: result[0].id, remoteCaseNumber: result[0].case_number, remoteStatus: result[0].status, syncState: 'synced' };
 }
 
-export async function deleteInvestigationCase(id) {
+export async function deleteInvestigationCase(id, allowSessionRefresh = true) {
   if (!hasSupabaseCredentials() || !hasSupabaseSession() || !id) return null;
   const response=await fetch(`${getSupabaseConfig().url}/rest/v1/disease_cases?id=eq.${encodeURIComponent(id)}`, {
     method:'DELETE', headers:apiHeaders({ Prefer:'return=representation' }),
   });
   const result=await response.json().catch(() => []);
+  // Role changes are issued through app_metadata. A browser can still hold a
+  // valid but older JWT, so renew it once before treating a 401/403 as a
+  // genuine denial. This never bypasses RLS; the retry is authorized by the
+  // freshly issued server claim.
+  if ((response.status === 401 || response.status === 403) && allowSessionRefresh) {
+    try {
+      await refreshSupabaseSession();
+      return await deleteInvestigationCase(id, false);
+    } catch { /* Return the actionable authorization message below. */ }
+  }
+  if (response.status === 401 || response.status === 403) {
+    throw new Error('ไม่สามารถลบเคสได้: สิทธิ์ ADMIN ไม่เป็นปัจจุบัน กรุณาออกจากระบบแล้วเข้าสู่ระบบใหม่');
+  }
   if (!response.ok || !result[0]) throw new Error(result?.message || 'ลบเคสจากฐานข้อมูลกลางไม่สำเร็จ');
   return result[0];
 }
