@@ -78,4 +78,16 @@ assert.ok(functionDeployWorkflow.includes('supabase functions deploy manage-user
 assert.ok(functionDeployWorkflow.includes('SUPABASE_FUNCTIONS_DEPLOY_ENABLED'), 'function deployment must require explicit repository approval');
 assert.ok(!/SUPABASE_ACCESS_TOKEN:\s*['"][A-Za-z0-9_\-]+/i.test(functionDeployWorkflow), 'function deployment must not commit an access token');
 
+const acceptanceChecklist = read('supabase/ACCEPTANCE-CHECKLIST.md');
+for (const item of ['ADMIN', 'OFFICER', 'VIEWER', 'ข้อมูลระบุตัวบุคคล', 'ไม่มีรายการส่วนกลางซ้ำ', 'Audit Log']) {
+  assert.ok(acceptanceChecklist.includes(item), `role/data UAT checklist is missing: ${item}`);
+}
+const productionRunbook = read('supabase/PRODUCTION-RUNBOOK.md');
+for (const item of ['current Free Plan has no scheduled project backups', 'Never perform a restore over the production project', 'Do not run bulk upload or artificial load tests against the production project during clinic hours']) {
+  assert.ok(productionRunbook.includes(item), `production recovery/load safeguard is missing: ${item}`);
+}
+const auditService = read('src/services/audit-service.js');
+assert.ok(auditService.includes("'ndss-central-failure'"), 'central connection failures must notify the UI');
+assert.ok(auditService.includes('ndss-pending-audit-events'), 'central connection failures must be queued for retry');
+
 console.log(`ndss readiness tests passed (${localAssets.length} local startup assets and ${buttonActions.size} button actions verified)`);

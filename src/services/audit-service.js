@@ -52,8 +52,10 @@ export async function fetchCentralAuditEvents() {
 }
 
 export async function reportCentralFailure(operation, error) {
-  const event = { operation, message: error?.message || String(error || 'ไม่ทราบสาเหตุ'), at: new Date().toISOString() };
-  globalThis.dispatchEvent?.(new CustomEvent('ndss-central-failure', { detail: { operation: scrub(operation) } }));
+  // Queue only scrubbed diagnostics. The queue can survive in browser storage
+  // while offline, so it must not retain a long patient/case identifier.
+  const event = { operation: scrub(operation), message: scrub(error?.message || String(error || 'ไม่ทราบสาเหตุ')), at: new Date().toISOString() };
+  globalThis.dispatchEvent?.(new CustomEvent('ndss-central-failure', { detail: { operation: event.operation } }));
   try { await send(event); }
   catch { writeQueue([...readQueue(), event]); }
 }
