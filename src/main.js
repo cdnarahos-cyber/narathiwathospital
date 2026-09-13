@@ -226,6 +226,8 @@ const renderLoginGate = (mode = 'login') => {
   const role = getSupabaseRole();
   const signedIn = hasSupabaseSession();
   const allowed = Object.hasOwn(roleDefinitions, role);
+  const app = document.querySelector('#app');
+  if (app) { app.inert = !allowed; app.setAttribute('aria-hidden', String(!allowed)); }
   if (allowed) return;
   const message = signedIn
     ? 'บัญชีนี้กำลังรอการอนุมัติสิทธิ์จากผู้ดูแลระบบ กรุณาติดต่อผู้ดูแล NDSS'
