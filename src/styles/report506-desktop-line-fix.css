@@ -1,0 +1,13 @@
+/* Keep the report 506 header rule below its text on desktop screens only. */
+@media screen and (min-width: 681px) {
+  .report506-report-header {
+    align-items: start;
+    padding-bottom: 24px;
+  }
+
+  .report506-report-header h2 {
+    margin: 8px 0 0;
+    padding-bottom: 3px;
+    line-height: 1.4;
+  }
+}

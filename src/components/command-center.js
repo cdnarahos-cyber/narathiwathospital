@@ -2,7 +2,7 @@ const empty = (title, detail) => `<section class="command-empty"><strong>${title
 const escapeAttr = value => String(value ?? '').replace(/[&<>"']/g, char => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[char]));
 
 const title = (heading, subtitle, actions = '') => `<div class="command-head"><div><p class="eyebrow">ศูนย์บัญชาการข้อมูลโรคระดับอำเภอ</p><h1>${heading}</h1><p>${subtitle}</p></div>${actions}</div>`;
-const commandReportHeader = (heading, issuedAt = new Date().toLocaleString('th-TH')) => `<header class="command-report-header"><img src="./public/assets/naradhiwas-hospital-logo.svg" alt="โลโก้โรงพยาบาลนราธิวาสราชนครินทร์" /><div><b>โรงพยาบาลนราธิวาสราชนครินทร์</b><span>Naradhiwas Rajanagarindra Hospital</span><h2>${heading}</h2></div><small>ข้อมูล ณ<br/>${issuedAt}</small></header>`;
+const commandReportHeader = (heading, issuedAt = new Date().toLocaleString('th-TH')) => `<header class="command-report-header report506-report-header"><img src="./public/assets/naradhiwas-hospital-logo.svg" alt="โลโก้โรงพยาบาลนราธิวาสราชนครินทร์" /><div><b>โรงพยาบาลนราธิวาสราชนครินทร์</b><span>Naradhiwas Rajanagarindra Hospital</span><h2>${heading}</h2></div><small>ข้อมูล ณ<br/>${issuedAt}</small></header>`;
 
 const read506 = () => {
   try { return JSON.parse(localStorage.getItem('ndss-506-records') || '[]'); }
