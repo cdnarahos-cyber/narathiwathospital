@@ -65,7 +65,13 @@ export async function deleteInvestigationCase(id, allowSessionRefresh = true) {
     try {
       const gateway = await invokeAdminUserManagement('delete_case', { caseId: id });
       if (gateway?.ok) return { id };
-    } catch { /* Show the safe, actionable message below. */ }
+    } catch (error) {
+      // Do not turn a database/server failure into a misleading role error.
+      // The caller can act on these messages while a true authorization denial
+      // remains deliberately generic.
+      if (error?.message === 'case_not_found') throw new Error('ไม่พบเคสในฐานข้อมูลกลางหรือเคสถูกลบไปแล้ว กรุณารีเฟรชหน้าจอ');
+      if (error?.message === 'case_delete_failed') throw new Error('ไม่สามารถลบเคสได้: ฐานข้อมูลกลางปฏิเสธการลบ กรุณาลองใหม่หรือติดต่อผู้ดูแลระบบ');
+    }
     throw new Error('ไม่สามารถลบเคสได้: สิทธิ์ ADMIN ไม่เป็นปัจจุบัน กรุณาออกจากระบบแล้วเข้าสู่ระบบใหม่');
   }
   if (response.status === 400) throw new Error('ไม่สามารถลบเคสได้: รหัสเคสที่เชื่อมโยงกับฐานข้อมูลกลางไม่ถูกต้อง กรุณารีเฟรชหน้าแล้วลองใหม่');

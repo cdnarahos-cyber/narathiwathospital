@@ -117,6 +117,19 @@ export const refreshSupabaseSession = async () => {
   return result;
 };
 
+// App roles live in app_metadata and can change while a browser tab is open.
+// Refresh the token, then ask Auth for the current server-side user before a
+// privileged operation.  The returned role is deliberately never read from
+// user_metadata, which a user may edit themselves.
+export const refreshSupabaseAuthorization = async () => {
+  const initial = getSupabaseConfig();
+  if (!initial.accessToken) throw new Error('กรุณาเข้าสู่ระบบก่อน');
+  if (initial.refreshToken) await refreshSupabaseSession();
+  const config = getSupabaseConfig();
+  const user = await authRequest('/auth/v1/user', { method: 'GET', accessToken: config.accessToken });
+  return String(user?.app_metadata?.ndss_role || '').toLowerCase();
+};
+
 // Restore an expired browser session before any data service is called.  This
 // avoids sending an expired JWT to the REST API and makes refresh handling
 // transparent to staff who already have a valid refresh token.

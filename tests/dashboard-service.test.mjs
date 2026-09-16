@@ -46,6 +46,12 @@ const gatewayDeleted = await service.deleteInvestigationCase('case-2', false);
 assert.equal(gatewayDeleted.id, 'case-2', 'a server-verified ADMIN gateway must recover from a stale RLS claim');
 assert.equal(deniedCalls, 2, 'a denied direct delete must call the gateway once without looping');
 
+globalThis.fetch = async url => {
+  if (String(url).includes('/functions/v1/manage-users')) return new Response(JSON.stringify({ error: 'case_delete_failed' }), { status: 500, headers: { 'content-type': 'application/json' } });
+  return new Response(JSON.stringify({ message: 'still forbidden' }), { status: 403, headers: { 'content-type': 'application/json' } });
+};
+await assert.rejects(() => service.deleteInvestigationCase('case-3', false), /ฐานข้อมูลกลางปฏิเสธการลบ/, 'a gateway database error must not be misreported as a stale ADMIN role');
+
 globalThis.fetch = async () => new Response(JSON.stringify({ message: 'invalid uuid' }), { status: 400, headers: { 'content-type': 'application/json' } });
 await assert.rejects(() => service.deleteInvestigationCase('not-a-uuid', false), /รหัสเคสที่เชื่อมโยง/, 'an invalid remote case identifier must explain how to recover');
 

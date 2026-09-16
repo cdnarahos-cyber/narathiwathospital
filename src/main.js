@@ -1,6 +1,6 @@
-import { clearSupabaseSession, consumeSupabaseSessionFromUrl, getSupabaseConfig, getSupabaseDisplayIdentity, getSupabaseRole, getSupabaseUser, hasSupabaseCredentials, hasSupabaseSession, invokeAdminUserManagement, requestSupabasePasswordRecovery, restoreSupabaseSession, signInWithPassword, signUpWithPassword, updateSupabasePassword } from './config/supabase.js?v=20260913-3';
+import { clearSupabaseSession, consumeSupabaseSessionFromUrl, getSupabaseConfig, getSupabaseDisplayIdentity, getSupabaseRole, getSupabaseUser, hasSupabaseCredentials, hasSupabaseSession, invokeAdminUserManagement, refreshSupabaseAuthorization, requestSupabasePasswordRecovery, restoreSupabaseSession, signInWithPassword, signUpWithPassword, updateSupabasePassword } from './config/supabase.js?v=20260916-2';
 import { downloadCleanPdf } from './services/clean-pdf-generator.js?v=20260902-44';
-import { deleteInvestigationCase, fetchInvestigationCases, syncInvestigationCase } from './services/dashboard-service.js?v=20260914-2';
+import { deleteInvestigationCase, fetchInvestigationCases, syncInvestigationCase } from './services/dashboard-service.js?v=20260916-3';
 import { canSyncOperationalRecords, deleteOperationalRecord, fetchOperationalRecords, saveOperationalRecord, updateOperationalRecord } from './services/operational-service.js?v=20260913-2';
 import { canSync506Records, fetch506Records, save506Records, with506SyncKeys } from './services/report506-service.js?v=20260911-6';
 import { fetchCentralAuditEvents, flushCentralFailureQueue, logCentralActivity, reportCentralFailure } from './services/audit-service.js?v=20260913-2';
@@ -1134,9 +1134,23 @@ document.addEventListener('click', async event => {
     return;
   }
   if(action.dataset.deleteCase !== undefined) {
-    if (getSupabaseRole() !== 'admin') { showToast('เฉพาะ ADMIN เท่านั้นที่ลบเคสได้', 'error'); return; }
     const index=Number(action.dataset.deleteCase), records=readLocalList('ndss-investigations'), item=records[index];
     if(!item || !await confirmAction('ยืนยันการลบเคส',`ต้องการลบเคส ${item.patient || item.disease} ใช่หรือไม่?`)) return;
+    // A role can be changed by ADMIN while this tab remains open.  Reconcile it
+    // with Supabase Auth before the irreversible action instead of trusting a
+    // stale JWT claim rendered when the page first loaded.
+    let currentRole='';
+    try { currentRole=await refreshSupabaseAuthorization(); }
+    catch (error) {
+      showToast(error?.message || 'ไม่สามารถตรวจสอบสิทธิ์จากระบบกลางได้ กรุณาตรวจสอบการเชื่อมต่อแล้วลองใหม่', 'error');
+      return;
+    }
+    if (currentRole !== 'admin') {
+      renderCurrentUserName();
+      renderHistory();
+      showToast('ไม่สามารถลบเคสได้: บัญชีที่เข้าสู่ระบบอยู่ยังไม่มีสิทธิ์ ADMIN จากระบบกลาง', 'error');
+      return;
+    }
     if (item.remoteCaseId) {
       try { await deleteInvestigationCase(item.remoteCaseId); }
       catch (error) { reportCentralFailure('ลบเคสสอบสวน',error); showToast(error?.message || 'ยังไม่สามารถลบเคสจากฐานข้อมูลกลางได้', 'error'); return; }
@@ -1934,4 +1948,3 @@ document.addEventListener('submit', event => {
   const disease=event.target.querySelector('[data-disease]')?.value || 'ไม่ระบุโรค';
   setTimeout(()=>recordAudit('บันทึกแบบสอบสวนโรค',`บันทึกแบบสอบสวน ${disease}`),0);
 });
-

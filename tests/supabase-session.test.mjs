@@ -28,6 +28,20 @@ assert.equal(await auth.restoreSupabaseSession(), true, 'valid refresh token mus
 assert.equal(refreshCalls, 1, 'expired session must refresh once');
 assert.equal(auth.getSupabaseConfig().accessToken, renewed, 'renewed access token must be stored');
 
+let authorizationCalls = 0;
+globalThis.fetch = async (url, options = {}) => {
+  authorizationCalls += 1;
+  if (String(url).includes('grant_type=refresh_token')) {
+    return new Response(JSON.stringify({ access_token: renewed, refresh_token: 'authorization-refresh-token' }), { status: 200, headers: { 'content-type': 'application/json' } });
+  }
+  assert.match(String(url), /\/auth\/v1\/user$/, 'authorization verification must use the Auth user endpoint');
+  assert.equal(options.method, 'GET');
+  assert.equal(options.headers.Authorization, `Bearer ${renewed}`);
+  return new Response(JSON.stringify({ app_metadata: { ndss_role: 'admin' }, user_metadata: { ndss_role: 'viewer' } }), { status: 200, headers: { 'content-type': 'application/json' } });
+};
+assert.equal(await auth.refreshSupabaseAuthorization(), 'admin', 'authorization verification must use the server-issued app_metadata role');
+assert.equal(authorizationCalls, 2, 'authorization verification must refresh then verify the current Auth user');
+
 for (const [role, name, status] of [
   ['admin', 'ผู้ดูแล ทดสอบ', 'สถานะ: ใช้งานอยู่ · ADMIN (ผู้ดูแลระบบ)'],
   ['officer', 'เจ้าหน้าที่ ทดสอบ', 'สถานะ: ใช้งานอยู่ · OFFICER (เจ้าหน้าที่)'],
