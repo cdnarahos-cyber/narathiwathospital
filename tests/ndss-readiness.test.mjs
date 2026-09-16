@@ -75,7 +75,9 @@ assert.ok(supabaseConfig.includes('allowSessionRefresh = true'), 'admin requests
 const manageUsersFunction = read('supabase/functions/manage-users/index.ts');
 assert.ok(manageUsersFunction.includes('fullName: user.user_metadata?.full_name'), 'ADMIN user list must include registered full name');
 assert.ok(manageUsersFunction.includes('phone: user.phone || user.user_metadata?.phone'), 'ADMIN user list must include registered phone');
+assert.ok(manageUsersFunction.includes('emailConfirmedAt: user.email_confirmed_at'), 'ADMIN user list must include the actual Supabase email confirmation state');
 assert.ok(!/password:\s*user\./i.test(manageUsersFunction), 'user passwords must never be returned from the admin API');
+assert.ok(main.includes('user.emailConfirmedAt'), 'ADMIN account table must render the server-confirmed email state');
 
 const functionDeployWorkflow = read('.github/workflows/deploy-supabase-functions.yml');
 assert.ok(functionDeployWorkflow.includes('supabase functions deploy manage-users'), 'manage-users deployment workflow is missing');

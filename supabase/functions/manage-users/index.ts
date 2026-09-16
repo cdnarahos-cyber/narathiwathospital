@@ -49,6 +49,9 @@ Deno.serve(async request => {
       role: user.app_metadata?.ndss_role || "",
       requestedRole: user.user_metadata?.requested_ndss_role || "",
       bannedUntil: user.banned_until || "",
+      // Report the actual Supabase confirmation timestamp so the ADMIN screen
+      // never labels an active, confirmed account as pending by default.
+      emailConfirmedAt: user.email_confirmed_at || "",
       lastSignInAt: user.last_sign_in_at || "",
       createdAt: user.created_at,
     })) });
