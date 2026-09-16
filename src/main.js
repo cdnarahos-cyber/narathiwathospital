@@ -103,6 +103,13 @@ const renderCurrentUserName = () => {
     button.hidden=!mayImport;
     button.setAttribute('aria-hidden',String(!mayImport));
   });
+  // Settings includes account administration and local backup exports, so it
+  // is intentionally an ADMIN-only workspace rather than a VIEWER shortcut.
+  const isAdmin=getSupabaseRole()==='admin';
+  document.querySelectorAll('[data-view="settings"],[data-backup-local],[data-restore-local]').forEach(control => {
+    control.hidden=!isAdmin;
+    control.setAttribute('aria-hidden',String(!isAdmin));
+  });
 };
 renderCurrentUserName();
 const root = document.querySelector('#module-root');
@@ -191,6 +198,12 @@ const ensureRefreshButton = () => {
   actions.prepend(button);
 };
 ensureRefreshButton();
+document.addEventListener('click', event => {
+  if (!event.target.closest('[data-view="settings"]') || getSupabaseRole()==='admin') return;
+  event.preventDefault();
+  event.stopImmediatePropagation();
+  showToast('เฉพาะ ADMIN เท่านั้นที่เข้าถึงการตั้งค่าและผู้ดูแลระบบได้', 'error');
+}, true);
 document.addEventListener('click', event => {
   if (!event.target.closest('[data-refresh-view]')) return;
   window.location.reload();
@@ -1604,6 +1617,7 @@ const commandExport = ({dataset,filename,detail='full'}) => {
 };
 const backupKeys=['ndss-506-records','ndss-506-import-meta','ndss-investigations','ndss-response-tasks','ndss-case-contacts','ndss-lab-results','ndss-alert-state','ndss-audit-log'];
 const backupLocalData = () => {
+  if(getSupabaseRole()!=='admin') { showToast('เฉพาะ ADMIN เท่านั้นที่สำรองข้อมูลในอุปกรณ์ได้', 'error'); return; }
   const records=Object.fromEntries(backupKeys.map(key=>[key,JSON.parse(localStorage.getItem(key) || (key.includes('state') ? '{}' : '[]'))]));
   const blob=new Blob([JSON.stringify({version:1,createdAt:new Date().toISOString(),records},null,2)],{type:'application/json'});
   const link=document.createElement('a'); link.href=URL.createObjectURL(blob); link.download=`ndss-local-backup-${new Date().toISOString().slice(0,10)}.json`; link.click(); setTimeout(()=>URL.revokeObjectURL(link.href),500);
@@ -1612,6 +1626,7 @@ const backupLocalData = () => {
 };
 const restoreLocalData = async file => {
   if(!file) return;
+  if(getSupabaseRole()!=='admin') { showToast('เฉพาะ ADMIN เท่านั้นที่กู้คืนข้อมูลในอุปกรณ์ได้', 'error'); return; }
   try {
     const backup=JSON.parse(await file.text());
     if(backup?.version!==1 || !backup.records || typeof backup.records!=='object') throw new Error('invalid');

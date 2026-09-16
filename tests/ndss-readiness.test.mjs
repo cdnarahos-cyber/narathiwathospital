@@ -7,7 +7,7 @@ const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 const read = file => readFileSync(join(root, file), 'utf8');
 
 const index = read('index.html');
-assert.ok(index.includes('src/main.js?v=20260914-2'), 'the startup script must use the current cache-busting version');
+assert.ok(index.includes('src/main.js?v=20260916-1'), 'the startup script must use the current cache-busting version');
 const localAssets = [...index.matchAll(/(?:href|src)="(\.\/[^"?]+)(?:\?[^\"]*)?"/g)].map(match => match[1].replace(/^\.\//, ''));
 assert.ok(localAssets.length >= 20, 'startup page must include the expected local assets');
 for (const asset of localAssets) assert.ok(existsSync(join(root, asset)), `startup asset is missing: ${asset}`);
@@ -49,6 +49,7 @@ assert.ok(layout.includes('data-current-user-sidebar-name'), 'signed-in user nam
 assert.ok(layout.includes('data-current-user-detail'), 'signed-in user status must be visible in the header');
 assert.ok(main.includes('data-label="รายละเอียดผู้ใช้งาน"'), 'mobile account cards must label registered user details');
 assert.ok(main.includes("const mayImport=['admin','officer'].includes(getSupabaseRole())"), 'only ADMIN and OFFICER may see the Excel import control');
+assert.ok(main.includes("getSupabaseRole()==='admin'"), 'settings and local backup controls must be limited to ADMIN');
 assert.ok(main.includes('กำลังรีเฟรช…'), 'admin refresh must provide a visible loading state');
 assert.ok(main.includes("loadAdminUsers({ notify: true })"), 'admin refresh button must explicitly reload the user list');
 const commandStyles = read('src/styles/command-reference.css');
