@@ -96,6 +96,13 @@ const renderCurrentUserName = () => {
   if(profileNode) profileNode.setAttribute('aria-label',`ผู้ใช้งาน ${name}, ${status}`);
   if(syncTitle) syncTitle.textContent=hasSupabaseCredentials() && hasSupabaseSession() ? 'เชื่อมต่อฐานข้อมูลกลางแล้ว' : 'ข้อมูลจากอุปกรณ์นี้';
   if(syncDetail) syncDetail.textContent=hasSupabaseCredentials() && hasSupabaseSession() ? 'ซิงค์ข้อมูลตามสิทธิ์ของผู้ใช้' : 'เชื่อมฐานข้อมูลกลางได้จากเมนูตั้งค่า';
+  // Keep the visible control aligned with the server-enforced role check. A
+  // VIEWER must never be invited to start an Excel import they cannot submit.
+  const mayImport=['admin','officer'].includes(getSupabaseRole());
+  document.querySelectorAll('[data-open-506-import]').forEach(button => {
+    button.hidden=!mayImport;
+    button.setAttribute('aria-hidden',String(!mayImport));
+  });
 };
 renderCurrentUserName();
 const root = document.querySelector('#module-root');

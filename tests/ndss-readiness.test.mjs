@@ -48,6 +48,7 @@ const layout = read('src/components/layout.js');
 assert.ok(layout.includes('data-current-user-sidebar-name'), 'signed-in user name must be visible in the mobile menu');
 assert.ok(layout.includes('data-current-user-detail'), 'signed-in user status must be visible in the header');
 assert.ok(main.includes('data-label="รายละเอียดผู้ใช้งาน"'), 'mobile account cards must label registered user details');
+assert.ok(main.includes("const mayImport=['admin','officer'].includes(getSupabaseRole())"), 'only ADMIN and OFFICER may see the Excel import control');
 assert.ok(main.includes('กำลังรีเฟรช…'), 'admin refresh must provide a visible loading state');
 assert.ok(main.includes("loadAdminUsers({ notify: true })"), 'admin refresh button must explicitly reload the user list');
 const commandStyles = read('src/styles/command-reference.css');
