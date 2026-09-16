@@ -1151,12 +1151,19 @@ document.addEventListener('click', async event => {
       showToast('ไม่สามารถลบเคสได้: บัญชีที่เข้าสู่ระบบอยู่ยังไม่มีสิทธิ์ ADMIN จากระบบกลาง', 'error');
       return;
     }
+    let removedOrphanedCopy=false;
     if (item.remoteCaseId) {
       try { await deleteInvestigationCase(item.remoteCaseId); }
-      catch (error) { reportCentralFailure('ลบเคสสอบสวน',error); showToast(error?.message || 'ยังไม่สามารถลบเคสจากฐานข้อมูลกลางได้', 'error'); return; }
+      catch (error) {
+        // The central row is already gone, so the requested end state is
+        // achieved there. Remove this browser's orphaned copy too; otherwise
+        // it remains visible forever and looks like an ADMIN permission issue.
+        if (/ไม่พบเคสในฐานข้อมูลกลาง|เคสถูกลบไปแล้ว/.test(String(error?.message || ''))) removedOrphanedCopy=true;
+        else { reportCentralFailure('ลบเคสสอบสวน',error); showToast(error?.message || 'ยังไม่สามารถลบเคสจากฐานข้อมูลกลางได้', 'error'); return; }
+      }
     }
     records.splice(index,1); localStorage.setItem('ndss-investigations',JSON.stringify(records)); recordAudit('ลบเคสสอบสวน',item.patient || item.disease || 'ไม่ระบุเคส');
-    window.dispatchEvent(new Event('ndss-cases-updated')); renderPins(); renderHistory(); showToast('ลบเคสแล้ว');
+    window.dispatchEvent(new Event('ndss-cases-updated')); renderPins(); renderHistory(); showToast(removedOrphanedCopy ? 'ลบเคสจากฐานข้อมูลกลางไปแล้ว จึงล้างสำเนาที่ค้างในเครื่องเรียบร้อย' : 'ลบเคสแล้ว');
     return;
   }
   if(action.dataset.deleteContact !== undefined) {
