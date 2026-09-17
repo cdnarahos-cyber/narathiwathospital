@@ -335,16 +335,38 @@ const applyAlertFilter = filter => {
   const feed = root.querySelector('.alert-feed');
   if (!feed) return;
   const query = root.querySelector('[data-alert-search]')?.value.trim().toLocaleLowerCase('th-TH') || '';
-  feed.querySelectorAll('article').forEach(article => {
+  const articles = [...feed.querySelectorAll('article')];
+  const matching = articles.filter(article => {
     const matchState = filter === 'all'
       ? true
       : filter === 'acknowledged'
         ? article.classList.contains('acknowledged')
         : !article.classList.contains('acknowledged');
-    article.hidden = !matchState || Boolean(query && !article.textContent.toLocaleLowerCase('th-TH').includes(query));
+    return matchState && (!query || article.textContent.toLocaleLowerCase('th-TH').includes(query));
   });
+  const savedSize = Number(localStorage.getItem('ndss-alert-page-size') || 15);
+  const pageSize = [15,25,50,100].includes(savedSize) ? savedSize : 15;
+  const totalPages = Math.max(1, Math.ceil(matching.length / pageSize));
+  const requestedPage = Number(localStorage.getItem('ndss-alert-page') || 1);
+  const currentPage = Math.min(Math.max(1, requestedPage), totalPages);
+  const rangeStart = matching.length ? ((currentPage - 1) * pageSize) + 1 : 0;
+  const rangeEnd = Math.min(currentPage * pageSize, matching.length);
+  const currentItems = new Set(matching.slice((currentPage - 1) * pageSize, currentPage * pageSize));
+  articles.forEach(article => { article.hidden = !currentItems.has(article); });
+  const panel = feed.closest('.work-panel');
+  let pagination = panel?.querySelector('[data-alert-pagination]');
+  if (!pagination && panel) {
+    pagination = document.createElement('nav');
+    pagination.className = 'alert-pagination';
+    pagination.dataset.alertPagination = 'true';
+    feed.insertAdjacentElement('afterend', pagination);
+  }
+  if (pagination) {
+    pagination.hidden = matching.length === 0;
+    pagination.innerHTML = `<label>แสดงต่อหน้า<select data-alert-page-size aria-label="จำนวนรายการแจ้งเตือนต่อหน้า"><option value="15" ${pageSize===15?'selected':''}>15 รายการ</option><option value="25" ${pageSize===25?'selected':''}>25 รายการ</option><option value="50" ${pageSize===50?'selected':''}>50 รายการ</option><option value="100" ${pageSize===100?'selected':''}>100 รายการ</option></select></label><span>แสดง ${rangeStart}-${rangeEnd} จาก ${matching.length} รายการ · หน้า ${currentPage} / ${totalPages}</span><span class="alert-pagination-actions"><button type="button" class="secondary" data-alert-page="${currentPage-1}" ${currentPage===1?'disabled':''}>← ก่อนหน้า</button><button type="button" class="secondary" data-alert-page="${currentPage+1}" ${currentPage===totalPages?'disabled':''}>ถัดไป →</button></span>`;
+  }
   let emptyState = feed.querySelector('.alert-filter-empty');
-  const visible = [...feed.querySelectorAll('article')].some(article => !article.hidden);
+  const visible = matching.length > 0;
   if (!visible && !emptyState) {
     emptyState = document.createElement('p');
     emptyState.className = 'alert-filter-empty';
@@ -353,6 +375,23 @@ const applyAlertFilter = filter => {
   }
   if (emptyState) emptyState.hidden = visible;
 };
+
+document.addEventListener('change', event => {
+  if (!event.target.matches('[data-alert-page-size]')) return;
+  const pageSize = Number(event.target.value);
+  localStorage.setItem('ndss-alert-page-size', String([15,25,50,100].includes(pageSize) ? pageSize : 15));
+  localStorage.setItem('ndss-alert-page', '1');
+  applyAlertFilter(root.querySelector('[data-alert-filter].active')?.dataset.alertFilter || 'active');
+});
+
+document.addEventListener('click', event => {
+  const pageButton = event.target.closest('[data-alert-page]');
+  if (!pageButton || pageButton.disabled) return;
+  const page = Number(pageButton.dataset.alertPage);
+  if (!Number.isInteger(page) || page < 1) return;
+  localStorage.setItem('ndss-alert-page', String(page));
+  applyAlertFilter(root.querySelector('[data-alert-filter].active')?.dataset.alertFilter || 'active');
+});
 
 const filterKnowledge = () => {
   const search = root.querySelector('[data-knowledge-search]');
@@ -716,6 +755,7 @@ document.addEventListener('click', event => {
   root.querySelectorAll('[data-alert-filter]').forEach(button => {
     button.classList.toggle('active', button === filterButton);
   });
+  localStorage.setItem('ndss-alert-page', '1');
   applyAlertFilter(filterButton.dataset.alertFilter);
 });
 
@@ -832,7 +872,7 @@ document.addEventListener('input', event => {
   if (event.target.matches('[data-audit-search]')) filterAudit();
   if (event.target.matches('[data-audit-category]')) filterAudit();
   if (event.target.matches('[data-506-report-search]')) filter506Report();
-  if (event.target.matches('[data-alert-search]')) applyAlertFilter(root.querySelector('[data-alert-filter].active')?.dataset.alertFilter || 'active');
+  if (event.target.matches('[data-alert-search]')) { localStorage.setItem('ndss-alert-page', '1'); applyAlertFilter(root.querySelector('[data-alert-filter].active')?.dataset.alertFilter || 'active'); }
 });
 
 document.addEventListener('keydown', event => {

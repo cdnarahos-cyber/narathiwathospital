@@ -65,6 +65,9 @@ assert.ok(eventReportStyles.includes('.event-report-sheet > .panel-top'), 'Event
 assert.ok(eventReportStyles.includes('font-size: 16px'), 'Event report heading must use the compact font size');
 assert.ok(main.includes('ndss-event-report-page-size'), 'Event report page size must be persisted and rendered');
 assert.ok(main.includes('ndss-event-report-page'), 'Event report pagination must be handled by the application');
+assert.ok(main.includes('ndss-alert-page-size'), 'alert list must persist the selected page size');
+assert.ok(main.includes('data-alert-page'), 'alert list page controls must have a linked action');
+assert.ok(read('src/styles/alert-pagination.css').includes('.alert-pagination'), 'alert pagination layout stylesheet is missing');
 
 const migrationDirectory = join(root, 'supabase', 'migrations');
 const migrations = readdirSync(migrationDirectory).filter(file => file.endsWith('.sql')).map(file => read(`supabase/migrations/${file}`)).join('\n');
