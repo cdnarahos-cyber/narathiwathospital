@@ -56,7 +56,7 @@ const values = () => {
 
 const clusterSignals = () => {
   const records=[...read506(),...readCases()];
-  const week = value => { const date=new Date(value); if(Number.isNaN(date)) return ''; const first=new Date(date.getFullYear(),0,1); return `${date.getFullYear()}-W${String(Math.ceil((((date-first)/86400000)+first.getDay()+1)/7)).padStart(2,'0')}`; };
+  const week = value => { const date=new Date(value); if(Number.isNaN(date.getTime())) return ''; const first=new Date(date.getFullYear(),0,1); return `${date.getFullYear()}-W${String(Math.ceil((((date-first)/86400000)+first.getDay()+1)/7)).padStart(2,'0')}`; };
   const grouped=records.reduce((all,row) => { const period=week(row.onset || row.createdAt); const area=row.tambon || row.subdistrict || row.district || 'ไม่ระบุพื้นที่'; const disease=row.disease || 'ไม่ระบุโรค'; if(!period || disease==='ไม่ระบุโรค') return all; const key=[disease,area,period].join('|'); all[key]=all[key] || {disease,area,period,count:0,records:[]}; all[key].count++; all[key].records.push(row); return all; },{});
   return Object.values(grouped).filter(item=>item.count>=3).sort((a,b)=>b.count-a.count);
 };
