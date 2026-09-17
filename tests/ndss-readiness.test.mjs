@@ -7,7 +7,7 @@ const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 const read = file => readFileSync(join(root, file), 'utf8');
 
 const index = read('index.html');
-assert.ok(index.includes('src/main.js?v=20260917-1'), 'the startup script must use the current cache-busting version');
+assert.ok(index.includes('src/main.js?v=20260917-2'), 'the startup script must use the current cache-busting version');
 const localAssets = [...index.matchAll(/(?:href|src)="(\.\/[^"?]+)(?:\?[^\"]*)?"/g)].map(match => match[1].replace(/^\.\//, ''));
 assert.ok(localAssets.length >= 20, 'startup page must include the expected local assets');
 for (const asset of localAssets) assert.ok(existsSync(join(root, asset)), `startup asset is missing: ${asset}`);
@@ -68,6 +68,7 @@ assert.ok(main.includes('ndss-event-report-page'), 'Event report pagination must
 assert.ok(main.includes('ndss-alert-page-size'), 'alert list must persist the selected page size');
 assert.ok(main.includes('data-alert-page'), 'alert list page controls must have a linked action');
 assert.ok(read('src/styles/alert-pagination.css').includes('.alert-pagination'), 'alert pagination layout stylesheet is missing');
+assert.ok(main.includes("controls.querySelectorAll('[data-alert-filter]')"), 'alert filter buttons must have direct click handlers');
 assert.ok(read('src/styles/alert-pagination.css').includes('grid-template-columns: 12px minmax(0, 1fr) auto auto'), 'alert actions must remain on one compact desktop row');
 assert.ok(read('src/styles/alert-pagination.css').includes('[data-ack-alert]'), 'alert acknowledge action must have a high-visibility style');
 

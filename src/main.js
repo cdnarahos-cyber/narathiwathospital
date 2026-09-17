@@ -328,6 +328,17 @@ const enhanceAlertFilters = () => {
     <input class="table-search" data-alert-search placeholder="ค้นหาโรค พื้นที่ หรือประเภทแจ้งเตือน" aria-label="ค้นหารายการแจ้งเตือน" />
   `;
   panelTop.append(controls);
+  controls.querySelectorAll('[data-alert-filter]').forEach(button => {
+    button.addEventListener('click', event => {
+      event.preventDefault();
+      event.stopPropagation();
+      controls.querySelectorAll('[data-alert-filter]').forEach(item => {
+        item.classList.toggle('active', item === button);
+      });
+      localStorage.setItem('ndss-alert-page', '1');
+      applyAlertFilter(button.dataset.alertFilter);
+    });
+  });
   applyAlertFilter('active');
 };
 
