@@ -85,6 +85,7 @@ assert.ok(main.includes('data-audit-page'), 'Audit Log page controls must be han
 assert.ok(main.includes('renderAuditLog'), 'Audit Log must re-render when a page is selected');
 assert.ok(eventReport.includes('data-audit-pagination'), 'Audit Log must render a pagination region');
 assert.ok(read('src/styles/app.css').includes('[data-clear-audit]'), 'Audit Log clear-history action must have a dedicated compact highlight');
+assert.ok(read('src/styles/app.css').includes('.audit-list article[hidden]{display:none!important}'), 'hidden Audit Log rows must not remain visible after changing pages');
 assert.ok(read('src/styles/module-search-actions.css').includes('.module-search-submit'), 'shared search action style is missing');
 assert.ok(main.includes("control.className = 'module-search-control'"), 'search input and submit button must be grouped together');
 assert.ok(read('src/styles/module-search-actions.css').includes('.module-search-control'), 'grouped search controls must have a compact layout style');
