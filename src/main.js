@@ -543,7 +543,7 @@ const enhancePaginationSelectors = () => {
 const searchButtonExclusions = '[data-alert-search],[data-506-report-search],[data-history-search]';
 const enhanceSearchButtons = () => {
   root.querySelectorAll('input[data-command-queue-search],input[data-lab-search],input[data-tracking-search],input[data-report-search],input[data-event-report-search],input[data-knowledge-search],input[data-settings-search],input[data-audit-search],input[data-export-history-search]').forEach(input => {
-    if (input.matches(searchButtonExclusions) || input.nextElementSibling?.matches('[data-module-search-submit]')) return;
+    if (input.matches(searchButtonExclusions) || input.closest('.module-search-control')) return;
     const button = document.createElement('button');
     button.type = 'button';
     button.className = 'module-search-submit';
@@ -551,7 +551,10 @@ const enhanceSearchButtons = () => {
     button.setAttribute('aria-label', `ค้นหาจาก ${input.getAttribute('placeholder') || 'ช่องค้นหา'}`);
     button.textContent = '⌕ ค้นหา';
     button.addEventListener('click', () => input.dispatchEvent(new Event('input', { bubbles: true })));
-    input.insertAdjacentElement('afterend', button);
+    const control = document.createElement('div');
+    control.className = 'module-search-control';
+    input.insertAdjacentElement('beforebegin', control);
+    control.append(input, button);
   });
 };
 const enhanceTrackingSummary = () => {

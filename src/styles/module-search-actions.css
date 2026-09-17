@@ -1,6 +1,23 @@
+.module-search-control {
+  display: inline-flex;
+  align-items: stretch;
+  gap: 8px;
+  min-width: min(100%, 320px);
+}
+
+.module-search-control .table-search {
+  min-width: 0;
+  flex: 1 1 220px;
+}
+
+.panel-top .module-search-control,
+.panel-tools .module-search-control {
+  margin-left: auto;
+}
+
 .module-search-submit {
   min-height: 40px;
-  margin-left: 8px;
+  margin-left: 0;
   padding: 8px 14px;
   border: 2px solid #116dc0;
   border-radius: 9px;
@@ -31,6 +48,19 @@
   .module-search-submit {
     width: 100%;
     margin-top: 8px;
+    margin-left: 0;
+  }
+
+  .module-search-control {
+    display: flex;
+    width: 100%;
+    min-width: 0;
+    flex-direction: column;
+    gap: 0;
+  }
+
+  .panel-top .module-search-control,
+  .panel-tools .module-search-control {
     margin-left: 0;
   }
 }
