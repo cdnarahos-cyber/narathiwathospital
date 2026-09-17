@@ -62,6 +62,7 @@ assert.ok(eventReport.includes('event-report-sheet'), 'Event report must use its
 const eventReportStyles = read('src/styles/event-report-desktop-fix.css');
 assert.ok(eventReportStyles.includes('border-bottom: 0'), 'Event report header separator must be removed to prevent title overlap');
 assert.ok(eventReportStyles.includes('.event-report-sheet > .panel-top'), 'Event report must hide its duplicate section title');
+assert.ok(eventReportStyles.includes('font-size: 16px'), 'Event report heading must use the compact font size');
 assert.ok(main.includes('ndss-event-report-page-size'), 'Event report page size must be persisted and rendered');
 assert.ok(main.includes('ndss-event-report-page'), 'Event report pagination must be handled by the application');
 
