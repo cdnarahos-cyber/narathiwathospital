@@ -48,6 +48,25 @@ button[disabled] {
   opacity: .58;
 }
 
+/* Navigation is actionable as well, but keeps its dark sidebar treatment. */
+.command-sidebar .nav-link:not(.active),
+.sidebar-signout,
+.mobile-nav-toggle {
+  border: 1px solid rgba(255, 255, 255, .28);
+  box-shadow: 0 3px 10px rgba(0, 18, 56, .18);
+}
+
+.mobile-nav-toggle {
+  border-color: #9fc9ea;
+  box-shadow: 0 3px 10px rgba(21, 88, 151, .14);
+}
+
+.command-sidebar .nav-link:not(.active):hover,
+.sidebar-signout:hover,
+.mobile-nav-toggle:hover {
+  box-shadow: 0 7px 15px rgba(0, 18, 56, .28);
+}
+
 @media (max-width: 620px) {
   button:not(.nav-link):not(.sidebar-signout):not(.mobile-nav-toggle) {
     min-height: 40px;
