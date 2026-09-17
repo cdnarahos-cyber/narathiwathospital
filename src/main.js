@@ -314,6 +314,7 @@ const enhanceAlertFilters = () => {
   const panel = feed?.closest('.work-panel');
   const panelTop = panel?.querySelector('.panel-top');
   if (!feed || !panel || !panelTop || panel.querySelector('[data-alert-filter-controls]')) return;
+  panel.classList.add('alert-list-panel');
 
   const controls = document.createElement('div');
   controls.className = 'alert-filter-controls';

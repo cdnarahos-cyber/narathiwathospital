@@ -7,7 +7,7 @@ const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 const read = file => readFileSync(join(root, file), 'utf8');
 
 const index = read('index.html');
-assert.ok(index.includes('src/main.js?v=20260917-3'), 'the startup script must use the current cache-busting version');
+assert.ok(index.includes('src/main.js?v=20260917-4'), 'the startup script must use the current cache-busting version');
 const localAssets = [...index.matchAll(/(?:href|src)="(\.\/[^"?]+)(?:\?[^\"]*)?"/g)].map(match => match[1].replace(/^\.\//, ''));
 assert.ok(localAssets.length >= 20, 'startup page must include the expected local assets');
 for (const asset of localAssets) assert.ok(existsSync(join(root, asset)), `startup asset is missing: ${asset}`);
@@ -71,6 +71,8 @@ assert.ok(read('src/styles/alert-pagination.css').includes('.alert-pagination'),
 assert.ok(main.includes("controls.querySelectorAll('[data-alert-filter]')"), 'alert filter buttons must have direct click handlers');
 assert.ok(main.includes('data-alert-search-submit'), 'alert search must include an explicit search button');
 assert.ok(read('src/styles/alert-pagination.css').includes('.alert-search-submit'), 'alert search button must have a dedicated visible style');
+assert.ok(main.includes("panel.classList.add('alert-list-panel')"), 'alert list must expose a dedicated compact layout hook');
+assert.ok(read('src/styles/alert-pagination.css').includes('.alert-list-panel > .panel-top'), 'alert list header must reserve visible space between the title and action');
 assert.ok(read('src/styles/alert-pagination.css').includes('grid-template-columns: 12px minmax(0, 1fr) auto auto'), 'alert actions must remain on one compact desktop row');
 assert.ok(read('src/styles/alert-pagination.css').includes('[data-ack-alert]'), 'alert acknowledge action must have a high-visibility style');
 assert.ok(read('src/styles/alert-pagination.css').includes('.alert-feed article[hidden]'), 'filtered alert cards must be visually hidden');

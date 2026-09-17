@@ -33,6 +33,19 @@
   box-shadow: 0 3px 9px rgba(17, 109, 192, .2);
 }
 
+.alert-list-panel > .panel-top {
+  gap: 28px;
+}
+
+.alert-list-panel > .panel-top h2 {
+  margin-right: 20px;
+}
+
+.alert-list-panel > .panel-top > .primary {
+  flex: 0 0 auto;
+  margin-left: 12px;
+}
+
 /* Alert actions stay on one compact row on desktop. */
 .alert-feed article {
   grid-template-columns: 12px minmax(0, 1fr) auto auto;
@@ -85,6 +98,16 @@
 
   .alert-filter-controls .alert-search-submit {
     flex: 1;
+  }
+
+  .alert-list-panel > .panel-top {
+    gap: 10px;
+  }
+
+  .alert-list-panel > .panel-top h2,
+  .alert-list-panel > .panel-top > .primary {
+    margin-left: 0;
+    margin-right: 0;
   }
 
   .alert-feed article {
