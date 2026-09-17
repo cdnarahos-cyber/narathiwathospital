@@ -10,6 +10,11 @@
   line-height: 1.4;
 }
 
+/* The hospital header already names this report; hide the duplicate section title. */
+.event-report-sheet > .panel-top {
+  display: none;
+}
+
 .event-report-pagination {
   align-items: center;
   gap: 12px;
