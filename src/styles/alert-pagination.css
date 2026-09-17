@@ -26,6 +26,37 @@
   opacity: .45;
 }
 
+/* Alert actions stay on one compact row on desktop. */
+.alert-feed article {
+  grid-template-columns: 12px minmax(0, 1fr) auto auto;
+  gap: 10px;
+  padding: 10px 12px;
+}
+
+.alert-feed .table-action {
+  min-width: 84px;
+  min-height: 36px;
+  padding: 7px 12px;
+  border-width: 2px;
+  font-weight: 700;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.alert-feed .table-action[data-ack-alert] {
+  border-color: #28a66a;
+  background: #eaf9f0;
+  color: #08733c;
+  box-shadow: 0 3px 9px rgba(40, 166, 106, .18);
+}
+
+.alert-feed .table-action[data-view] {
+  border-color: #1685d1;
+  background: #eaf6ff;
+  color: #075a9a;
+  box-shadow: 0 3px 9px rgba(22, 133, 209, .18);
+}
+
 @media (max-width: 680px) {
   .alert-pagination {
     align-items: stretch;
@@ -38,5 +69,14 @@
 
   .alert-pagination-actions button {
     flex: 1;
+  }
+
+  .alert-feed article {
+    grid-template-columns: 10px minmax(0, 1fr);
+  }
+
+  .alert-feed .table-action {
+    grid-column: 2;
+    justify-self: start;
   }
 }
