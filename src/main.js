@@ -326,6 +326,7 @@ const enhanceAlertFilters = () => {
     <button type="button" class="active" data-alert-filter="active">ยังไม่รับทราบ <span>${activeCount}</span></button>
     <button type="button" data-alert-filter="acknowledged">รับทราบแล้ว <span>${acknowledgedCount}</span></button>
     <input class="table-search" data-alert-search placeholder="ค้นหาโรค พื้นที่ หรือประเภทแจ้งเตือน" aria-label="ค้นหารายการแจ้งเตือน" />
+    <button type="button" class="alert-search-submit" data-alert-search-submit>⌕ ค้นหา</button>
   `;
   panelTop.append(controls);
   controls.querySelectorAll('[data-alert-filter]').forEach(button => {
@@ -338,6 +339,11 @@ const enhanceAlertFilters = () => {
       localStorage.setItem('ndss-alert-page', '1');
       applyAlertFilter(button.dataset.alertFilter);
     });
+  });
+  controls.querySelector('[data-alert-search-submit]')?.addEventListener('click', event => {
+    event.preventDefault();
+    localStorage.setItem('ndss-alert-page', '1');
+    applyAlertFilter(controls.querySelector('[data-alert-filter].active')?.dataset.alertFilter || 'active');
   });
   applyAlertFilter('active');
 };
