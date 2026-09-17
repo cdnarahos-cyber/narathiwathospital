@@ -1,0 +1,60 @@
+/* Keep the Event report title clear of its separator on wide screens. */
+.event-report-sheet .command-report-header {
+  position: relative;
+  align-items: start;
+  padding-bottom: 29px;
+  border-bottom: 0;
+}
+
+.event-report-sheet .command-report-header::after {
+  position: absolute;
+  right: 0;
+  bottom: 8px;
+  left: 0;
+  height: 2px;
+  background: #0d538f;
+  content: '';
+}
+
+.event-report-sheet .command-report-header h2 {
+  position: relative;
+  z-index: 1;
+  margin-top: 8px;
+  line-height: 1.4;
+}
+
+.event-report-pagination {
+  align-items: center;
+  gap: 12px;
+  justify-content: space-between;
+  margin-top: 14px;
+}
+
+.event-report-pagination label,
+.event-report-pagination-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.event-report-pagination select {
+  min-width: 112px;
+  padding: 7px 28px 7px 10px;
+}
+
+@media (max-width: 760px) {
+  .event-report-pagination,
+  .event-report-pagination label,
+  .event-report-pagination-actions {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .event-report-pagination-actions {
+    flex-direction: row;
+  }
+
+  .event-report-pagination-actions button {
+    flex: 1;
+  }
+}

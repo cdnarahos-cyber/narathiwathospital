@@ -7,7 +7,7 @@ const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 const read = file => readFileSync(join(root, file), 'utf8');
 
 const index = read('index.html');
-assert.ok(index.includes('src/main.js?v=20260916-3'), 'the startup script must use the current cache-busting version');
+assert.ok(index.includes('src/main.js?v=20260917-1'), 'the startup script must use the current cache-busting version');
 const localAssets = [...index.matchAll(/(?:href|src)="(\.\/[^"?]+)(?:\?[^\"]*)?"/g)].map(match => match[1].replace(/^\.\//, ''));
 assert.ok(localAssets.length >= 20, 'startup page must include the expected local assets');
 for (const asset of localAssets) assert.ok(existsSync(join(root, asset)), `startup asset is missing: ${asset}`);
@@ -55,6 +55,14 @@ assert.ok(main.includes("loadAdminUsers({ notify: true })"), 'admin refresh butt
 const commandStyles = read('src/styles/command-reference.css');
 assert.ok(commandStyles.includes('[data-admin-user-action="update"]'), 'save-role action must have a dedicated high-visibility style');
 assert.ok(commandStyles.includes('[data-admin-user-action="delete"]'), 'delete action must have a dedicated high-visibility style');
+const eventReport = read('src/components/command-center.js');
+assert.ok(eventReport.includes('data-event-report-page-size'), 'Event report must offer the requested 25, 50, and 100 item page size selector');
+assert.ok(eventReport.includes('data-event-report-page'), 'Event report page controls must have a linked action');
+assert.ok(eventReport.includes('event-report-sheet'), 'Event report must use its dedicated desktop header layout');
+const eventReportStyles = read('src/styles/event-report-desktop-fix.css');
+assert.ok(eventReportStyles.includes('.event-report-sheet .command-report-header::after'), 'Event report separator must be placed independently below the title');
+assert.ok(main.includes('ndss-event-report-page-size'), 'Event report page size must be persisted and rendered');
+assert.ok(main.includes('ndss-event-report-page'), 'Event report pagination must be handled by the application');
 
 const migrationDirectory = join(root, 'supabase', 'migrations');
 const migrations = readdirSync(migrationDirectory).filter(file => file.endsWith('.sql')).map(file => read(`supabase/migrations/${file}`)).join('\n');

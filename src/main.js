@@ -1694,12 +1694,22 @@ const updateFilteredTableMeta = (rows, selector) => {
   meta.textContent=visible ? `แสดงผลการค้นหา ${visible} รายการ` : 'ไม่พบรายการที่ตรงกับเงื่อนไข';
   meta.classList.toggle('is-empty',visible===0);
 };
+const renderEventReport = () => {
+  root.innerHTML=`<div class="module-page">${moduleView('reports')}</div>`;
+  document.querySelectorAll('.nav-link').forEach(link=>link.classList.toggle('active',link.dataset.view==='reports'));
+};
 document.addEventListener('change', event => {
   if(event.target.matches('[data-import-506]')) import506File(event.target.files?.[0]);
   if(event.target.matches('[data-restore-local]')) restoreLocalData(event.target.files?.[0]);
   if(event.target.matches('[data-command-map-scope]')) renderCommandMap();
   if(event.target.matches('[data-report-status]')) filterReportRows();
   if(event.target.matches('[data-event-report-status]')) filterEventReportRows();
+  if(event.target.matches('[data-event-report-page-size]')) {
+    const pageSize=Number(event.target.value);
+    localStorage.setItem('ndss-event-report-page-size',String([25,50,100].includes(pageSize) ? pageSize : 25));
+    localStorage.setItem('ndss-event-report-page','1');
+    renderEventReport();
+  }
   if(event.target.matches('[data-disease-analytics-select]')) {
     localStorage.setItem('ndss-analytics-disease',event.target.value);
     root.innerHTML=overviewDashboard('epidemiology');
@@ -1742,6 +1752,15 @@ document.addEventListener('input', event => {
 });
 document.addEventListener('click', event => {
   const commandView=event.target.closest('[data-view]')?.dataset.view;
+  const eventReportPageButton=event.target.closest('[data-event-report-page]');
+  if(eventReportPageButton && !eventReportPageButton.disabled) {
+    const page=Number(eventReportPageButton.dataset.eventReportPage);
+    if(Number.isInteger(page) && page>=1) {
+      localStorage.setItem('ndss-event-report-page',String(page));
+      renderEventReport();
+    }
+    return;
+  }
   const diseasePageButton=event.target.closest('[data-dashboard-disease-page]');
   if(diseasePageButton && !diseasePageButton.disabled) {
     localStorage.setItem('ndss-dashboard-disease-page',String(Math.max(1,Number(diseasePageButton.dataset.dashboardDiseasePage) || 1)));
