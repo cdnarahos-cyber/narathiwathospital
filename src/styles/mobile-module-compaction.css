@@ -1,0 +1,58 @@
+/* Compact touch layout for command modules; desktop styles remain unchanged. */
+@media (max-width: 900px) {
+  .module-page { padding: 14px; }
+  .command-head,
+  .panel-top { display: block; }
+  .command-head { margin-bottom: 14px; }
+  .command-head h1 { font-size: 24px; line-height: 1.25; }
+  .command-head > div > p:last-child { margin-top: 6px; }
+  .command-actions { justify-content:flex-start; margin-top: 12px; }
+  .command-actions button { flex: 1 1 150px; min-height: 42px; }
+
+  .panel-top > h2 { margin-bottom: 5px; }
+  .panel-top > small { display: block; margin-bottom: 10px; }
+  .panel-tools { width: 100%; align-items: stretch; flex-wrap: wrap; }
+  .panel-tools .module-search-control { flex: 1 1 100%; margin-left: 0; }
+  .panel-tools > .table-search { flex: 1 1 180px; width: auto; }
+  .panel-tools > select.table-search { flex-basis: 160px; }
+  .panel-tools [data-clear-audit] { min-height: 42px; }
+
+  .module-search-control { display: flex; width: 100%; min-width: 0; flex-direction: row; gap: 8px; }
+  .module-search-control .table-search { flex: 1 1 auto; width: auto; min-width: 0; min-height: 44px; margin: 0; }
+  .module-search-submit { flex: 0 0 auto; width: auto; min-height: 44px; margin: 0; padding-inline: 15px; }
+
+  .queue-filter { display: block; }
+  .queue-filter > div { gap: 7px; }
+  .queue-filter > div > b { width: 100%; }
+  .queue-filter .module-search-control { margin-top: 10px; }
+  .report-filter-panel { grid-template-columns: 1fr; }
+  .report-filter-panel small { grid-column: auto; }
+  .report-filter-panel .module-search-control { margin-top: 5px; }
+
+  .history-table-wrap { overflow-x: auto; overscroll-behavior-x: contain; -webkit-overflow-scrolling: touch; }
+  .history-table-wrap > table { min-width: 680px; }
+  .queue-area-table { min-width: 760px !important; }
+  .event-report-table { min-width: 720px !important; }
+
+  .report-pagination,
+  .event-report-pagination,
+  .audit-pagination { justify-content: flex-start; gap: 9px; }
+  .report-pagination > span:not(.event-report-pagination-actions):not(.audit-pagination-actions),
+  .event-report-pagination > span:not(.event-report-pagination-actions),
+  .audit-pagination > span:not(.audit-pagination-actions) { flex-basis: 100%; min-width: 0; text-align: left; }
+  .event-report-pagination-actions,
+  .audit-pagination-actions { margin-left: 0; }
+  .report-pagination button,
+  .event-report-pagination-actions button,
+  .audit-pagination-actions button { flex: 1 1 130px; min-height: 42px; }
+}
+
+@media (max-width: 420px) {
+  .module-page { padding: 12px; }
+  .command-head h1 { font-size: 22px; }
+  .command-actions button { flex-basis: 100%; }
+  .module-search-control { gap: 6px; }
+  .module-search-submit { padding-inline: 12px; font-size: 13px; }
+  .panel-tools > .table-search,
+  .panel-tools > select.table-search { flex-basis: 100%; width: 100%; }
+}

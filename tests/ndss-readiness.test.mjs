@@ -7,7 +7,7 @@ const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 const read = file => readFileSync(join(root, file), 'utf8');
 
 const index = read('index.html');
-assert.ok(index.includes('src/main.js?v=20260917-9'), 'the startup script must use the current cache-busting version');
+assert.ok(index.includes('src/main.js?v=20260917-10'), 'the startup script must use the current cache-busting version');
 const localAssets = [...index.matchAll(/(?:href|src)="(\.\/[^"?]+)(?:\?[^\"]*)?"/g)].map(match => match[1].replace(/^\.\//, ''));
 assert.ok(localAssets.length >= 20, 'startup page must include the expected local assets');
 for (const asset of localAssets) assert.ok(existsSync(join(root, asset)), `startup asset is missing: ${asset}`);
@@ -83,6 +83,8 @@ assert.ok(read('src/styles/app.css').includes('[data-clear-audit]'), 'Audit Log 
 assert.ok(read('src/styles/module-search-actions.css').includes('.module-search-submit'), 'shared search action style is missing');
 assert.ok(main.includes("control.className = 'module-search-control'"), 'search input and submit button must be grouped together');
 assert.ok(read('src/styles/module-search-actions.css').includes('.module-search-control'), 'grouped search controls must have a compact layout style');
+assert.ok(read('src/styles/mobile-module-compaction.css').includes('.module-search-control'), 'mobile modules must keep search input and action compact');
+assert.ok(read('src/styles/mobile-module-compaction.css').includes('.history-table-wrap > table'), 'mobile tables must scroll instead of squeezing content');
 assert.ok(read('src/styles/alert-pagination.css').includes('grid-template-columns: 12px minmax(0, 1fr) auto auto'), 'alert actions must remain on one compact desktop row');
 assert.ok(read('src/styles/alert-pagination.css').includes('[data-ack-alert]'), 'alert acknowledge action must have a high-visibility style');
 assert.ok(read('src/styles/alert-pagination.css').includes('.alert-feed article[hidden]'), 'filtered alert cards must be visually hidden');
