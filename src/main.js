@@ -52,8 +52,8 @@ const overviewDashboard = (mode = 'dashboard') => {
   const empty = message => `<section class="work-panel epi-empty"><strong>ยังไม่มีข้อมูล</strong><p>${message}</p></section>`;
   const tabs = [['situation','สถานการณ์โรค'],['trend','Trend'],['curve','Epidemic Curve'],['person','Person'],['place','Place'],['time','Time']];
   const diseaseCounts=Object.entries(countBy(cases,'disease')).sort((a,b)=>b[1]-a[1]);
-  const storedDiseasePageSize=Number(localStorage.getItem('ndss-dashboard-disease-page-size') || 25);
-  const diseasePageSize=[25,50,100].includes(storedDiseasePageSize) ? storedDiseasePageSize : 25;
+  const storedDiseasePageSize=Number(localStorage.getItem('ndss-dashboard-disease-page-size') || 15);
+  const diseasePageSize=[15,25,50,100].includes(storedDiseasePageSize) ? storedDiseasePageSize : 15;
   const diseasePageCount=Math.max(1,Math.ceil(diseaseCounts.length/diseasePageSize));
   const storedDiseasePage=Number(localStorage.getItem('ndss-dashboard-disease-page') || 1);
   const diseasePage=Math.min(Math.max(1,storedDiseasePage),diseasePageCount);
@@ -521,6 +521,39 @@ const enhanceTrackingFilters = () => {
   tools.innerHTML = '<input class="table-search" data-tracking-search placeholder="ค้นหาเคสหรือผู้รับผิดชอบ" /><select class="table-search" data-tracking-status aria-label="คัดกรองสถานะงาน"><option value="">ทุกสถานะ</option><option value="รอรับทราบ">รอรับทราบ</option><option value="กำลังดำเนินการ">กำลังดำเนินการ</option><option value="ควบคุมแล้ว">ปิดเคสแล้ว</option></select>';
   panelTop.append(tools);
 };
+const pagedModuleKeys = {
+  'data-dashboard-disease-page-size': 'ndss-dashboard-disease-page-size',
+  'data-506-report-page-size': 'ndss-506-report-page-size',
+  'data-event-report-page-size': 'ndss-event-report-page-size',
+  'data-alert-page-size': 'ndss-alert-page-size'
+};
+const enhancePaginationSelectors = () => {
+  Object.entries(pagedModuleKeys).forEach(([attribute, storageKey]) => {
+    const select = root.querySelector(`select[${attribute}]`);
+    if (!select) return;
+    if (!select.querySelector('option[value="15"]')) {
+      const option = document.createElement('option');
+      option.value = '15';
+      option.textContent = '15 รายการ';
+      select.prepend(option);
+    }
+    select.value = localStorage.getItem(storageKey) || '15';
+  });
+};
+const searchButtonExclusions = '[data-alert-search],[data-506-report-search],[data-history-search]';
+const enhanceSearchButtons = () => {
+  root.querySelectorAll('input[data-command-queue-search],input[data-lab-search],input[data-tracking-search],input[data-report-search],input[data-event-report-search],input[data-knowledge-search],input[data-settings-search],input[data-audit-search],input[data-export-history-search]').forEach(input => {
+    if (input.matches(searchButtonExclusions) || input.nextElementSibling?.matches('[data-module-search-submit]')) return;
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'module-search-submit';
+    button.dataset.moduleSearchSubmit = 'true';
+    button.setAttribute('aria-label', `ค้นหาจาก ${input.getAttribute('placeholder') || 'ช่องค้นหา'}`);
+    button.textContent = '⌕ ค้นหา';
+    button.addEventListener('click', () => input.dispatchEvent(new Event('input', { bubbles: true })));
+    input.insertAdjacentElement('afterend', button);
+  });
+};
 const enhanceTrackingSummary = () => {
   const label = root.querySelector('.tracking-workflow article:nth-child(3) span');
   if (label?.textContent.includes('งานกำลังดำเนินการ')) label.textContent = label.textContent.replace('งานกำลังดำเนินการ', 'งานยังไม่ปิด');
@@ -708,6 +741,8 @@ new MutationObserver(() => {
   enhance506ReportFilters();
   enhanceLabFilters();
   enhanceTrackingFilters();
+  enhancePaginationSelectors();
+  enhanceSearchButtons();
   enhanceTrackingSummary();
   enhanceSettingsHealth();
   enhanceSettingsPreflight();
@@ -720,6 +755,8 @@ enhanceAlertFilters();
 enhance506ReportFilters();
 enhanceLabFilters();
 enhanceTrackingFilters();
+enhancePaginationSelectors();
+enhanceSearchButtons();
 enhanceTrackingSummary();
 enhanceSettingsHealth();
 enhanceSettingsPreflight();
@@ -1764,7 +1801,7 @@ document.addEventListener('change', event => {
   if(event.target.matches('[data-event-report-status]')) filterEventReportRows();
   if(event.target.matches('[data-event-report-page-size]')) {
     const pageSize=Number(event.target.value);
-    localStorage.setItem('ndss-event-report-page-size',String([25,50,100].includes(pageSize) ? pageSize : 25));
+    localStorage.setItem('ndss-event-report-page-size',String([15,25,50,100].includes(pageSize) ? pageSize : 15));
     localStorage.setItem('ndss-event-report-page','1');
     renderEventReport();
   }
@@ -1780,13 +1817,13 @@ document.addEventListener('change', event => {
   }
   if(event.target.matches('[data-dashboard-disease-page-size]')) {
     const pageSize=Number(event.target.value);
-    localStorage.setItem('ndss-dashboard-disease-page-size',String([25,50,100].includes(pageSize) ? pageSize : 25));
+    localStorage.setItem('ndss-dashboard-disease-page-size',String([15,25,50,100].includes(pageSize) ? pageSize : 15));
     localStorage.setItem('ndss-dashboard-disease-page','1');
     refreshOverview();
   }
   if(event.target.matches('[data-506-report-page-size]')) {
     const pageSize=Number(event.target.value);
-    localStorage.setItem('ndss-506-report-page-size', String([25,50,100].includes(pageSize) ? pageSize : 25));
+    localStorage.setItem('ndss-506-report-page-size', String([15,25,50,100].includes(pageSize) ? pageSize : 15));
     localStorage.setItem('ndss-506-report-page','1');
     root.innerHTML=`<div class="module-page">${moduleView('report506')}</div>`;
     document.querySelectorAll('.nav-link').forEach(link=>link.classList.toggle('active',link.dataset.view==='report506'));

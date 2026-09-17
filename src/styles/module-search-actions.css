@@ -1,0 +1,36 @@
+.module-search-submit {
+  min-height: 40px;
+  margin-left: 8px;
+  padding: 8px 14px;
+  border: 2px solid #116dc0;
+  border-radius: 9px;
+  background: #eaf6ff;
+  color: #075a9a;
+  font: inherit;
+  font-weight: 700;
+  line-height: 1;
+  white-space: nowrap;
+  box-shadow: 0 3px 9px rgba(17, 109, 192, .16);
+  cursor: pointer;
+}
+
+.module-search-submit:hover,
+.module-search-submit:focus-visible {
+  background: #116dc0;
+  color: #fff;
+  outline: 3px solid rgba(17, 109, 192, .22);
+  outline-offset: 2px;
+}
+
+.report-filter-panel label .module-search-submit {
+  margin-top: 8px;
+  margin-left: 0;
+}
+
+@media (max-width: 680px) {
+  .module-search-submit {
+    width: 100%;
+    margin-top: 8px;
+    margin-left: 0;
+  }
+}

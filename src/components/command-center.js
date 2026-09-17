@@ -218,8 +218,8 @@ const report506 = () => {
   const listOpen=localStorage.getItem('ndss-506-report-list-open') === 'true';
   const normalizedSearch=searchTerm.trim().toLocaleLowerCase('th-TH');
   const filtered=rows.filter(row => (!selectedDisease || row.disease===selectedDisease) && (!selectedArea || (row.tambon || row.district)===selectedArea) && (!normalizedSearch || `${row.patient || ''} ${row.disease || ''} ${row.tambon || ''} ${row.district || ''}`.toLocaleLowerCase('th-TH').includes(normalizedSearch)));
-  const storedPageSize=Number(localStorage.getItem('ndss-506-report-page-size') || 25);
-  const pageSize=[25,50,100].includes(storedPageSize) ? storedPageSize : 25;
+  const storedPageSize=Number(localStorage.getItem('ndss-506-report-page-size') || 15);
+  const pageSize=[15,25,50,100].includes(storedPageSize) ? storedPageSize : 15;
   const requestedPage=Number(localStorage.getItem('ndss-506-report-page') || 1);
   const totalPages=Math.max(1,Math.ceil(filtered.length/pageSize));
   const currentPage=Math.min(Math.max(1,requestedPage),totalPages);
@@ -262,8 +262,8 @@ const reportsEvent = () => {
   const weekOf=item=>{ const date=new Date(item.onset || item.createdAt || item.importedAt); if(Number.isNaN(date)) return 'ไม่ระบุสัปดาห์'; const first=new Date(date.getFullYear(),0,1); const week=Math.ceil((((date-first)/86400000)+first.getDay()+1)/7); return `${date.getFullYear()+543}-W${String(week).padStart(2,'0')}`; };
   const events=Object.values(source.reduce((all,item)=>{ const area=item.subdistrict || item.tambon || item.district || item.location || 'ไม่ระบุพื้นที่'; const disease=item.disease || 'ไม่ระบุโรค'; const week=weekOf(item); const key=`${disease}|${area}|${week}`; all[key]=all[key] || {id:`EVT-${String(Object.keys(all).length+1).padStart(3,'0')}`,disease,area,week,items:[]}; all[key].items.push(item); return all; },{})).map(group=>{ const completed=group.items.filter(item=>tasks.some(task=>Number(task.caseIndex)===item.caseIndex && task.status==='ควบคุมแล้ว')).length; return {...group,completed,pending:group.items.length-completed}; }).sort((a,b)=>b.pending-a.pending || b.items.length-a.items.length);
   const completedEvents=events.filter(item=>item.pending===0).length;
-  const storedPageSize=Number(localStorage.getItem('ndss-event-report-page-size') || 25);
-  const pageSize=[25,50,100].includes(storedPageSize) ? storedPageSize : 25;
+  const storedPageSize=Number(localStorage.getItem('ndss-event-report-page-size') || 15);
+  const pageSize=[15,25,50,100].includes(storedPageSize) ? storedPageSize : 15;
   const requestedPage=Number(localStorage.getItem('ndss-event-report-page') || 1);
   const totalPages=Math.max(1,Math.ceil(events.length/pageSize));
   const currentPage=Math.min(Math.max(1,requestedPage),totalPages);
