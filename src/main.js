@@ -198,11 +198,28 @@ const ensureRefreshButton = () => {
   actions.prepend(button);
 };
 ensureRefreshButton();
+let refreshingSettingsAuthorization=false;
 document.addEventListener('click', event => {
-  if (!event.target.closest('[data-view="settings"]') || getSupabaseRole()==='admin') return;
+  const settingsLink=event.target.closest('[data-view="settings"]');
+  if (!settingsLink || getSupabaseRole()==='admin' || refreshingSettingsAuthorization) return;
+  // A role can be changed while this tab remains open.  Refresh the signed
+  // claim once before denying the protected workspace, otherwise a newly
+  // approved ADMIN can see an ADMIN profile but still be blocked by a stale
+  // access token until they manually sign out and back in.
   event.preventDefault();
   event.stopImmediatePropagation();
-  showToast('เฉพาะ ADMIN เท่านั้นที่เข้าถึงการตั้งค่าและผู้ดูแลระบบได้', 'error');
+  refreshingSettingsAuthorization=true;
+  refreshSupabaseAuthorization().then(role => {
+    renderCurrentUserName();
+    if (role==='admin') {
+      refreshingSettingsAuthorization=false;
+      settingsLink.click();
+      return;
+    }
+    showToast('เฉพาะ ADMIN เท่านั้นที่เข้าถึงการตั้งค่าและผู้ดูแลระบบได้', 'error');
+  }).catch(() => {
+    showToast('ไม่สามารถตรวจสอบสิทธิ์ ADMIN ล่าสุดได้ กรุณารีเฟรช session แล้วลองใหม่', 'error');
+  }).finally(() => { refreshingSettingsAuthorization=false; });
 }, true);
 document.addEventListener('click', event => {
   if (!event.target.closest('[data-refresh-view]')) return;
