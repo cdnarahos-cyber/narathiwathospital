@@ -479,6 +479,13 @@ const filterAudit = () => {
   if (empty) empty.hidden = matching.length > 0;
 };
 
+const renderAuditLog = () => {
+  root.innerHTML = `<div class="module-page">${moduleView('audit')}</div>`;
+  document.querySelectorAll('.nav-link').forEach(link => {
+    link.classList.toggle('active', link.dataset.view === 'audit');
+  });
+};
+
 const enhanceAuditPagination = () => {
   const list = root.querySelector('[data-audit-list]');
   if (!list || list.dataset.auditPagerReady) return;
@@ -916,7 +923,7 @@ document.addEventListener('click', event => {
   const page = Number(button.getAttribute('data-audit-page'));
   if (!Number.isInteger(page) || page < 1) return;
   localStorage.setItem('ndss-audit-page', String(page));
-  filterAudit();
+  renderAuditLog();
 });
 
 document.addEventListener('click', event => {
@@ -960,7 +967,7 @@ document.addEventListener('click', event => {
 document.addEventListener('input', event => {
   if (event.target.matches('[data-knowledge-search]')) filterKnowledge();
   if (event.target.matches('[data-settings-search]')) filterSettings();
-  if (event.target.matches('[data-audit-search]')) { localStorage.setItem('ndss-audit-page', '1'); filterAudit(); }
+  if (event.target.matches('[data-audit-search]')) { localStorage.setItem('ndss-audit-search', event.target.value); localStorage.setItem('ndss-audit-page', '1'); filterAudit(); }
   if (event.target.matches('[data-audit-category]')) { localStorage.setItem('ndss-audit-page', '1'); filterAudit(); }
   if (event.target.matches('[data-506-report-search]')) filter506Report();
   if (event.target.matches('[data-alert-search]')) { localStorage.setItem('ndss-alert-page', '1'); applyAlertFilter(root.querySelector('[data-alert-filter].active')?.dataset.alertFilter || 'active'); }
@@ -978,11 +985,12 @@ document.addEventListener('change', event => {
     const pageSize = Number(event.target.value);
     localStorage.setItem('ndss-audit-page-size', String([15,25,50,100].includes(pageSize) ? pageSize : 15));
     localStorage.setItem('ndss-audit-page', '1');
-    filterAudit();
+    renderAuditLog();
   }
   if (event.target.matches('[data-audit-category]')) {
+    localStorage.setItem('ndss-audit-category', event.target.value);
     localStorage.setItem('ndss-audit-page', '1');
-    filterAudit();
+    renderAuditLog();
   }
   if (event.target.matches('[data-knowledge-category]')) filterKnowledge();
   if (event.target.matches('[data-lab-status-filter]')) filterLabRows();
