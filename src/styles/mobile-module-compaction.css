@@ -56,3 +56,147 @@
   .panel-tools > .table-search,
   .panel-tools > select.table-search { flex-basis: 100%; width: 100%; }
 }
+
+/* Phone-only repair for the command panels captured in live use.  Keep these
+   rules scoped below the tablet breakpoint so the existing desktop layout is
+   entirely unchanged. */
+@media (max-width: 640px) {
+  .module-head,
+  .module-head > div,
+  .work-panel .panel-top,
+  .work-panel .panel-top > div {
+    min-width: 0;
+  }
+
+  .module-head {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 10px;
+  }
+
+  .module-head h1,
+  .work-panel .panel-top h2 {
+    overflow-wrap: anywhere;
+  }
+
+  .module-head .primary {
+    width: 100%;
+    min-height: 44px;
+    margin: 0;
+  }
+
+  /* A panel heading, explanatory text and its controls must never compete
+     for the same narrow row. */
+  .work-panel .panel-top {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 9px;
+    align-items: stretch;
+  }
+
+  .work-panel .panel-top > small,
+  .work-panel .panel-top > div > small {
+    margin: 0;
+    line-height: 1.5;
+  }
+
+  .work-panel .panel-top > .table-search,
+  .work-panel .panel-top > select,
+  .work-panel .panel-top > .primary,
+  .work-panel .panel-top > .secondary {
+    width: 100%;
+    min-height: 44px;
+    margin: 0;
+  }
+
+  /* Follow-up and laboratory filters: search first, then its action and
+     selector on separate full-width rows. */
+  .work-panel .panel-top .module-search-control,
+  .work-panel .panel-top .module-search-control .table-search {
+    width: 100%;
+  }
+
+  .alert-filter-controls {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    width: 100%;
+    margin: 8px 0 0;
+    gap: 7px;
+  }
+
+  .alert-filter-controls > button {
+    min-width: 0;
+    min-height: 48px;
+    padding: 6px 4px;
+    overflow-wrap: anywhere;
+    line-height: 1.25;
+  }
+
+  .alert-filter-controls > .table-search {
+    grid-column: 1 / -1;
+    width: 100%;
+    min-height: 44px;
+    margin: 0;
+  }
+
+  .alert-filter-controls > .alert-search-submit {
+    grid-column: 1 / -1;
+    width: 100%;
+    min-height: 44px;
+  }
+
+  .alert-pagination {
+    align-items: stretch;
+  }
+
+  .alert-pagination label,
+  .alert-pagination-actions {
+    width: 100%;
+  }
+
+  .alert-pagination label {
+    justify-content: space-between;
+  }
+
+  /* Paging stays tappable but uses two evenly sized controls rather than a
+     narrow row which wraps the page number unpredictably. */
+  .report-pagination,
+  .event-report-pagination,
+  .audit-pagination,
+  .alert-pagination {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .report-pagination > span:not(.event-report-pagination-actions):not(.audit-pagination-actions),
+  .event-report-pagination > span:not(.event-report-pagination-actions),
+  .audit-pagination > span:not(.audit-pagination-actions),
+  .alert-pagination > span:not(.alert-pagination-actions),
+  .report-pagination label,
+  .event-report-pagination label,
+  .audit-pagination label,
+  .alert-pagination label {
+    grid-column: 1 / -1;
+  }
+
+  .event-report-pagination-actions,
+  .audit-pagination-actions,
+  .alert-pagination-actions {
+    display: contents;
+  }
+
+  .event-report-pagination-actions button,
+  .audit-pagination-actions button,
+  .alert-pagination-actions button,
+  .report-pagination > button {
+    width: 100%;
+    min-width: 0;
+    min-height: 44px;
+    margin: 0;
+  }
+
+  [data-settings-preflight] .panel-top > .primary,
+  [data-settings-preflight] [data-supabase-auth] > .secondary {
+    width: 100%;
+  }
+}
