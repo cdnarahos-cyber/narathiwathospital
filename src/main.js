@@ -446,6 +446,8 @@ const filterAudit = () => {
   if (!search) return;
   const term = search.value.trim().toLocaleLowerCase('th-TH');
   const category = root.querySelector('[data-audit-category]')?.value || '';
+  const savedPageSize = Number(localStorage.getItem('ndss-audit-page-size') || 15);
+  const pageSize = [15, 25, 50, 100].includes(savedPageSize) ? savedPageSize : 15;
   const categoryOf = action => {
     if (/ส่งออก|สำรอง/.test(action)) return 'export';
     if (/นำเข้า|กู้คืน/.test(action)) return 'import';
@@ -453,15 +455,35 @@ const filterAudit = () => {
     if (/บันทึก|มอบหมาย|ปิด|รับทราบ/.test(action)) return 'save';
     return 'other';
   };
-  let visible = 0;
+  const matching = [];
   root.querySelectorAll('[data-audit-row]').forEach(row => {
     const match = (!term || row.textContent.toLocaleLowerCase('th-TH').includes(term))
       && (!category || categoryOf(row.dataset.auditAction || '') === category);
     row.hidden = !match;
-    if (match) visible += 1;
+    if (match) matching.push(row);
   });
+  const totalPages = Math.max(1, Math.ceil(matching.length / pageSize));
+  const requestedPage = Number(localStorage.getItem('ndss-audit-page') || 1);
+  const currentPage = Math.min(Math.max(1, requestedPage), totalPages);
+  const start = (currentPage - 1) * pageSize;
+  matching.forEach((row, index) => { row.hidden = index < start || index >= start + pageSize; });
+  localStorage.setItem('ndss-audit-page', String(currentPage));
+  const pagination = root.querySelector('[data-audit-pagination]');
+  if (pagination) {
+    pagination.hidden = matching.length === 0;
+    const rangeStart = matching.length ? start + 1 : 0;
+    const rangeEnd = Math.min(start + pageSize, matching.length);
+    pagination.innerHTML = `<label>แสดงต่อหน้า<select data-audit-page-size aria-label="จำนวนกิจกรรมต่อหน้า"><option value="15" ${pageSize === 15 ? 'selected' : ''}>15 รายการ</option><option value="25" ${pageSize === 25 ? 'selected' : ''}>25 รายการ</option><option value="50" ${pageSize === 50 ? 'selected' : ''}>50 รายการ</option><option value="100" ${pageSize === 100 ? 'selected' : ''}>100 รายการ</option></select></label><span>แสดง ${rangeStart}-${rangeEnd} จาก ${matching.length} รายการ · หน้า ${currentPage} / ${totalPages}</span><span class="audit-pagination-actions"><button type="button" class="secondary" data-audit-page="${currentPage - 1}" ${currentPage <= 1 ? 'disabled' : ''}>← ก่อนหน้า</button><button type="button" class="secondary" data-audit-page="${currentPage + 1}" ${currentPage >= totalPages ? 'disabled' : ''}>ถัดไป →</button></span>`;
+  }
   const empty = root.querySelector('[data-audit-empty]');
-  if (empty) empty.hidden = visible > 0;
+  if (empty) empty.hidden = matching.length > 0;
+};
+
+const enhanceAuditPagination = () => {
+  const list = root.querySelector('[data-audit-list]');
+  if (!list || list.dataset.auditPagerReady) return;
+  list.dataset.auditPagerReady = 'true';
+  filterAudit();
 };
 
 const filter506Report = () => {
@@ -744,6 +766,7 @@ new MutationObserver(() => {
   enhance506ReportFilters();
   enhanceLabFilters();
   enhanceTrackingFilters();
+  enhanceAuditPagination();
   enhancePaginationSelectors();
   enhanceSearchButtons();
   enhanceTrackingSummary();
@@ -758,6 +781,7 @@ enhanceAlertFilters();
 enhance506ReportFilters();
 enhanceLabFilters();
 enhanceTrackingFilters();
+enhanceAuditPagination();
 enhancePaginationSelectors();
 enhanceSearchButtons();
 enhanceTrackingSummary();
@@ -887,6 +911,15 @@ document.addEventListener('click', event => {
 });
 
 document.addEventListener('click', event => {
+  const button = event.target.closest('[data-audit-page]');
+  if (!button || button.disabled) return;
+  const page = Number(button.getAttribute('data-audit-page'));
+  if (!Number.isInteger(page) || page < 1) return;
+  localStorage.setItem('ndss-audit-page', String(page));
+  filterAudit();
+});
+
+document.addEventListener('click', event => {
   if (event.target.closest('[data-close-506-report-list]')) {
     localStorage.removeItem('ndss-506-report-list-open');
     root.innerHTML = `<div class="module-page">${moduleView('report506')}</div>`;
@@ -927,8 +960,8 @@ document.addEventListener('click', event => {
 document.addEventListener('input', event => {
   if (event.target.matches('[data-knowledge-search]')) filterKnowledge();
   if (event.target.matches('[data-settings-search]')) filterSettings();
-  if (event.target.matches('[data-audit-search]')) filterAudit();
-  if (event.target.matches('[data-audit-category]')) filterAudit();
+  if (event.target.matches('[data-audit-search]')) { localStorage.setItem('ndss-audit-page', '1'); filterAudit(); }
+  if (event.target.matches('[data-audit-category]')) { localStorage.setItem('ndss-audit-page', '1'); filterAudit(); }
   if (event.target.matches('[data-506-report-search]')) filter506Report();
   if (event.target.matches('[data-alert-search]')) { localStorage.setItem('ndss-alert-page', '1'); applyAlertFilter(root.querySelector('[data-alert-filter].active')?.dataset.alertFilter || 'active'); }
 });
@@ -941,6 +974,16 @@ document.addEventListener('keydown', event => {
 });
 
 document.addEventListener('change', event => {
+  if (event.target.matches('[data-audit-page-size]')) {
+    const pageSize = Number(event.target.value);
+    localStorage.setItem('ndss-audit-page-size', String([15,25,50,100].includes(pageSize) ? pageSize : 15));
+    localStorage.setItem('ndss-audit-page', '1');
+    filterAudit();
+  }
+  if (event.target.matches('[data-audit-category]')) {
+    localStorage.setItem('ndss-audit-page', '1');
+    filterAudit();
+  }
   if (event.target.matches('[data-knowledge-category]')) filterKnowledge();
   if (event.target.matches('[data-lab-status-filter]')) filterLabRows();
   if (event.target.matches('[data-tracking-status]')) filterTrackingRows();

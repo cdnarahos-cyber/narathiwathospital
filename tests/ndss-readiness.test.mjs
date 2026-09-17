@@ -7,7 +7,7 @@ const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 const read = file => readFileSync(join(root, file), 'utf8');
 
 const index = read('index.html');
-assert.ok(index.includes('src/main.js?v=20260917-6'), 'the startup script must use the current cache-busting version');
+assert.ok(index.includes('src/main.js?v=20260917-7'), 'the startup script must use the current cache-busting version');
 const localAssets = [...index.matchAll(/(?:href|src)="(\.\/[^"?]+)(?:\?[^\"]*)?"/g)].map(match => match[1].replace(/^\.\//, ''));
 assert.ok(localAssets.length >= 20, 'startup page must include the expected local assets');
 for (const asset of localAssets) assert.ok(existsSync(join(root, asset)), `startup asset is missing: ${asset}`);
@@ -75,6 +75,9 @@ assert.ok(main.includes("panel.classList.add('alert-list-panel')"), 'alert list 
 assert.ok(read('src/styles/alert-pagination.css').includes('.alert-list-panel > .panel-top'), 'alert list header must reserve visible space between the title and action');
 assert.ok(main.includes('enhancePaginationSelectors'), 'all existing paginated modules must receive the shared 15/25/50/100 selector');
 assert.ok(main.includes('enhanceSearchButtons'), 'searchable modules must receive an explicit search button');
+assert.ok(main.includes('data-audit-page-size'), 'Audit Log must offer 15, 25, 50, and 100 item page size selector');
+assert.ok(main.includes('data-audit-page'), 'Audit Log page controls must be handled by the application');
+assert.ok(eventReport.includes('data-audit-pagination'), 'Audit Log must render a pagination region');
 assert.ok(read('src/styles/module-search-actions.css').includes('.module-search-submit'), 'shared search action style is missing');
 assert.ok(main.includes("control.className = 'module-search-control'"), 'search input and submit button must be grouped together');
 assert.ok(read('src/styles/module-search-actions.css').includes('.module-search-control'), 'grouped search controls must have a compact layout style');
