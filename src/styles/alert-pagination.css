@@ -33,6 +33,11 @@
   padding: 10px 12px;
 }
 
+/* The base card grid must not override the browser hidden attribute used by filters. */
+.alert-feed article[hidden] {
+  display: none !important;
+}
+
 .alert-feed .table-action {
   min-width: 84px;
   min-height: 36px;
